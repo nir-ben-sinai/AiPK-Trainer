@@ -1,7 +1,10 @@
+
 import { useState } from "react";
 import { FileText, Home, Download } from "lucide-react";
 import { Popup } from "../Popup";
 import { fmt, sc } from "../../lib/mockBackend";
+// הנה השורה החדשה שמייבאת את מכשיר הקשר שלנו:
+import { supabase } from "../supabase"; 
 
 export function DebriefScreen({ topic, user, debrief, insights, setInsights, setScreen, saveDebrief, pops, loading, submitDebriefInsights, msgs = [] }) {
     const [traineeInsights, setTraineeInsights] = useState(["", "", ""]);
@@ -13,6 +16,35 @@ export function DebriefScreen({ topic, user, debrief, insights, setInsights, set
             return;
         }
         submitDebriefInsights(traineeInsights);
+    };
+
+    // הפונקציה החדשה שמשדרת את הנתונים לענן (לסופהבייס)
+    const handleSaveToCloudAndClose = async () => {
+        try {
+            const { error } = await supabase
+                .from('training_sessions')
+                .insert([
+                    {
+                        user_name: user?.name || "חניך לא ידוע",
+                        topic_title: topic?.title || "אימון כללי",
+                        score: debrief?.score || 0,
+                        trainee_insights: traineeInsights,
+                        ai_summary: debrief?.aiSummary || "",
+                        chat_history: msgs
+                    }
+                ]);
+
+            if (error) {
+                console.error("שגיאה בשמירה לענן:", error);
+            } else {
+                console.log("התחקיר נשמר בהצלחה ב-Supabase!");
+            }
+        } catch (err) {
+            console.error("שגיאת מערכת בשמירה:", err);
+        }
+
+        // סוגר את המסך כמו פעם
+        saveDebrief();
     };
 
     const handleDownload = () => {
@@ -31,6 +63,7 @@ export function DebriefScreen({ topic, user, debrief, insights, setInsights, set
         a.click();
         document.body.removeChild(a);
     };
+
     return (
         <>
             <Popup {...pops} />
@@ -96,7 +129,8 @@ export function DebriefScreen({ topic, user, debrief, insights, setInsights, set
                         {hasAiSummary && !loading && (
                             <button className="btn btn-ghost" style={{ flex: 1, gap: 6 }} onClick={handleDownload}><Download size={13} /> קובץ סיכום </button>
                         )}
-                        <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveDebrief}>שמור וסגור</button>
+                        {/* כאן שינינו את הכפתור שיפעיל את פונקציית השידור שבנינו */}
+                        <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSaveToCloudAndClose}>שמור וסגור</button>
                     </div>
                 </div>
             </div >
