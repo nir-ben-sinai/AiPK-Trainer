@@ -2,9 +2,7 @@ import { useState } from "react";
 import { FileText, Home, Download } from "lucide-react";
 import { Popup } from "../Popup";
 import { fmt, sc } from "../../lib/mockBackend";
-import { supabase } from "../../supabase"; // שים לב: שתי נקודות פעמיים
-// הנה השורה החדשה שמייבאת את מכשיר הקשר שלנו:
-import { supabase } from "../supabase"; 
+import { supabase } from "../../supabase";
 
 export function DebriefScreen({ topic, user, debrief, insights, setInsights, setScreen, saveDebrief, pops, loading, submitDebriefInsights, msgs = [] }) {
     const [traineeInsights, setTraineeInsights] = useState(["", "", ""]);
