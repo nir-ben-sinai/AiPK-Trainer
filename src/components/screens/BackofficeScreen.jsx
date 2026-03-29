@@ -28,13 +28,15 @@ export function BackofficeScreen({
     deleteSet,
     downloadTemplate,
     pops,
-    isUploadingDoc // הפרופ החדש שקיבלנו מהאפליקציה
+    isUploadingDoc,
+    deleteUserRecord,
+    tick // משמש כדי להכריח את המסך להתרענן כשהDB משתנה
 }) {
     const [uploadMode, setUploadMode] = useState("csv");
     const [isGenPopupOpen, setIsGenPopupOpen] = useState(false);
     const [genConfig, setGenConfig] = useState({ docId: "", name: "", count: "20", notes: "" });
     
-    // מנגנון פס התקדמות חכם למחולל השאלות
+    // מנגנון פס התקדמות ברור למחולל השאלות
     const [progress, setProgress] = useState(0);
 
     useEffect(() => {
@@ -43,15 +45,15 @@ export function BackofficeScreen({
             setProgress(0);
             interval = setInterval(() => {
                 setProgress(p => {
-                    if (p < 30) return p + Math.random() * 8;
-                    if (p < 75) return p + Math.random() * 4;
-                    if (p < 95) return p + Math.random() * 1;
+                    if (p < 40) return p + Math.random() * 8;
+                    if (p < 85) return p + Math.random() * 4;
+                    if (p < 96) return p + Math.random() * 1;
                     return p;
                 });
             }, 800);
         } else {
             setProgress(100);
-            const timer = setTimeout(() => setProgress(0), 1000);
+            const timer = setTimeout(() => setProgress(0), 500);
             return () => clearTimeout(timer);
         }
         return () => clearInterval(interval);
@@ -176,10 +178,10 @@ export function BackofficeScreen({
                     {/* CREW */}
                     {boTab === "users" && (
                         <div className="fade">
-                            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 18 }}>משתמשים</div>
+                            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 18 }}>משתמשים במערכת</div>
                             <div className="card" style={{ overflow: "hidden" }}>
                                 <table>
-                                    <thead><tr><th>שם</th><th>אימייל</th><th>תפקיד</th><th>דרגה</th><th>סשנים</th><th>ממוצע</th><th>הצטרף</th></tr></thead>
+                                    <thead><tr><th>שם</th><th>אימייל</th><th>תפקיד</th><th>דרגה</th><th>סשנים</th><th>ממוצע</th><th>הצטרף</th><th>פעולות</th></tr></thead>
                                     <tbody>
                                         {DB.users.map(u => {
                                             const us = done.filter(s => s.userId === u.id);
@@ -193,6 +195,13 @@ export function BackofficeScreen({
                                                     <td style={{ color: "var(--t2)" }}>{us.length}</td>
                                                     <td>{ua !== null ? <span style={{ fontWeight: 600, color: sc(ua), fontFamily: "'IBM Plex Mono',monospace" }}>{ua}%</span> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
                                                     <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(u.joinedAt)}</td>
+                                                    <td>
+                                                        {u.id !== "u_admin" && (
+                                                            <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteUserRecord(u.id)} title="מחק משתמש ונתונים">
+                                                                <Trash2 size={13} />
+                                                            </button>
+                                                        )}
+                                                    </td>
                                                 </tr>
                                             );
                                         })}
@@ -463,98 +472,9 @@ export function BackofficeScreen({
                                         </div>
                                     )}
                                 </div>
-
-                                {/* Uploaded sets preview */}
-                                {
-                                    uploadedSets.length > 0 ? (
-                                        <>
-                                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", margin: "22px 0 14px" }}>שאלות שהועלו</div>
-                                            {uploadedSets.map(t => (
-                                                <div key={t.id} className="card" style={{ marginBottom: 12, borderColor: "rgba(251,191,36,0.2)" }}>
-                                                    <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--bdr)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                                        <div>
-                                                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                                                                <span className="tag tag-warn" style={{ fontSize: 9 }}><Upload size={8} /> UPLOADED</span>
-                                                                <span style={{ fontSize: 11, color: "var(--t3)", fontFamily: "'IBM Plex Mono',monospace" }}>{t.filename}</span>
-                                                            </div>
-                                                            <div className="rb" style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)" }}>{t.title}</div>
-                                                        </div>
-                                                        <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
-                                                            <span className="tag tag-warn">{t.questions.length} שאלות</span>
-                                                            <span className="tag tag-cyan">{t.chapters.length} נושאים</span>
-                                                            <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteSet(t.id)} disabled={aiLoading || isUploadingDoc}>
-                                                                <Trash2 size={13} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
-                                                        {t.questions.slice(0, 3).map((q, qi) => {
-                                                            const ch = t.chapters.find(c => c.id === q.chapterId);
-                                                            return (
-                                                                <div key={q.id} style={{ background: "var(--s2)", border: "1px solid var(--bdr)", borderRadius: 6, padding: "10px 14px" }}>
-                                                                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
-                                                                        <div className="rb" style={{ fontSize: 13, color: "var(--t0)", flex: 1 }}>{qi + 1}. {q.question}</div>
-                                                                        {ch && <span className="tag tag-warn" style={{ flexShrink: 0, fontSize: 10 }}>{ch.title}</span>}
-                                                                    </div>
-                                                                    <div className="rb" style={{ fontSize: 12, color: "var(--t2)", borderTop: "1px solid var(--bdr)", paddingTop: 7 }}>{q.answer}</div>
-                                                                    {q.citation && <div style={{ fontSize: 10, color: "var(--t3)", fontFamily: "'IBM Plex Mono',monospace", marginTop: 5 }}>📎 {q.citation}{q.section ? ` · סעיף ${q.section}` : ""}</div>}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                        {t.questions.length > 3 && (
-                                                            <div style={{ fontSize: 11, color: "var(--t3)", textAlign: "center", padding: "6px 0" }}>
-                                                                + עוד {t.questions.length - 3} שאלות
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </>
-                                    ) : (
-                                        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", background: "var(--s2)", border: "1px solid var(--bdr)", borderRadius: 6, marginTop: 16 }}>
-                                            <AlertTriangle size={14} color="var(--t3)" />
-                                            <span className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>אין קבצים שהועלו — השתמש בטופס ההעלאה למעלה</span>
-                                        </div>
-                                    )
-                                }
                             </div >
                         )
                     }
-
-                    {/* DATABASE */}
-                    {
-                        boTab === "database" && (
-                            <div className="fade">
-                                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 4 }}>Database Viewer</div>
-                                <div className="rb" style={{ fontSize: 12, color: "var(--t2)", marginBottom: 18 }}>In-Memory DB — מתאפס בכל רענון. הנתונים מוצגים בזמן אמת.</div>
-                                <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-                                    {Object.keys(dbTables).map(k => (
-                                        <button key={k} className={`btn ${dbTable === k ? "btn-primary" : "btn-ghost"}`} style={{ fontSize: 11, padding: "6px 14px" }} onClick={() => setDbTable(k)}>
-                                            {k} ({dbTables[k].length})
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="card" style={{ padding: "16px" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                                        <Database size={13} color="var(--warn)" />
-                                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warn)", fontFamily: "'IBM Plex Mono',monospace" }}>
-                                            {dbTable.toUpperCase()} — {dbTables[dbTable].length} records
-                                        </span>
-                                    </div>
-                                    <pre style={{ fontSize: 11, lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 520, overflowY: "auto", fontFamily: "'IBM Plex Mono',monospace" }}>
-                                        {JSON.stringify(dbTables[dbTable], null, 2).split("\n").map((line, i) => {
-                                            const isStr = /"[^"]+":(\s*)"/.test(line);
-                                            const isNum = /"[^"]+":(\s*)(\d|true|false|null)/.test(line);
-                                            const isKey = /"[^"]+":/.test(line) && !isStr && !isNum;
-                                            const color = isStr ? "var(--ok)" : isNum ? "var(--warn)" : isKey ? "var(--cy)" : "var(--t2)";
-                                            return <span key={i} style={{ color }}>{line}{"\n"}</span>;
-                                        })}
-                                    </pre>
-                                </div>
-                            </div >
-                        )
-                    }
-
                 </div >
             </div>
 
@@ -576,7 +496,12 @@ export function BackofficeScreen({
                             <Wand2 size={18} color="var(--cy)" />
                             <div style={{ fontSize: 17, fontWeight: 600, color: "var(--t0)" }}>מחולל שאלות מתקדם</div>
                         </div>
-                        <div style={{ fontSize: 13, color: "var(--t2)", marginBottom: 24, lineHeight: 1.5 }}>בחר מסמך מהספרייה והגדר את מאפייני המבחן שברצונך לייצר. המערכת תפיק את השאלות בתוך מספר שניות.</div>
+                        
+                        {!aiLoading && (
+                            <div style={{ fontSize: 13, color: "var(--t2)", marginBottom: 24, lineHeight: 1.5 }}>
+                                בחר מסמך מהספרייה והגדר את מאפייני המבחן שברצונך לייצר. המערכת תפיק את השאלות בתוך מספר שניות.
+                            </div>
+                        )}
 
                         <div style={{ marginBottom: 16 }}>
                             <label className="lbl">מסמך מקור מהספרייה</label>
@@ -607,16 +532,17 @@ export function BackofficeScreen({
                             <textarea className="inp" style={{ resize: "none" }} rows="3" placeholder="למשל: התמקד רק בפרק הסיכונים והתעלם מהקדמות..." value={genConfig.notes} onChange={e => setGenConfig({ ...genConfig, notes: e.target.value })} disabled={aiLoading} />
                         </div>
 
-                        {/* פס ההתקדמות החדש! מוצג רק בזמן טעינה */}
+                        {/* --- פס ההתקדמות החדש, הבולט והברור --- */}
                         {aiLoading && (
-                            <div style={{ marginBottom: 24 }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--t2)", marginBottom: 6 }}>
-                                    <span style={{ color: "var(--cy)" }}>מנתח את המסמך ומייצר שאלות...</span>
+                            <div style={{ marginTop: 16, marginBottom: 24, padding: "16px", background: "rgba(56,189,248,0.1)", borderRadius: 8, border: "1px solid rgba(56,189,248,0.3)" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, color: "var(--cy)", marginBottom: 8 }}>
+                                    <span><Loader2 className="spin" size={14} style={{ display: "inline", marginRight: 6, position: "relative", top: 2 }}/> מנתח את המסמך ומייצר שאלות...</span>
                                     <span style={{ fontFamily: "'IBM Plex Mono',monospace" }}>{Math.round(progress)}%</span>
                                 </div>
-                                <div className="prog-wrap" style={{ height: 6, background: "var(--s2)", borderRadius: 10 }}>
-                                    <div className="prog-fill" style={{ width: `${progress}%`, background: "var(--cy)", transition: "width 0.4s ease-out", borderRadius: 10 }} />
+                                <div className="prog-wrap" style={{ height: 8, background: "var(--s2)", borderRadius: 10, overflow: "hidden" }}>
+                                    <div className="prog-fill" style={{ width: `${progress}%`, background: "var(--cy)", transition: "width 0.4s ease-out", height: "100%" }} />
                                 </div>
+                                <div style={{ fontSize: 11, color: "var(--t2)", marginTop: 8, textAlign: "center" }}>התהליך עשוי לקחת כדקה, אנא המתן עד לסיום החילול.</div>
                             </div>
                         )}
 
