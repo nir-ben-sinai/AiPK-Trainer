@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, FolderOpen, XCircle, CheckCircle, Trash2, AlertTriangle, Wand2, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, FolderOpen, XCircle, CheckCircle, Trash2, AlertTriangle, Wand2, Sparkles, Loader2 } from "lucide-react";
 import { DB, sc, fmt } from "../../lib/mockBackend";
 import { Logo } from "../Logo";
 
@@ -27,11 +27,35 @@ export function BackofficeScreen({
     uploadError,
     deleteSet,
     downloadTemplate,
-    pops
+    pops,
+    isUploadingDoc // הפרופ החדש שקיבלנו מהאפליקציה
 }) {
     const [uploadMode, setUploadMode] = useState("csv");
     const [isGenPopupOpen, setIsGenPopupOpen] = useState(false);
     const [genConfig, setGenConfig] = useState({ docId: "", name: "", count: "20", notes: "" });
+    
+    // מנגנון פס התקדמות חכם למחולל השאלות
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        let interval;
+        if (aiLoading) {
+            setProgress(0);
+            interval = setInterval(() => {
+                setProgress(p => {
+                    if (p < 30) return p + Math.random() * 8;
+                    if (p < 75) return p + Math.random() * 4;
+                    if (p < 95) return p + Math.random() * 1;
+                    return p;
+                });
+            }, 800);
+        } else {
+            setProgress(100);
+            const timer = setTimeout(() => setProgress(0), 1000);
+            return () => clearTimeout(timer);
+        }
+        return () => clearInterval(interval);
+    }, [aiLoading]);
 
     const trainees = DB.users.filter(u => u.role === "trainee");
 
@@ -39,6 +63,7 @@ export function BackofficeScreen({
         e.preventDefault(); setUploadDrag(false);
         addLibraryDoc(e.dataTransfer.files);
     };
+    
     const tabs = [
         { id: "overview", label: "סקירה", Icon: BarChart2 },
         { id: "users", label: "משתמשים", Icon: Users },
@@ -301,13 +326,12 @@ export function BackofficeScreen({
                             <div className="fade">
                                 <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 18 }}>בסיס ידע והעלאת שאלות</div>
 
-                                {/* ── UPLOAD SECTION ── */}
                                 <div className="card" style={{ padding: "20px", marginBottom: 24, borderColor: "rgba(56,189,248,0.25)" }}>
                                     <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-                                        <button className={`btn ${uploadMode === "csv" ? "btn-primary" : "btn-ghost"}`} style={{ flex: 1 }} onClick={() => setUploadMode("csv")} disabled={aiLoading}>
+                                        <button className={`btn ${uploadMode === "csv" ? "btn-primary" : "btn-ghost"}`} style={{ flex: 1 }} onClick={() => setUploadMode("csv")} disabled={aiLoading || isUploadingDoc}>
                                             <Upload size={14} /> קובץ CSV מתבנית
                                         </button>
-                                        <button className={`btn ${uploadMode === "ai" ? "btn-primary" : "btn-ghost"}`} style={{ flex: 1, border: uploadMode !== "ai" ? "1px solid var(--cy2)" : "none", color: uploadMode !== "ai" ? "var(--cy)" : "#050d18" }} onClick={() => setUploadMode("ai")} disabled={aiLoading}>
+                                        <button className={`btn ${uploadMode === "ai" ? "btn-primary" : "btn-ghost"}`} style={{ flex: 1, border: uploadMode !== "ai" ? "1px solid var(--cy2)" : "none", color: uploadMode !== "ai" ? "var(--cy)" : "#050d18" }} onClick={() => setUploadMode("ai")} disabled={aiLoading || isUploadingDoc}>
                                             <Wand2 size={14} /> חולל אוטומטית בעזרת AI
                                         </button>
                                     </div>
@@ -375,12 +399,12 @@ export function BackofficeScreen({
                                                                     setGenConfig({ ...genConfig, docId: d.id, name: d.filename.replace(/\.(pdf|txt|md)$/i, "") + " - מבחן חדש" });
                                                                     setIsGenPopupOpen(true);
                                                                 }}
-                                                                disabled={aiLoading}
+                                                                disabled={aiLoading || isUploadingDoc}
                                                             >
                                                                 <Sparkles size={13} /> חולל מבחן
                                                             </button>
 
-                                                            <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteLibraryDoc(d.id)}>
+                                                            <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteLibraryDoc(d.id)} disabled={aiLoading || isUploadingDoc}>
                                                                 <Trash2 size={13} />
                                                             </button>
                                                         </div>
@@ -389,15 +413,26 @@ export function BackofficeScreen({
                                             )}
 
                                             <div
-                                                className={`upload-zone ${uploadDrag ? "drag" : ""}`}
-                                                onClick={() => !aiLoading && aiFileInputRef.current?.click()}
-                                                onDragOver={e => { e.preventDefault(); setUploadDrag(true); }}
+                                                className={`upload-zone ${uploadDrag && !isUploadingDoc ? "drag" : ""}`}
+                                                onClick={() => !aiLoading && !isUploadingDoc && aiFileInputRef.current?.click()}
+                                                onDragOver={e => { e.preventDefault(); if(!isUploadingDoc) setUploadDrag(true); }}
                                                 onDragLeave={() => setUploadDrag(false)}
-                                                onDrop={handleAiDrop}
+                                                onDrop={e => { if(!isUploadingDoc) handleAiDrop(e); }}
+                                                style={{ opacity: isUploadingDoc ? 0.7 : 1, cursor: isUploadingDoc ? 'wait' : 'pointer' }}
                                             >
-                                                <FileText size={22} color="var(--cy)" style={{ marginBottom: 8, opacity: 0.7 }} />
-                                                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--t1)", marginBottom: 3 }}>הוסף מסמך חדש לספרייה (PDF / TXT)</div>
-                                                <input ref={aiFileInputRef} type="file" multiple accept=".pdf,.txt" style={{ display: "none" }} onChange={e => addLibraryDoc(e.target.files)} />
+                                                {isUploadingDoc ? (
+                                                    <div style={{ padding: "10px 0" }}>
+                                                        <Loader2 className="spin" size={28} color="var(--cy)" style={{ margin: "0 auto 12px" }} />
+                                                        <div style={{ fontSize: 13, fontWeight: 500, color: "var(--cy)" }}>מעלה ושומר את הספר בענן...</div>
+                                                        <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 4 }}>אנא המתן, זה עשוי לקחת מספר שניות</div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <FileText size={22} color="var(--cy)" style={{ marginBottom: 8, opacity: 0.7 }} />
+                                                        <div style={{ fontSize: 13, fontWeight: 500, color: "var(--t1)", marginBottom: 3 }}>הוסף מסמך חדש לספרייה (PDF / TXT)</div>
+                                                        <input ref={aiFileInputRef} type="file" multiple accept=".pdf,.txt" style={{ display: "none" }} onChange={e => addLibraryDoc(e.target.files)} />
+                                                    </>
+                                                )}
                                             </div>
                                         </>
                                     )}
@@ -420,7 +455,7 @@ export function BackofficeScreen({
                                                         <div style={{ fontSize: 13, fontWeight: 500, color: "var(--t0)", marginBottom: 1 }}>{s.title}</div>
                                                         <div style={{ fontSize: 11, color: "var(--t2)" }}>{s.description} · הועלה {fmt(s.uploadedAt)}</div>
                                                     </div>
-                                                    <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteSet(s.id)}>
+                                                    <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteSet(s.id)} disabled={aiLoading || isUploadingDoc}>
                                                         <Trash2 size={13} />
                                                     </button>
                                                 </div>
@@ -447,7 +482,7 @@ export function BackofficeScreen({
                                                         <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
                                                             <span className="tag tag-warn">{t.questions.length} שאלות</span>
                                                             <span className="tag tag-cyan">{t.chapters.length} נושאים</span>
-                                                            <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteSet(t.id)}>
+                                                            <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteSet(t.id)} disabled={aiLoading || isUploadingDoc}>
                                                                 <Trash2 size={13} />
                                                             </button>
                                                         </div>
@@ -523,7 +558,7 @@ export function BackofficeScreen({
                 </div >
             </div>
 
-            {/* AI Generator Overlay (עצמאי ולא תלוי בפופאפ הישן) */}
+            {/* AI Generator Overlay */}
             {isGenPopupOpen && (
                 <div style={{
                     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -572,6 +607,19 @@ export function BackofficeScreen({
                             <textarea className="inp" style={{ resize: "none" }} rows="3" placeholder="למשל: התמקד רק בפרק הסיכונים והתעלם מהקדמות..." value={genConfig.notes} onChange={e => setGenConfig({ ...genConfig, notes: e.target.value })} disabled={aiLoading} />
                         </div>
 
+                        {/* פס ההתקדמות החדש! מוצג רק בזמן טעינה */}
+                        {aiLoading && (
+                            <div style={{ marginBottom: 24 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--t2)", marginBottom: 6 }}>
+                                    <span style={{ color: "var(--cy)" }}>מנתח את המסמך ומייצר שאלות...</span>
+                                    <span style={{ fontFamily: "'IBM Plex Mono',monospace" }}>{Math.round(progress)}%</span>
+                                </div>
+                                <div className="prog-wrap" style={{ height: 6, background: "var(--s2)", borderRadius: 10 }}>
+                                    <div className="prog-fill" style={{ width: `${progress}%`, background: "var(--cy)", transition: "width 0.4s ease-out", borderRadius: 10 }} />
+                                </div>
+                            </div>
+                        )}
+
                         {uploadError && (
                             <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8, padding: "10px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 6 }}>
                                 <XCircle size={14} color="var(--err)" />
@@ -586,7 +634,7 @@ export function BackofficeScreen({
                                 const success = await processAiFile(genConfig.docId, { count: genConfig.count, notes: genConfig.notes, customTitle: genConfig.name });
                                 if (success) { setIsGenPopupOpen(false); setGenConfig({ docId: "", name: "", count: "20", notes: "" }); }
                             }} disabled={aiLoading || !genConfig.docId}>
-                                {aiLoading ? <><div className="spin border-cyan" style={{ width: 14, height: 14 }} /> ממתין לשרת... (יכול לקחת דקה)</> : <><Sparkles size={15} /> חולל מבחן</>}
+                                {aiLoading ? <><Loader2 className="spin" size={15} /> ממתין לשרת...</> : <><Sparkles size={15} /> חולל מבחן</>}
                             </button>
                         </div>
                     </div>
