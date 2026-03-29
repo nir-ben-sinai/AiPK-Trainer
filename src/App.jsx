@@ -55,15 +55,15 @@ export default function App() {
     const aiFileInputRef = useRef(null);
     const [aiLoading, setAiLoading] = useState(false);
 
-    // גלילה אוטומטית בצ'אט
     useEffect(() => { chatRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
-    // ---> משיכת נתונים מסופהבייס בעליית האפליקציה <---
+    // משיכת נתונים מסופהבייס בעליית האפליקציה
     useEffect(() => {
         const fetchSupabaseData = async () => {
             try {
                 // 1. משיכת מסמכי הספרייה
-                const { data: docsData } = await supabase.from('library_docs').select('*').order('created_at', { ascending: false });
+                const { data: docsData, error: docsErr } = await supabase.from('library_docs').select('*').order('created_at', { ascending: false });
+                if (docsErr) console.error("שגיאה במשיכת ספרים:", docsErr);
                 if (docsData) {
                     const formattedDocs = docsData.map(d => ({
                         id: d.id,
@@ -76,7 +76,8 @@ export default function App() {
                 }
 
                 // 2. משיכת מבחנים
-                const { data: examsData } = await supabase.from('exams').select('*').order('created_at', { ascending: false });
+                const { data: examsData, error: examsErr } = await supabase.from('exams').select('*').order('created_at', { ascending: false });
+                if (examsErr) console.error("שגיאה במשיכת מבחנים:", examsErr);
                 if (examsData) {
                     const formattedExams = examsData.map(e => {
                         const qs = e.questions || [];
@@ -95,7 +96,6 @@ export default function App() {
                         };
                     });
                     setUploadedSets(formattedExams);
-                    // סנכרון עם מסד הנתונים הזמני לטובת סטטיסטיקות
                     DB.uploadedSets = formattedExams;
                 }
             } catch (err) {
@@ -106,7 +106,6 @@ export default function App() {
         fetchSupabaseData();
     }, []);
 
-    // ── AUTH ──
     const doLogin = () => {
         const u = DB.users.find(x => x.email === form.email && x.password === form.password);
         if (!u) { setAuthErr("אימייל או סיסמה שגויים"); return; }
@@ -119,6 +118,7 @@ export default function App() {
             setScreen("onboarding");
         }
     };
+    
     const doRegister = () => {
         if (!form.name || !form.email || !form.password) { setAuthErr("יש למלא את כל השדות"); return; }
         if (DB.users.find(x => x.email === form.email)) { setAuthErr("אימייל קיים"); return; }
@@ -126,7 +126,6 @@ export default function App() {
         DB.users.push(u); setUser(u); setAuthErr(""); setScreen("onboarding");
     };
 
-    // ── CSV UPLOAD ──
     const processFile = async (files) => {
         if (!files || !files.length) return;
         setUploadError("");
@@ -159,13 +158,12 @@ export default function App() {
         processFile(e.dataTransfer.files);
     };
     const deleteSet = async id => {
-        // מחיקה מסופהבייס (אופציונלי - כרגע נמחק רק מהמסך כדי למנוע טעויות מחיקה)
         const idx = uploadedSets.findIndex(s => s.id === id);
         if (idx !== -1) uploadedSets.splice(idx, 1);
         setUploadedSets([...uploadedSets]);
     };
 
-    // ── LIBRARY & AI (With Supabase Storage) ──
+    // ── העלאת ספרייה משודרגת (חסימת כפילויות + טיפול בשגיאות DB) ──
     const addLibraryDoc = async (files) => {
         if (!files || !files.length) return null;
         setUploadError("");
@@ -176,8 +174,13 @@ export default function App() {
             const file = files[i];
             if (!file.name.match(/\.(pdf|txt|md)$/i)) { errorMsg += `רק קבצי PDF או TXT נתמכים (${file.name}). `; continue; }
 
+            // מניעת כפילות בשם הקובץ
+            if (libraryDocs.some(d => d.filename === file.name)) {
+                errorMsg += `הספר "${file.name}" כבר קיים במערכת. `;
+                continue;
+            }
+
             try {
-                // העלאה לסופהבייס Storage
                 const uniqueFileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
                 let fileUrl = "";
                 
@@ -187,22 +190,27 @@ export default function App() {
 
                 if (uploadError) {
                     console.error("שגיאה בהעלאת הקובץ לאחסון:", uploadError);
+                    throw new Error("נכשל בהעלאת הקובץ לענן");
                 } else {
                     const { data: urlData } = supabase.storage.from('pdfs').getPublicUrl(uniqueFileName);
                     fileUrl = urlData.publicUrl;
                 }
 
-                // שמירה בטבלת library_docs
                 let dbDocId = `doc_${Date.now()}`;
                 if (fileUrl) {
-                    const { data: dbData } = await supabase.from('library_docs').insert([{
+                    const { data: dbData, error: dbErr } = await supabase.from('library_docs').insert([{
                         filename: file.name,
                         file_url: fileUrl
                     }]).select().single();
-                    if (dbData) dbDocId = dbData.id;
+                    
+                    if (dbErr) {
+                        console.error("שגיאת מסד נתונים בהוספת ספר:", dbErr);
+                        errorMsg += `הקובץ הועלה, אך יש בעיה ברישום שלו בבסיס הנתונים. `;
+                    } else if (dbData) {
+                        dbDocId = dbData.id;
+                    }
                 }
 
-                // קריאה מקומית עבור ג'מיני
                 const dataUrl = await new Promise((res, rej) => {
                     const reader = new FileReader();
                     reader.onload = e => res(e.target.result);
@@ -215,7 +223,7 @@ export default function App() {
                     id: dbDocId,
                     filename: file.name,
                     mimeType: file.type || "application/pdf",
-                    base64Data, // נשמר זמנית כדי שלא נצטרך להוריד שוב אם נייצר מיד
+                    base64Data,
                     fileUrl,
                     uploadedAt: new Date().toISOString()
                 };
@@ -237,6 +245,7 @@ export default function App() {
         setLibraryDocs([...libraryDocs]);
     };
 
+    // ── יצירת מבחן (הגנת כפילויות + תיקון הורדה מהענן) ──
     const processAiFile = async (docId, options = {}) => {
         const doc = libraryDocs.find(d => d.id === docId);
         if (!doc) {
@@ -244,29 +253,48 @@ export default function App() {
             return false;
         }
 
+        const defaultTitle = doc.filename.replace(/\.(pdf|txt|md)$/i, "") + " (AI Generated)";
+        const finalTitle = options?.customTitle ? options.customTitle : defaultTitle;
+
+        // מניעת כפילות בשם המבחן
+        if (uploadedSets.some(s => s.title === finalTitle)) {
+            setUploadError(`כבר קיים מבחן בשם "${finalTitle}". אנא בחר שם אחר.`);
+            return false;
+        }
+
         setUploadError("");
         setAiLoading(true);
+        
         try {
             let base64 = doc.base64Data;
             
-            // אם המסמך נמשך מהענן ואין לו ייצוג בזיכרון, נוריד אותו מאחורי הקלעים!
+            // משיכה מאובטחת מהענן אם הקובץ רק נטען מה-DB
             if (!base64 && doc.fileUrl) {
                 try {
-                    const res = await fetch(doc.fileUrl);
-                    const blob = await res.blob();
-                    const dataUrl = await new Promise((res, rej) => {
-                        const reader = new FileReader();
-                        reader.onload = e => res(e.target.result);
-                        reader.onerror = rej;
-                        reader.readAsDataURL(blob);
-                    });
-                    base64 = dataUrl.split(",")[1];
+                    const urlParts = doc.fileUrl.split('/pdfs/');
+                    if(urlParts.length > 1) {
+                        const storagePath = urlParts[1];
+                        const { data: blobData, error: downloadErr } = await supabase.storage.from('pdfs').download(storagePath);
+                        
+                        if (downloadErr) throw downloadErr;
+                        
+                        const dataUrl = await new Promise((res, rej) => {
+                            const reader = new FileReader();
+                            reader.onload = e => res(e.target.result);
+                            reader.onerror = rej;
+                            reader.readAsDataURL(blobData);
+                        });
+                        base64 = dataUrl.split(",")[1];
+                    } else {
+                        throw new Error("לינק שבור");
+                    }
                 } catch (fetchErr) {
-                    throw new Error("לא הצלחתי למשוך את הקובץ מהענן לקריאה.");
+                    console.error("Download error:", fetchErr);
+                    throw new Error("שגיאה במשיכת הקובץ מהענן לקריאה. נסה להעלות את הקובץ מחדש.");
                 }
             }
 
-            if (!base64) throw new Error("קובץ לא תקין או חסר.");
+            if (!base64) throw new Error("תוכן הקובץ ריק או שגוי.");
 
             const questions = await generateQuestionsFromDocument(base64, doc.mimeType, doc.filename, options);
 
@@ -285,9 +313,6 @@ export default function App() {
 
             if (!finalQuestions.length) throw new Error("לא נוצרו שאלות מלאות עם תשובה");
 
-            const defaultTitle = doc.filename.replace(/\.(pdf|txt|md)$/i, "") + " (AI Generated)";
-            const finalTitle = options?.customTitle ? options.customTitle : defaultTitle;
-
             const set = {
                 id: `us_${Date.now()}`,
                 title: finalTitle,
@@ -295,7 +320,6 @@ export default function App() {
                 isUploaded: true, filename: doc.filename, uploadedAt: new Date().toISOString(), chapters, questions: finalQuestions
             };
 
-            // שמירה בטבלת exams 
             try {
                 const { data: insertedExam, error: dbError } = await supabase
                     .from('exams')
@@ -307,7 +331,7 @@ export default function App() {
                     }]).select().single();
                 
                 if (insertedExam) {
-                    set.id = insertedExam.id; // עדכון ה-ID המקומי שיתאים למסד הנתונים
+                    set.id = insertedExam.id; 
                 }
             } catch (err) {
                 console.error("שגיאת רשת מול סופהבייס:", err);
@@ -323,7 +347,6 @@ export default function App() {
         }
     };
 
-    // ── TRAINING ──
     const startSession = t => {
         const qs = [...t.questions].sort(() => Math.random() - 0.5);
         const sid = genId("s");
@@ -386,7 +409,6 @@ export default function App() {
         setDebrief(finalDeb); setInsights(ins); setLoading(false);
     };
 
-    // ── SHOW REFERENCE ──
     const showRef = () => {
         const q = questions[qIdx];
         if (!q) return;
