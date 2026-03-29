@@ -328,4 +328,134 @@ export default function App() {
         const qs = [...t.questions].sort(() => Math.random() - 0.5);
         const sid = genId("s");
         DB.sessions.push({ id: sid, userId: user.id, topicId: t.id, startedAt: new Date().toISOString(), status: "active", score: 0, attemptCount: 0, timeToAnswer: 0, isCopied: false });
-        setTopic(t); setQuestions(qs); setQIdx(0); setCorrect(0); setAttempts(
+        setTopic(t); setQuestions(qs); setQIdx(0); setCorrect(0); setAttempts(0); setQAttempts(0);
+        setSessionId(sid); setStartTime(Date.now()); setPopup(null); setHelpClicks(0); setShowAnswerClicks(0);
+        setMsgs([{ role: "ai", text: `שאלה 1 מתוך ${qs.length}:\n\n${qs[0].question}`, status: null }]);
+        setScreen("training");
+    };
+
+    const sendAnswer = async () => {
+        if (!input.trim() || loading) return;
+        const ans = input.trim(); setInput(""); setAttempts(a => a + 1);
+        const nm = [...msgs, { role: "user", text: ans }]; setMsgs(nm); setLoading(true);
+        const q = questions[qIdx];
+        const topicObj = [...uploadedSets].find(t => t.id === topic?.id);
+        const chapter = topicObj?.chapters?.find(c => c.id === q.chapterId);
+        const context = chapter ? chapter.title : topic?.title;
+
+        const reply = await evalAnswerWithGemini(context, q.question, q.answer, ans);
+        const status = reply.includes("[CORRECT]") ? "correct" : reply.includes("[WRONG]") ? "wrong" : "partial";
+        const clean = reply.replace(/\[(CORRECT|PARTIAL|WRONG)\]/g, "").trim();
+        setMsgs([...nm, { role: "ai", text: clean, status }]);
+        setLoading(false);
+        if (status === "correct") {
+            setCorrect(c => c + 1);
+            DB.logs.push({ id: genId("log"), sessionId, userId: user.id, question: questions[qIdx].question, answer: ans, status, timestamp: new Date().toISOString() });
+            setTimeout(() => setPopup(qIdx < questions.length - 1 ? "next" : "end"), 500);
+        } else {
+            setQAttempts(qa => qa + 1);
+        }
+    };
+
+    const goNext = () => {
+        setPopup(null); const ni = qIdx + 1; setQIdx(ni); setQAttempts(0);
+        setMsgs([{ role: "ai", text: `שאלה ${ni + 1} מתוך ${questions.length}:\n\n${questions[ni].question}`, status: null }]);
+    };
+    const goEnd = () => {
+        setPopup(null);
+        const score = Math.round((correct / Math.max(questions.length, 1)) * 100);
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        const si = DB.sessions.findIndex(s => s.id === sessionId);
+        if (si !== -1) Object.assign(DB.sessions[si], { endedAt: new Date().toISOString(), status: "completed", score, attemptCount: attempts, timeToAnswer: Math.round(elapsed / Math.max(questions.length, 1)), isCopied: false, helpClicks, showAnswerClicks });
+
+        const tempDeb = { id: genId("d"), sessionId, userId: user.id, insights: [], aiSummary: "", score, createdAt: new Date().toISOString(), traineeInsights: [] };
+        setDebrief(tempDeb);
+        setInsights([]);
+        setScreen("debrief");
+    };
+
+    const submitDebriefInsights = async (traineeInsightsArray) => {
+        setLoading(true);
+        const { insights: ins, aiSummary } = await generateDebriefWithGemini(msgs, debrief?.score || 0, topic?.title, traineeInsightsArray);
+
+        const finalDeb = { ...debrief, insights: ins, aiSummary, traineeInsights: traineeInsightsArray };
+        const di = DB.debriefs.findIndex(d => d.id === debrief?.id);
+        if (di !== -1) DB.debriefs[di] = finalDeb;
+        else DB.debriefs.push(finalDeb);
+
+        setDebrief(finalDeb); setInsights(ins); setLoading(false);
+    };
+
+    // ── SHOW REFERENCE ──
+    const showRef = () => {
+        const q = questions[qIdx];
+        if (!q) return;
+        const allT = [...uploadedSets];
+        const t = allT.find(t => t.id === topic?.id);
+        const ch = t?.chapters?.find(c => c.id === q.chapterId);
+        const chIdx = ch ? t.chapters.indexOf(ch) + 1 : null;
+        const chLabel = ch ? `Chapter ${chIdx} — ${ch.title}` : null;
+        const parts = [];
+        if (chLabel) parts.push(chLabel);
+        if (q.section) parts.push(`Section ${q.section}`);
+
+        if (qAttempts >= 3) {
+            const refText = `התשובה המלאה:\n${q.answer}\n\nמקור: ${chLabel || ""} ${q.section ? `סעיף ${q.section}` : ""}`;
+            setMsgs(prev => [...prev, { role: "ref", text: refText, status: null }]);
+            DB.helpRequests.push({
+                id: genId("hlp"), sessionId, userId: user.id, topicId: topic?.id, questionText: q.question, qIdx, timestamp: new Date().toISOString(), type: "show_answer"
+            });
+            setShowAnswerClicks(c => c + 1);
+
+            setTimeout(() => {
+                if (qIdx < questions.length - 1) {
+                    setPopup(null); const ni = qIdx + 1; setQIdx(ni); setQAttempts(0);
+                    setMsgs(prev => [...prev, { role: "ai", text: `שאלה ${ni + 1} מתוך ${questions.length}:\n\n${questions[ni].question}`, status: null }]);
+                } else {
+                    goEnd();
+                }
+            }, 3000);
+        } else {
+            const refText = parts.length
+                ? parts.join("\n")
+                : "No reference data available for this question.";
+            setMsgs(prev => [...prev, { role: "ref", text: refText, status: null }]);
+            DB.helpRequests.push({
+                id: genId("hlp"),
+                sessionId,
+                userId: user.id,
+                topicId: topic?.id,
+                questionText: q.question,
+                qIdx,
+                timestamp: new Date().toISOString(),
+                type: "help"
+            });
+            setHelpClicks(c => c + 1);
+        }
+    };
+
+    const saveDebrief = () => {
+        const di = DB.debriefs.findIndex(d => d.id === debrief?.id);
+        if (di !== -1) DB.debriefs[di].insights = insights;
+        setScreen("home");
+    };
+
+    const done = DB.sessions.filter(s => s.status === "completed");
+    const avgSc = done.length ? Math.round(done.reduce((a, s) => a + s.score, 0) / done.length) : 0;
+    const pops = { popup, qIdx, questions, loading, onNext: goNext, onEnd: goEnd, onBack: () => setPopup(null) };
+    const allTopics = [...uploadedSets];
+
+    return (
+        <>
+            <style>{CSS}</style>
+            {screen === "auth" && <AuthScreen authMode={authMode} setAuthMode={setAuthMode} authErr={authErr} setAuthErr={setAuthErr} form={form} setForm={setForm} doLogin={doLogin} doRegister={doRegister} />}
+            {screen === "onboarding" && <OnboardingScreen user={user} setScreen={setScreen} />}
+            {screen === "disclaimer" && <DisclaimerScreen agreed={agreed} setAgreed={setAgreed} setScreen={setScreen} />}
+            {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => { setAdminStep(null); setScreen("backoffice"); }} downloadTemplate={downloadTemplate} fileInputRef={fileInputRef} uploadDrag={uploadDrag} setUploadDrag={setUploadDrag} handleDrop={handleDrop} handleFileInput={handleFileInput} processFile={processFile} uploadError={uploadError} deleteSet={deleteSet} aiLoading={aiLoading} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} aiFileInputRef={aiFileInputRef} />}
+            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={done} allTopics={allTopics} />}
+            {screen === "training" && <TrainingScreen topic={topic} questions={questions} qIdx={qIdx} correct={correct} setPopup={setPopup} msgs={msgs} showRef={showRef} attempts={attempts} qAttempts={qAttempts} input={input} setInput={setInput} sendAnswer={sendAnswer} loading={loading} chatRef={chatRef} pops={pops} user={user} />}
+            {screen === "debrief" && <DebriefScreen topic={topic} user={user} debrief={debrief} insights={insights} setInsights={setInsights} setScreen={setScreen} saveDebrief={saveDebrief} pops={pops} loading={loading} submitDebriefInsights={submitDebriefInsights} msgs={msgs} />}
+            {screen === "backoffice" && <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={done} avgSc={avgSc} uploadedSets={uploadedSets} libraryDocs={libraryDocs} fileInputRef={fileInputRef} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiFileInputRef={aiFileInputRef} aiLoading={aiLoading} uploadDrag={uploadDrag} setUploadDrag={setUploadDrag} handleDrop={handleDrop} handleFileInput={handleFileInput} processFile={processFile} uploadError={uploadError} deleteSet={deleteSet} downloadTemplate={downloadTemplate} pops={pops} />}
+        </>
+    );
+}
