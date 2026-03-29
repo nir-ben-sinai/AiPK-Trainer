@@ -3,6 +3,7 @@ import * as Papa from "papaparse";
 
 import { DB, parseCsvToSet, downloadTemplate, genId, CSS } from "./lib/mockBackend";
 import { evalAnswerWithGemini, generateDebriefWithGemini, generateQuestionsFromDocument } from "./lib/geminiApi";
+import { supabase } from "./supabase"; // <-- הוספנו את החיבור לסופהבייס
 
 import { AuthScreen } from "./components/screens/AuthScreen";
 import { OnboardingScreen } from "./components/screens/OnboardingScreen";
@@ -194,6 +195,28 @@ export default function App() {
                 description: `${finalQuestions.length} שאלות · צ'אפטרינג אוטומטי מבוסס AI`,
                 isUploaded: true, filename: doc.filename, uploadedAt: new Date().toISOString(), chapters, questions: finalQuestions
             };
+
+            // ---> תוספת השמירה לסופהבייס מתחילה כאן <---
+            try {
+                const { error: dbError } = await supabase
+                    .from('exams')
+                    .insert([{
+                        title: finalTitle,
+                        questions: finalQuestions,
+                        created_by: user ? user.name : "Admin",
+                        pdf_url: doc.filename
+                    }]);
+                
+                if (dbError) {
+                    console.error("שגיאה בשמירת המבחן לסופהבייס:", dbError);
+                } else {
+                    console.log("המבחן נשמר בהצלחה ב-Supabase!");
+                }
+            } catch (err) {
+                console.error("שגיאת רשת מול סופהבייס:", err);
+            }
+            // ---> תוספת השמירה לסופהבייס מסתיימת כאן <---
+
             DB.uploadedSets.push(set);
             setUploadedSets([...DB.uploadedSets]);
             setAiLoading(false);
