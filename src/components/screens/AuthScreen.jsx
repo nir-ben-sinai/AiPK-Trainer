@@ -1,36 +1,53 @@
 import React from "react";
-import { Chrome, Mail } from "lucide-react";
-import { supabase } from "../../supabase";
+import { Logo } from "../Logo";
+import { Mail, Lock, LogIn, UserPlus } from "lucide-react";
 
-export function AuthScreen() {
-    const loginGoogle = () => {
-        supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: window.location.origin }
-        });
-    };
-
-    const loginMagic = async () => {
-        const email = prompt("הכנס אימייל לקבלת לינק כניסה:");
-        if (email) {
-            const { error } = await supabase.auth.signInWithOtp({ email });
-            if (error) alert("שגיאה: " + error.message);
-            else alert("שלחנו לך לינק למייל! בדוק גם בספאם.");
-        }
-    };
-
+export function AuthScreen({ authMode, setAuthMode, form, setForm, doLogin }) {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '25px', background: '#020617', color: 'white' }}>
-            <h1 style={{ color: '#4ade80', fontSize: '48px', margin: 0 }}>AIPK</h1>
-            <p>מערכת אימוני בטיחות</p>
-            
-            <button onClick={loginGoogle} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '15px 30px', fontSize: '18px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: 'white', color: 'black', fontWeight: 'bold' }}>
-                <Chrome size={24} color="#4285F4" /> המשך עם Google
-            </button>
+        <div className="screen fade" style={{ justifyContent: "center", alignItems: "center", background: "radial-gradient(circle at center, #0f172a 0%, #020617 100%)" }}>
+            <div className="card" style={{ width: "100%", maxWidth: 380, padding: 40, textAlign: "center" }}>
+                <div style={{ marginBottom: 30, display: "flex", justifyContent: "center" }}>
+                    <Logo sz={80} />
+                </div>
+                
+                <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", marginBottom: 10 }}>AIPK</h1>
+                <p style={{ color: "#94a3b8", marginBottom: 30 }}>מערכת לניהול ואימון בטיחות</p>
 
-            <button onClick={loginMagic} style={{ background: 'none', border: '1px solid #334155', color: '#94a3b8', padding: '10px 20px', cursor: 'pointer', borderRadius: '8px' }}>
-                <Mail size={16} style={{marginLeft: '8px'}} /> כניסה עם לינק למייל
-            </button>
+                <div style={{ textAlign: "right", display: "flex", flexDirection: "column", gap: 20 }}>
+                    {authMode === "register" && (
+                        <div className="inp-group">
+                            <label className="lbl">שם מלא</label>
+                            <input className="inp" type="text" placeholder="ישראל ישראלי" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                        </div>
+                    )}
+                    <div className="inp-group">
+                        <label className="lbl">אימייל</label>
+                        <div style={{ position: "relative" }}>
+                            <Mail size={16} style={{ position: "absolute", right: 12, top: 14, color: "#475569" }} />
+                            <input className="inp" style={{ paddingRight: 40 }} type="email" placeholder="name@company.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+                        </div>
+                    </div>
+                    <div className="inp-group">
+                        <label className="lbl">סיסמה</label>
+                        <div style={{ position: "relative" }}>
+                            <Lock size={16} style={{ position: "absolute", right: 12, top: 14, color: "#475569" }} />
+                            <input className="inp" style={{ paddingRight: 40 }} type="password" placeholder="••••••••" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+                        </div>
+                    </div>
+                </div>
+
+                <button className="btn btn-primary" style={{ width: "100%", height: 50, marginTop: 30 }} onClick={doLogin}>
+                    {authMode === "login" ? <><LogIn size={18} style={{marginLeft:8}}/> כניסה למערכת</> : <><UserPlus size={18} style={{marginLeft:8}}/> יצירת חשבון</>}
+                </button>
+
+                <button 
+                    className="btn-ghost" 
+                    style={{ marginTop: 20, color: "#4ade80", fontSize: 14, border: "none", background: "none", cursor: "pointer" }}
+                    onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}
+                >
+                    {authMode === "login" ? "אין לך חשבון? הירשם כאן" : "כבר רשום? היכנס כאן"}
+                </button>
+            </div>
         </div>
     );
 }
