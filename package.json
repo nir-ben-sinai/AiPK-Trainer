@@ -1,5 +1,6 @@
 {
   "name": "aipk-app",
+  "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
@@ -10,12 +11,12 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@supabase/supabase-js": "^2.39.7",
-    "@google/generative-ai": "^0.3.0",
     "lucide-react": "^0.344.0",
-    "vite": "^5.1.4"
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.1"
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.1.4"
   }
 }
