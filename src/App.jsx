@@ -23,7 +23,7 @@ export default function App() {
     const [form, setForm] = useState({ name: "", email: "", password: "", profession: "" });
     const [authErr, setAuthErr] = useState("");
     const [agreed, setAgreed] = useState(false);
-    const [tick, setTick] = useState(0); // טריגר לרענון המסך כשנתונים משתנים
+    const [tick, setTick] = useState(0); 
 
     // Training
     const [topic, setTopic] = useState(null);
@@ -62,7 +62,7 @@ export default function App() {
 
     useEffect(() => { chatRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
-    // משיכת נתונים מסופהבייס (כולל משתמשים ולוגים!)
+    // משיכת נתונים מסופהבייס 
     useEffect(() => {
         const fetchSupabaseData = async () => {
             try {
@@ -95,8 +95,8 @@ export default function App() {
                 if (usersRes.data?.length > 0) {
                     DB.users = usersRes.data.map(r => r.data);
                 } else {
-                    // יצירת מנהל דיפולטיבי אם המערכת ריקה
-                    const admin = { id: "u_admin", name: "Admin", email: "admin@elal.co.il", password: "admin", profession: "Training Manager", role: "admin", joinedAt: new Date().toISOString() };
+                    // יצירת מנהל דיפולטיבי חדש!
+                    const admin = { id: "u_admin", name: "Admin", email: "admin@aipk.co.il", password: "admin", profession: "Training Manager", role: "admin", joinedAt: new Date().toISOString() };
                     DB.users = [admin];
                     supabase.from('app_users').insert([{ id: admin.id, data: admin }]).then();
                 }
@@ -106,18 +106,16 @@ export default function App() {
                 if (debRes.data) DB.debriefs = debRes.data.map(r => r.data);
                 if (helpRes.data) DB.helpRequests = helpRes.data.map(r => r.data);
 
-                setTick(t => t + 1); // רענון המסך אחרי הטעינה
+                setTick(t => t + 1); 
             } catch (err) { console.error("שגיאה במשיכת נתונים:", err); }
         };
         fetchSupabaseData();
     }, []);
 
-    // ── מחיקת משתמש וכל המידע הנלווה ──
     const deleteUserRecord = async (userId) => {
         if (!window.confirm("אזהרה חמורה: מחיקת המשתמש תמחק לצמיתות גם את כל הסשנים, הלוגים והתחקירים שלו. האם אתה בטוח?")) return;
         try {
             await supabase.from('app_users').delete().eq('id', userId);
-            // ניקוי מיידי מהמסך
             DB.users = DB.users.filter(u => u.id !== userId);
             DB.sessions = DB.sessions.filter(s => s.userId !== userId);
             DB.logs = DB.logs.filter(l => l.userId !== userId);
@@ -144,7 +142,7 @@ export default function App() {
         const u = { id: genId("u"), name: form.name, email: form.email, password: form.password, profession: form.profession || "לא צוין", role: "trainee", joinedAt: new Date().toISOString() };
         DB.users.push(u); setUser(u); setAuthErr(""); setScreen("onboarding");
         
-        await supabase.from('app_users').insert([{ id: u.id, data: u }]); // שמירה לענן
+        await supabase.from('app_users').insert([{ id: u.id, data: u }]); 
         setTick(t => t + 1);
     };
 
@@ -168,7 +166,7 @@ export default function App() {
         } catch (e) { console.error("שגיאה", e); }
     };
 
-    const processFile = async (files) => { /* שמירת CSV (לא משתנה) */ };
+    const processFile = async (files) => { /* שמירת CSV */ };
     const handleFileInput = e => processFile(e.target.files);
     const handleDrop = e => { e.preventDefault(); setUploadDrag(false); processFile(e.dataTransfer.files); };
 
@@ -268,7 +266,7 @@ export default function App() {
         const sid = genId("s");
         const newSess = { id: sid, userId: user.id, topicId: t.id, startedAt: new Date().toISOString(), status: "active", score: 0, attemptCount: 0, timeToAnswer: 0, isCopied: false };
         DB.sessions.push(newSess);
-        supabase.from('app_sessions').insert([{ id: sid, user_id: user.id, data: newSess }]).then(); // ענן
+        supabase.from('app_sessions').insert([{ id: sid, user_id: user.id, data: newSess }]).then(); 
         
         setTopic(t); setQuestions(qs); setQIdx(0); setCorrect(0); setAttempts(0); setQAttempts(0);
         setSessionId(sid); setStartTime(Date.now()); setPopup(null); setHelpClicks(0); setShowAnswerClicks(0);
@@ -294,7 +292,7 @@ export default function App() {
             setCorrect(c => c + 1);
             const newLog = { id: genId("log"), sessionId, userId: user.id, question: questions[qIdx].question, answer: ans, status, timestamp: new Date().toISOString() };
             DB.logs.push(newLog);
-            supabase.from('app_logs').insert([{ id: newLog.id, session_id: sessionId, user_id: user.id, data: newLog }]).then(); // ענן
+            supabase.from('app_logs').insert([{ id: newLog.id, session_id: sessionId, user_id: user.id, data: newLog }]).then(); 
             setTimeout(() => setPopup(qIdx < questions.length - 1 ? "next" : "end"), 500);
         } else {
             setQAttempts(qa => qa + 1);
@@ -313,7 +311,7 @@ export default function App() {
         const si = DB.sessions.findIndex(s => s.id === sessionId);
         if (si !== -1) {
             Object.assign(DB.sessions[si], { endedAt: new Date().toISOString(), status: "completed", score, attemptCount: attempts, timeToAnswer: Math.round(elapsed / Math.max(questions.length, 1)) });
-            supabase.from('app_sessions').update({ data: DB.sessions[si] }).eq('id', sessionId).then(); // עדכון ענן
+            supabase.from('app_sessions').update({ data: DB.sessions[si] }).eq('id', sessionId).then(); 
         }
         const tempDeb = { id: genId("d"), sessionId, userId: user.id, insights: [], aiSummary: "", score, createdAt: new Date().toISOString(), traineeInsights: [] };
         setDebrief(tempDeb); setInsights([]); setScreen("debrief");
@@ -326,7 +324,7 @@ export default function App() {
         const di = DB.debriefs.findIndex(d => d.id === debrief?.id);
         if (di !== -1) DB.debriefs[di] = finalDeb; else DB.debriefs.push(finalDeb);
         
-        supabase.from('app_debriefs').upsert([{ id: finalDeb.id, session_id: sessionId, user_id: user.id, data: finalDeb }]).then(); // ענן
+        supabase.from('app_debriefs').upsert([{ id: finalDeb.id, session_id: sessionId, user_id: user.id, data: finalDeb }]).then(); 
         setDebrief(finalDeb); setInsights(ins); setLoading(false);
     };
 
