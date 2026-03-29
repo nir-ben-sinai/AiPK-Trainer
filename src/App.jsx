@@ -14,7 +14,6 @@ import { TrainingScreen } from "./components/screens/TrainingScreen";
 import { DebriefScreen } from "./components/screens/DebriefScreen";
 import { BackofficeScreen } from "./components/screens/BackofficeScreen";
 
-// עזר לבדיקת מזהים בענן
 const isUuid = (str) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
 
 export default function App() {
@@ -25,7 +24,6 @@ export default function App() {
     const [authErr, setAuthErr] = useState("");
     const [agreed, setAgreed] = useState(false);
 
-    // Training
     const [topic, setTopic] = useState(null);
     const [questions, setQuestions] = useState([]);
     const [qIdx, setQIdx] = useState(0);
@@ -41,7 +39,6 @@ export default function App() {
     const [debrief, setDebrief] = useState(null);
     const [insights, setInsights] = useState(["", "", ""]);
 
-    // Back office
     const [boTab, setBoTab] = useState("overview");
     const [dbTable, setDbTable] = useState("users");
     const [adminStep, setAdminStep] = useState(null);
@@ -56,11 +53,12 @@ export default function App() {
     const fileInputRef = useRef(null);
     const chatRef = useRef(null);
     const aiFileInputRef = useRef(null);
+    
     const [aiLoading, setAiLoading] = useState(false);
+    const [isUploadingDoc, setIsUploadingDoc] = useState(false); // הסטטוס החדש להעלאת ספרים
 
     useEffect(() => { chatRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
-    // משיכת נתונים מסופהבייס בעליית האפליקציה
     useEffect(() => {
         const fetchSupabaseData = async () => {
             try {
@@ -159,7 +157,6 @@ export default function App() {
         processFile(e.dataTransfer.files);
     };
 
-    // ── מחיקת מבחן כולל אישור וסנכרון לענן ──
     const deleteSet = async id => {
         if (!window.confirm("האם אתה בטוח שברצונך למחוק מבחן זה לצמיתות?")) return;
         
@@ -176,7 +173,6 @@ export default function App() {
         }
     };
 
-    // ── מחיקת ספר מהספרייה כולל אישור וסנכרון לענן ──
     const deleteLibraryDoc = async id => {
         if (!window.confirm("האם אתה בטוח שברצונך למחוק ספר זה לצמיתות? המחיקה לא תפגע במבחנים שכבר נוצרו ממנו.")) return;
         
@@ -193,10 +189,10 @@ export default function App() {
         }
     };
 
-    // ── העלאת ספרייה משודרגת - עוצר אם נכשל בשמירה ──
     const addLibraryDoc = async (files) => {
         if (!files || !files.length) return null;
         setUploadError("");
+        setIsUploadingDoc(true); // תחילת העלאה
         let errorMsg = "";
         let newDocs = [];
 
@@ -224,7 +220,6 @@ export default function App() {
 
                 let dbDocId = `doc_${Date.now()}`;
                 
-                // כאן אנחנו עוצרים אם יש שגיאה במסד הנתונים!
                 const { data: dbData, error: dbErr } = await supabase.from('library_docs').insert([{
                     filename: file.name,
                     file_url: fileUrl
@@ -261,6 +256,7 @@ export default function App() {
         }
         if (aiFileInputRef.current) aiFileInputRef.current.value = "";
         if (errorMsg) setUploadError(errorMsg);
+        setIsUploadingDoc(false); // סיום העלאה
         return newDocs.length > 0 ? newDocs : null;
     };
 
@@ -363,7 +359,6 @@ export default function App() {
         }
     };
 
-    // ── TRAINING ──
     const startSession = t => {
         const qs = [...t.questions].sort(() => Math.random() - 0.5);
         const sid = genId("s");
@@ -494,7 +489,9 @@ export default function App() {
             {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={done} allTopics={allTopics} />}
             {screen === "training" && <TrainingScreen topic={topic} questions={questions} qIdx={qIdx} correct={correct} setPopup={setPopup} msgs={msgs} showRef={showRef} attempts={attempts} qAttempts={qAttempts} input={input} setInput={setInput} sendAnswer={sendAnswer} loading={loading} chatRef={chatRef} pops={pops} user={user} />}
             {screen === "debrief" && <DebriefScreen topic={topic} user={user} debrief={debrief} insights={insights} setInsights={setInsights} setScreen={setScreen} saveDebrief={saveDebrief} pops={pops} loading={loading} submitDebriefInsights={submitDebriefInsights} msgs={msgs} />}
-            {screen === "backoffice" && <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={done} avgSc={avgSc} uploadedSets={uploadedSets} libraryDocs={libraryDocs} fileInputRef={fileInputRef} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiFileInputRef={aiFileInputRef} aiLoading={aiLoading} uploadDrag={uploadDrag} setUploadDrag={setUploadDrag} handleDrop={handleDrop} handleFileInput={handleFileInput} processFile={processFile} uploadError={uploadError} deleteSet={deleteSet} downloadTemplate={downloadTemplate} pops={pops} />}
+            
+            {/* הוספנו את isUploadingDoc ל-BackofficeScreen */}
+            {screen === "backoffice" && <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={done} avgSc={avgSc} uploadedSets={uploadedSets} libraryDocs={libraryDocs} fileInputRef={fileInputRef} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiFileInputRef={aiFileInputRef} aiLoading={aiLoading} uploadDrag={uploadDrag} setUploadDrag={setUploadDrag} handleDrop={handleDrop} handleFileInput={handleFileInput} processFile={processFile} uploadError={uploadError} deleteSet={deleteSet} downloadTemplate={downloadTemplate} pops={pops} isUploadingDoc={isUploadingDoc} />}
         </>
     );
 }
