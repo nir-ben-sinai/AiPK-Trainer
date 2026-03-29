@@ -14,6 +14,9 @@ import { TrainingScreen } from "./components/screens/TrainingScreen";
 import { DebriefScreen } from "./components/screens/DebriefScreen";
 import { BackofficeScreen } from "./components/screens/BackofficeScreen";
 
+// עזר לבדיקת מזהים בענן
+const isUuid = (str) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+
 export default function App() {
     const [screen, setScreen] = useState("auth");
     const [user, setUser] = useState(null);
@@ -61,7 +64,6 @@ export default function App() {
     useEffect(() => {
         const fetchSupabaseData = async () => {
             try {
-                // 1. משיכת מסמכי הספרייה
                 const { data: docsData, error: docsErr } = await supabase.from('library_docs').select('*').order('created_at', { ascending: false });
                 if (docsErr) console.error("שגיאה במשיכת ספרים:", docsErr);
                 if (docsData) {
@@ -75,7 +77,6 @@ export default function App() {
                     setLibraryDocs(formattedDocs);
                 }
 
-                // 2. משיכת מבחנים
                 const { data: examsData, error: examsErr } = await supabase.from('exams').select('*').order('created_at', { ascending: false });
                 if (examsErr) console.error("שגיאה במשיכת מבחנים:", examsErr);
                 if (examsData) {
@@ -157,13 +158,42 @@ export default function App() {
         e.preventDefault(); setUploadDrag(false);
         processFile(e.dataTransfer.files);
     };
+
+    // ── מחיקת מבחן כולל אישור וסנכרון לענן ──
     const deleteSet = async id => {
-        const idx = uploadedSets.findIndex(s => s.id === id);
-        if (idx !== -1) uploadedSets.splice(idx, 1);
-        setUploadedSets([...uploadedSets]);
+        if (!window.confirm("האם אתה בטוח שברצונך למחוק מבחן זה לצמיתות?")) return;
+        
+        try {
+            if (isUuid(id)) {
+                const { error } = await supabase.from('exams').delete().eq('id', id);
+                if (error) console.error("שגיאה במחיקה מהענן:", error);
+            }
+            const idx = uploadedSets.findIndex(s => s.id === id);
+            if (idx !== -1) uploadedSets.splice(idx, 1);
+            setUploadedSets([...uploadedSets]);
+        } catch (e) {
+            console.error("שגיאה", e);
+        }
     };
 
-    // ── העלאת ספרייה משודרגת (חסימת כפילויות + טיפול בשגיאות DB) ──
+    // ── מחיקת ספר מהספרייה כולל אישור וסנכרון לענן ──
+    const deleteLibraryDoc = async id => {
+        if (!window.confirm("האם אתה בטוח שברצונך למחוק ספר זה לצמיתות? המחיקה לא תפגע במבחנים שכבר נוצרו ממנו.")) return;
+        
+        try {
+            if (isUuid(id)) {
+                const { error } = await supabase.from('library_docs').delete().eq('id', id);
+                if (error) console.error("שגיאה במחיקה מהענן:", error);
+            }
+            const idx = libraryDocs.findIndex(d => d.id === id);
+            if (idx !== -1) libraryDocs.splice(idx, 1);
+            setLibraryDocs([...libraryDocs]);
+        } catch (e) {
+            console.error("שגיאה", e);
+        }
+    };
+
+    // ── העלאת ספרייה משודרגת - עוצר אם נכשל בשמירה ──
     const addLibraryDoc = async (files) => {
         if (!files || !files.length) return null;
         setUploadError("");
@@ -174,7 +204,6 @@ export default function App() {
             const file = files[i];
             if (!file.name.match(/\.(pdf|txt|md)$/i)) { errorMsg += `רק קבצי PDF או TXT נתמכים (${file.name}). `; continue; }
 
-            // מניעת כפילות בשם הקובץ
             if (libraryDocs.some(d => d.filename === file.name)) {
                 errorMsg += `הספר "${file.name}" כבר קיים במערכת. `;
                 continue;
@@ -184,31 +213,27 @@ export default function App() {
                 const uniqueFileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
                 let fileUrl = "";
                 
-                const { error: uploadError } = await supabase.storage
-                    .from('pdfs')
-                    .upload(uniqueFileName, file);
+                const { error: uploadError } = await supabase.storage.from('pdfs').upload(uniqueFileName, file);
 
                 if (uploadError) {
-                    console.error("שגיאה בהעלאת הקובץ לאחסון:", uploadError);
-                    throw new Error("נכשל בהעלאת הקובץ לענן");
-                } else {
-                    const { data: urlData } = supabase.storage.from('pdfs').getPublicUrl(uniqueFileName);
-                    fileUrl = urlData.publicUrl;
-                }
+                    throw new Error("נכשל בהעלאת הקובץ לשרת האחסון");
+                } 
+                
+                const { data: urlData } = supabase.storage.from('pdfs').getPublicUrl(uniqueFileName);
+                fileUrl = urlData.publicUrl;
 
                 let dbDocId = `doc_${Date.now()}`;
-                if (fileUrl) {
-                    const { data: dbData, error: dbErr } = await supabase.from('library_docs').insert([{
-                        filename: file.name,
-                        file_url: fileUrl
-                    }]).select().single();
-                    
-                    if (dbErr) {
-                        console.error("שגיאת מסד נתונים בהוספת ספר:", dbErr);
-                        errorMsg += `הקובץ הועלה, אך יש בעיה ברישום שלו בבסיס הנתונים. `;
-                    } else if (dbData) {
-                        dbDocId = dbData.id;
-                    }
+                
+                // כאן אנחנו עוצרים אם יש שגיאה במסד הנתונים!
+                const { data: dbData, error: dbErr } = await supabase.from('library_docs').insert([{
+                    filename: file.name,
+                    file_url: fileUrl
+                }]).select().single();
+                
+                if (dbErr) {
+                    throw new Error("נכשל בשמירת פרטי הספר במסד הנתונים: " + dbErr.message);
+                } else if (dbData) {
+                    dbDocId = dbData.id;
                 }
 
                 const dataUrl = await new Promise((res, rej) => {
@@ -239,13 +264,6 @@ export default function App() {
         return newDocs.length > 0 ? newDocs : null;
     };
 
-    const deleteLibraryDoc = id => {
-        const idx = libraryDocs.findIndex(d => d.id === id);
-        if (idx !== -1) libraryDocs.splice(idx, 1);
-        setLibraryDocs([...libraryDocs]);
-    };
-
-    // ── יצירת מבחן (הגנת כפילויות + תיקון הורדה מהענן) ──
     const processAiFile = async (docId, options = {}) => {
         const doc = libraryDocs.find(d => d.id === docId);
         if (!doc) {
@@ -256,7 +274,6 @@ export default function App() {
         const defaultTitle = doc.filename.replace(/\.(pdf|txt|md)$/i, "") + " (AI Generated)";
         const finalTitle = options?.customTitle ? options.customTitle : defaultTitle;
 
-        // מניעת כפילות בשם המבחן
         if (uploadedSets.some(s => s.title === finalTitle)) {
             setUploadError(`כבר קיים מבחן בשם "${finalTitle}". אנא בחר שם אחר.`);
             return false;
@@ -268,7 +285,6 @@ export default function App() {
         try {
             let base64 = doc.base64Data;
             
-            // משיכה מאובטחת מהענן אם הקובץ רק נטען מה-DB
             if (!base64 && doc.fileUrl) {
                 try {
                     const urlParts = doc.fileUrl.split('/pdfs/');
@@ -347,6 +363,7 @@ export default function App() {
         }
     };
 
+    // ── TRAINING ──
     const startSession = t => {
         const qs = [...t.questions].sort(() => Math.random() - 0.5);
         const sid = genId("s");
