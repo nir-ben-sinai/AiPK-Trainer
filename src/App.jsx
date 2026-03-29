@@ -1,37 +1,44 @@
-import { useState, useEffect } from "react";
-import { supabase } from "./supabase";
+import { useState } from "react";
+import { CSS } from "./lib/mockBackend";
 import { AuthScreen } from "./components/screens/AuthScreen";
+import { OnboardingScreen } from "./components/screens/OnboardingScreen";
+import { HomeScreen } from "./components/screens/HomeScreen";
+import { TrainingScreen } from "./components/screens/TrainingScreen";
+import { DebriefScreen } from "./components/screens/DebriefScreen";
+import { BackofficeScreen } from "./components/screens/BackofficeScreen";
 
 export default function App() {
     const [user, setUser] = useState(null);
-    const [screen, setScreen] = useState("loading");
+    const [screen, setScreen] = useState("auth");
+    const [authMode, setAuthMode] = useState("login");
+    const [form, setForm] = useState({ name: "", email: "", password: "" });
 
-    useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (session?.user) {
-                setUser(session.user);
-                setScreen("home");
-            } else {
-                setUser(null);
-                setScreen("auth");
-            }
-        });
-        return () => subscription.unsubscribe();
-    }, []);
-
-    if (screen === "loading") return <div style={{color:'white', textAlign:'center', marginTop:'50px'}}>טוען מערכת...</div>;
+    const doLogin = () => {
+        if (form.email === "admin@aipk.co.il") {
+            setUser({ name: "ניר", role: "admin", email: form.email });
+            setScreen("backoffice");
+        } else {
+            setUser({ name: form.name || "מתרגל", role: "trainee", email: form.email });
+            setScreen("onboarding");
+        }
+    };
 
     return (
-        <div style={{ minHeight: '100vh', background: '#020617', color: 'white' }}>
-            {screen === "auth" ? (
-                <AuthScreen />
-            ) : (
-                <div style={{ textAlign: 'center', paddingTop: '100px' }}>
-                    <h1>שלום, התחברת בהצלחה!</h1>
-                    <p>{user?.email}</p>
-                    <button onClick={() => supabase.auth.signOut()} style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer' }}>התנתק</button>
-                </div>
-            )}
-        </div>
+        <>
+            <style>{CSS}</style>
+            <div className="app-container">
+                {screen === "auth" && (
+                    <AuthScreen 
+                        authMode={authMode} setAuthMode={setAuthMode} 
+                        form={form} setForm={setForm} doLogin={doLogin} 
+                    />
+                )}
+                {screen === "onboarding" && <OnboardingScreen user={user} setScreen={setScreen} />}
+                {screen === "home" && <HomeScreen user={user} setScreen={setScreen} />}
+                {screen === "training" && <TrainingScreen user={user} setScreen={setScreen} />}
+                {screen === "debrief" && <DebriefScreen user={user} setScreen={setScreen} />}
+                {screen === "backoffice" && <BackofficeScreen user={user} setScreen={setScreen} />}
+            </div>
+        </>
     );
 }
