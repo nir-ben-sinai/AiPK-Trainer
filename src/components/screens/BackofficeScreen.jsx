@@ -270,7 +270,7 @@ export function BackofficeScreen({
                                 <div className="card" style={{ overflow: "hidden" }}>
                                     <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--bdr)", display: "flex", alignItems: "center", gap: 8 }}>
                                         <MapPin size={13} color="var(--warn)" />
-                                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warn)" }}>בקשות עזרה ({DB.helpRequests.length})</span>
+                                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warn)">בקשות עזרה ({DB.helpRequests.length})</span>
                                     </div>
                                     {DB.helpRequests.length === 0
                                         ? <div className="rb" style={{ color: "var(--t2)", fontSize: 12, padding: "14px 16px" }}>אין נתונים</div>
@@ -355,18 +355,14 @@ export function BackofficeScreen({
                                         <>
                                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                    <Wand2 size={14} color="var(--cy)" />
-                                                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--t0)" }}>מחולל המבחנים והאימונים</span>
+                                                    <BookOpen size={14} color="var(--cy)" />
+                                                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--t0)" }}>ספריית הדרכה ({libraryDocs.length} מסמכים)</span>
                                                 </div>
-                                                <button className="btn btn-primary" onClick={() => setIsGenPopupOpen(true)} disabled={libraryDocs.length === 0}>
-                                                    <Sparkles size={14} /> פתח מחולל שאלות
-                                                </button>
                                             </div>
                                             <div style={{ background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: 6, padding: "12px", marginBottom: 16, fontSize: 12, color: "var(--t1)", lineHeight: 1.6 }}>
-                                                {libraryDocs.length === 0 ? "כדי לחולל שאלות, עליך להעלות תחילה מסמך מקור לספריית ההדרכה למטה." : "בחר 'פתח מחולל שאלות' כדי ליצור מבחן מהמסמכים שבספרייה על בסיס הגדרותיך, או העלה מסמכים נוספים לספרייה."}
+                                                {libraryDocs.length === 0 ? "כדי לחולל שאלות, עליך להעלות תחילה מסמך מקור לספריית ההדרכה למטה." : "בחר 'חולל מבחן' ליד כל מסמך קיים בספרייה כדי ליצור ממנו מבחן חדש, או העלה מסמך חדש."}
                                             </div>
 
-                                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", marginBottom: 10 }}>ספריית הדרכה ({libraryDocs.length} מסמכים)</div>
                                             {libraryDocs.length > 0 && (
                                                 <div style={{ marginBottom: 16 }}>
                                                     {libraryDocs.map(d => (
@@ -376,6 +372,20 @@ export function BackofficeScreen({
                                                                 <div style={{ fontSize: 13, fontWeight: 500, color: "var(--t0)", marginBottom: 1 }}>{d.filename}</div>
                                                                 <div style={{ fontSize: 11, color: "var(--t2)" }}>הועלה {fmt(d.uploadedAt)}</div>
                                                             </div>
+                                                            
+                                                            {/* הנה הכפתור החדש שלנו! */}
+                                                            <button 
+                                                                className="btn btn-ghost" 
+                                                                style={{ fontSize: 11, gap: 6, color: "var(--cy)", padding: "4px 8px" }} 
+                                                                onClick={() => {
+                                                                    setGenConfig({ ...genConfig, docId: d.id, name: d.filename.replace(/\.(pdf|txt|md)$/i, "") + " - מבחן חדש" });
+                                                                    setIsGenPopupOpen(true);
+                                                                }}
+                                                                disabled={aiLoading}
+                                                            >
+                                                                <Sparkles size={13} /> חולל מבחן
+                                                            </button>
+
                                                             <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteLibraryDoc(d.id)}>
                                                                 <Trash2 size={13} />
                                                             </button>
@@ -400,184 +410,4 @@ export function BackofficeScreen({
 
                                     {uploadError && (
                                         <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 6 }}>
-                                            <XCircle size={13} color="var(--err)" />
-                                            <span className="rb" style={{ fontSize: 12, color: "var(--err)" }}>{uploadError}</span>
-                                        </div>
-                                    )}
-
-                                    {/* Uploaded sets list */}
-                                    {uploadedSets.length > 0 && (
-                                        <div style={{ marginTop: 14 }}>
-                                            <div className="lbl" style={{ marginBottom: 10 }}>קבצים שהועלו ({uploadedSets.length})</div>
-                                            {uploadedSets.map(s => (
-                                                <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--s2)", border: "1px solid var(--bdr)", borderRadius: 6, marginBottom: 8 }}>
-                                                    <CheckCircle size={14} color="var(--ok)" style={{ flexShrink: 0 }} />
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <div style={{ fontSize: 13, fontWeight: 500, color: "var(--t0)", marginBottom: 1 }}>{s.title}</div>
-                                                        <div style={{ fontSize: 11, color: "var(--t2)" }}>{s.description} · הועלה {fmt(s.uploadedAt)}</div>
-                                                    </div>
-                                                    <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteSet(s.id)}>
-                                                        <Trash2 size={13} />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Uploaded sets preview */}
-                                {
-                                    uploadedSets.length > 0 ? (
-                                        <>
-                                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", margin: "22px 0 14px" }}>שאלות שהועלו</div>
-                                            {uploadedSets.map(t => (
-                                                <div key={t.id} className="card" style={{ marginBottom: 12, borderColor: "rgba(251,191,36,0.2)" }}>
-                                                    <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--bdr)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                                        <div>
-                                                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                                                                <span className="tag tag-warn" style={{ fontSize: 9 }}><Upload size={8} /> UPLOADED</span>
-                                                                <span style={{ fontSize: 11, color: "var(--t3)", fontFamily: "'IBM Plex Mono',monospace" }}>{t.filename}</span>
-                                                            </div>
-                                                            <div className="rb" style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)" }}>{t.title}</div>
-                                                        </div>
-                                                        <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
-                                                            <span className="tag tag-warn">{t.questions.length} שאלות</span>
-                                                            <span className="tag tag-cyan">{t.chapters.length} נושאים</span>
-                                                            <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteSet(t.id)}>
-                                                                <Trash2 size={13} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
-                                                        {t.questions.slice(0, 3).map((q, qi) => {
-                                                            const ch = t.chapters.find(c => c.id === q.chapterId);
-                                                            return (
-                                                                <div key={q.id} style={{ background: "var(--s2)", border: "1px solid var(--bdr)", borderRadius: 6, padding: "10px 14px" }}>
-                                                                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
-                                                                        <div className="rb" style={{ fontSize: 13, color: "var(--t0)", flex: 1 }}>{qi + 1}. {q.question}</div>
-                                                                        {ch && <span className="tag tag-warn" style={{ flexShrink: 0, fontSize: 10 }}>{ch.title}</span>}
-                                                                    </div>
-                                                                    <div className="rb" style={{ fontSize: 12, color: "var(--t2)", borderTop: "1px solid var(--bdr)", paddingTop: 7 }}>{q.answer}</div>
-                                                                    {q.citation && <div style={{ fontSize: 10, color: "var(--t3)", fontFamily: "'IBM Plex Mono',monospace", marginTop: 5 }}>📎 {q.citation}{q.section ? ` · סעיף ${q.section}` : ""}</div>}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                        {t.questions.length > 3 && (
-                                                            <div style={{ fontSize: 11, color: "var(--t3)", textAlign: "center", padding: "6px 0" }}>
-                                                                + עוד {t.questions.length - 3} שאלות
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </>
-                                    ) : (
-                                        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", background: "var(--s2)", border: "1px solid var(--bdr)", borderRadius: 6, marginTop: 16 }}>
-                                            <AlertTriangle size={14} color="var(--t3)" />
-                                            <span className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>אין קבצים שהועלו — השתמש בטופס ההעלאה למעלה</span>
-                                        </div>
-                                    )
-                                }
-                            </div >
-                        )
-                    }
-
-                    {/* DATABASE */}
-                    {
-                        boTab === "database" && (
-                            <div className="fade">
-                                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 4 }}>Database Viewer</div>
-                                <div className="rb" style={{ fontSize: 12, color: "var(--t2)", marginBottom: 18 }}>In-Memory DB — מתאפס בכל רענון. הנתונים מוצגים בזמן אמת.</div>
-                                <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-                                    {Object.keys(dbTables).map(k => (
-                                        <button key={k} className={`btn ${dbTable === k ? "btn-primary" : "btn-ghost"}`} style={{ fontSize: 11, padding: "6px 14px" }} onClick={() => setDbTable(k)}>
-                                            {k} ({dbTables[k].length})
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="card" style={{ padding: "16px" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                                        <Database size={13} color="var(--warn)" />
-                                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warn)", fontFamily: "'IBM Plex Mono',monospace" }}>
-                                            {dbTable.toUpperCase()} — {dbTables[dbTable].length} records
-                                        </span>
-                                    </div>
-                                    <pre style={{ fontSize: 11, lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 520, overflowY: "auto", fontFamily: "'IBM Plex Mono',monospace" }}>
-                                        {JSON.stringify(dbTables[dbTable], null, 2).split("\n").map((line, i) => {
-                                            const isStr = /"[^"]+":(\s*)"/.test(line);
-                                            const isNum = /"[^"]+":(\s*)(\d|true|false|null)/.test(line);
-                                            const isKey = /"[^"]+":/.test(line) && !isStr && !isNum;
-                                            const color = isStr ? "var(--ok)" : isNum ? "var(--warn)" : isKey ? "var(--cy)" : "var(--t2)";
-                                            return <span key={i} style={{ color }}>{line}{"\n"}</span>;
-                                        })}
-                                    </pre>
-                                </div>
-                            </div >
-                        )
-                    }
-
-                </div >
-            </div>
-
-            {/* AI Generator Popup */}
-            {isGenPopupOpen && (
-                <Popup isOpen={isGenPopupOpen} onClose={() => !aiLoading && setIsGenPopupOpen(false)}>
-                    <div style={{ padding: "8px 4px 16px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                            <Wand2 size={18} color="var(--cy)" />
-                            <div style={{ fontSize: 17, fontWeight: 600, color: "var(--t0)" }}>מחולל שאלות מתקדם</div>
-                        </div>
-                        <div style={{ fontSize: 13, color: "var(--t2)", marginBottom: 24, lineHeight: 1.5 }}>בחר מסמך מהספרייה והגדר את מאפייני המבחן שברצונך לייצר. המערכת תפיק את השאלות בתוך מספר שניות.</div>
-
-                        <div style={{ marginBottom: 16 }}>
-                            <label className="lbl">מסמך מקור מהספרייה</label>
-                            <select className="inp" value={genConfig.docId} onChange={e => setGenConfig({ ...genConfig, docId: e.target.value })} disabled={aiLoading}>
-                                <option value="">-- בחר מסמך --</option>
-                                {libraryDocs.map(d => <option key={d.id} value={d.id}>{d.filename}</option>)}
-                            </select>
-                        </div>
-
-                        <div style={{ marginBottom: 16 }}>
-                            <label className="lbl">כמות שאלות במבחן</label>
-                            <select className="inp" value={genConfig.count} onChange={e => setGenConfig({ ...genConfig, count: e.target.value })} disabled={aiLoading}>
-                                <option value="10">10 שאלות</option>
-                                <option value="20">20 שאלות</option>
-                                <option value="30">30 שאלות</option>
-                                <option value="40">40 שאלות</option>
-                                <option value="50">50 שאלות</option>
-                            </select>
-                        </div>
-
-                        <div style={{ marginBottom: 16 }}>
-                            <label className="lbl">שם המבחן (יוצג לחניכים)</label>
-                            <input className="inp" type="text" placeholder="לדוגמה: מבחן אמצע או פרק 8" value={genConfig.name} onChange={e => setGenConfig({ ...genConfig, name: e.target.value })} disabled={aiLoading} />
-                        </div>
-
-                        <div style={{ marginBottom: 24 }}>
-                            <label className="lbl">הערות מיקוד ל-AI (אופציונלי)</label>
-                            <textarea className="inp" style={{ resize: "none" }} rows="3" placeholder="למשל: התמקד רק בפרק הסיכונים והתעלם מהקדמות..." value={genConfig.notes} onChange={e => setGenConfig({ ...genConfig, notes: e.target.value })} disabled={aiLoading} />
-                        </div>
-
-                        {uploadError && (
-                            <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8, padding: "10px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 6 }}>
-                                <XCircle size={14} color="var(--err)" />
-                                <span className="rb" style={{ fontSize: 13, color: "var(--err)" }}>{uploadError}</span>
-                            </div>
-                        )}
-
-                        <div style={{ display: "flex", gap: 12 }}>
-                            <button className="btn btn-subtle" style={{ flex: 1 }} onClick={() => setIsGenPopupOpen(false)} disabled={aiLoading}>ביטול</button>
-                            <button className="btn btn-primary" style={{ flex: 2, height: 40 }} onClick={async () => {
-                                if (!genConfig.docId) { alert("יש לבחור מסמך מהספרייה"); return; }
-                                const success = await processAiFile(genConfig.docId, { count: genConfig.count, notes: genConfig.notes, customTitle: genConfig.name });
-                                if (success) { setIsGenPopupOpen(false); setGenConfig({ docId: "", name: "", count: "20", notes: "" }); }
-                            }} disabled={aiLoading || !genConfig.docId}>
-                                {aiLoading ? <><div className="spin border-cyan" style={{ width: 14, height: 14 }} /> ממתין לשרת... (יכול לקחת דקה)</> : <><Sparkles size={15} /> חולל מבחן</>}
-                            </button>
-                        </div>
-                    </div>
-                </Popup>
-            )}
-        </>
-    );
-}
+                                            <X
