@@ -1,33 +1,36 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// וודא שהמפתח שלך כאן במקום ה-XXXX
-const genAI = new GoogleGenerativeAI("XXXX-YOUR-KEY-HERE-XXXX");
+// וודא שה-API Key שלך נמצא כאן
+const genAI = new GoogleGenerativeAI("YOUR_GEMINI_API_KEY_HERE");
 
-export async function generateQuestionsFromDocument(fileContent, topic) {
-    try {
-        if (!fileContent || fileContent.length < 10) {
-            throw new Error("הקובץ נראה ריק או לא נקרא כראוי");
-        }
+// הפונקציה לחילול שאלות ממסמך (שאהבת)
+export async function generateQuestionsFromDocument(content, topic) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `בהתבסס על הטקסט הבא: ${content}, צור 5 שאלות אמריקאיות בנושא ${topic}. 
+    החזר תשובה בפורמט JSON בלבד, כרשימה של אובייקטים עם השדות: question, options, correctAnswer.`;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return JSON.parse(response.text());
+  } catch (error) {
+    console.error("שגיאה במחולל המבחנים:", error);
+    return [];
+  }
+}
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        
-        const prompt = `אתה מומחה בטיחות. בהתבסס על הטקסט הבא:
-        ---
-        ${fileContent}
-        ---
-        צור 5 שאלות אמריקאיות בנושא ${topic}. 
-        החזר תשובה בפורמט JSON בלבד, כרשימה של אובייקטים עם השדות: 
-        question (השאלה), options (מערך של 4 אפשרויות), correctAnswer (התשובה הנכונה מתוך המערך).`;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-        
-        // ניקוי תגיות Markdown אם ה-AI הוסיף אותן
-        const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
-        return JSON.parse(cleanJson);
-    } catch (error) {
-        console.error("Gemini Error:", error);
-        throw error;
-    }
+// הפונקציה ליצירת תחקיר (זו שחסרה וגורמת לשגיאה האדומה)
+export async function generateDebriefWithGemini(quizResults, traineeName) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `בהתבסס על תוצאות המבחן הבאות של ${traineeName}: ${JSON.stringify(quizResults)}, 
+    צור תחקיר אישי ומעודד בעברית. הדגש נקודות לשימור ונקודות לשיפור.`;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error("שגיאה ביצירת תחקיר:", error);
+    return "לא ניתן היה ליצור תחקיר אוטומטי כרגע.";
+  }
 }
