@@ -2,7 +2,6 @@ import { useState } from "react";
 import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, FolderOpen, XCircle, CheckCircle, Trash2, AlertTriangle, Wand2, Sparkles } from "lucide-react";
 import { DB, sc, fmt } from "../../lib/mockBackend";
 import { Logo } from "../Logo";
-import { Popup } from "../Popup";
 
 export function BackofficeScreen({
     user,
@@ -53,7 +52,6 @@ export function BackofficeScreen({
     return (
         <>
             <div className="mock-badge">PROTOTYPE</div>
-            <Popup {...pops} />
             <div className="screen" style={{ flexDirection: "row" }}>
 
                 {/* Sidebar */}
@@ -266,7 +264,6 @@ export function BackofficeScreen({
                                             })}
                                     </div>
                                 </div>
-                                {/* Help requests table */}
                                 <div className="card" style={{ overflow: "hidden" }}>
                                     <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--bdr)", display: "flex", alignItems: "center", gap: 8 }}>
                                         <MapPin size={13} color="var(--warn)" />
@@ -327,7 +324,6 @@ export function BackofficeScreen({
                                                 </button>
                                             </div>
 
-                                            {/* Format note */}
                                             <div style={{ background: "var(--s2)", border: "1px solid var(--bdr)", borderRadius: 6, padding: "10px 14px", marginBottom: 14 }}>
                                                 <div className="lbl" style={{ marginBottom: 6 }}>פורמט קובץ CSV נדרש</div>
                                                 <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: "var(--t2)", lineHeight: 1.7 }}>
@@ -337,7 +333,6 @@ export function BackofficeScreen({
                                                 </div>
                                             </div>
 
-                                            {/* Drop zone */}
                                             <div
                                                 className={`upload-zone ${uploadDrag ? "drag" : ""}`}
                                                 onClick={() => fileInputRef.current?.click()}
@@ -373,7 +368,6 @@ export function BackofficeScreen({
                                                                 <div style={{ fontSize: 11, color: "var(--t2)" }}>הועלה {fmt(d.uploadedAt)}</div>
                                                             </div>
                                                             
-                                                            {/* כפתור יצירת מבחן החדש */}
                                                             <button 
                                                                 className="btn btn-ghost" 
                                                                 style={{ fontSize: 11, gap: 6, color: "var(--cy)", padding: "4px 8px" }} 
@@ -529,10 +523,20 @@ export function BackofficeScreen({
                 </div >
             </div>
 
-            {/* AI Generator Popup */}
+            {/* AI Generator Overlay (עצמאי ולא תלוי בפופאפ הישן) */}
             {isGenPopupOpen && (
-                <Popup isOpen={isGenPopupOpen} onClose={() => !aiLoading && setIsGenPopupOpen(false)}>
-                    <div style={{ padding: "8px 4px 16px" }}>
+                <div style={{
+                    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: "rgba(0,0,0,0.6)", zIndex: 99999,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    backdropFilter: "blur(4px)"
+                }}>
+                    <div className="card fade" style={{ 
+                        width: "100%", maxWidth: 480, padding: 24, 
+                        backgroundColor: "var(--bg)", borderRadius: 12,
+                        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5)",
+                        border: "1px solid var(--bdr)"
+                    }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                             <Wand2 size={18} color="var(--cy)" />
                             <div style={{ fontSize: 17, fontWeight: 600, color: "var(--t0)" }}>מחולל שאלות מתקדם</div>
@@ -586,7 +590,7 @@ export function BackofficeScreen({
                             </button>
                         </div>
                     </div>
-                </Popup>
+                </div>
             )}
         </>
     );
