@@ -34,7 +34,7 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [sessionId, setSessionId] = useState(null);
     const [popup, setPopup] = useState(null);
-    const [qAttempts, setQAttempts] = useState(0); // המונה שסופר טעויות לכפתור העזרה
+    const [qAttempts, setQAttempts] = useState(0); // <--- מונה הטעויות
 
     // Back office
     const [boTab, setBoTab] = useState("overview");
@@ -103,7 +103,7 @@ export default function App() {
     }, []);
 
     const deleteUserRecord = async (userId) => {
-        if (!window.confirm("אזהרה חמורה: מחיקת המשתמש תמחק לצמיתות גם את כל הסשנים והלוגים שלו. האם אתה בטוח?")) return;
+        if (!window.confirm("האם אתה בטוח שברצונך למחוק משתמש זה?")) return;
         try {
             await supabase.from('app_users').delete().eq('id', userId);
             DB.users = DB.users.filter(u => u.id !== userId);
@@ -182,18 +182,18 @@ export default function App() {
         await supabase.from('app_sessions').insert([{ id: sid, user_id: user.id, data: sess }]);
         setTopic(t); setQuestions(t.questions); setQIdx(0); setSessionId(sid); 
         setMsgs([{ role: "ai", text: t.questions[0]?.question || "אין שאלות" }]);
-        setQAttempts(0); // איפוס הטעויות בתחילת אימון
+        setQAttempts(0); 
         setScreen("training");
     };
 
-    // הפונקציה המרכזית שבודקת את התשובה מול ה-AI (הייתה חסרה!)
+    // <--- הפונקציה המרכזית לתקשורת מול ה-AI --->
     const sendAnswer = async () => {
         if (!input.trim() || loading) return;
         const ans = input.trim(); 
         setInput(""); 
         setLoading(true);
         
-        // כותב בצ'אט את התשובה של המשתמש
+        // מציג את תשובת המשתמש בצ'אט
         setMsgs(prev => [...prev, { role: "user", text: ans }]);
 
         try {
@@ -203,7 +203,6 @@ export default function App() {
             const isCorrect = reply.includes("[CORRECT]");
             const cleanReply = reply.replace(/\[.*\]/g, "").trim();
 
-            // כותב בצ'אט את הפידבק של ה-AI
             setMsgs(prev => [...prev, { role: "ai", text: cleanReply }]);
 
             if (isCorrect) {
@@ -212,12 +211,12 @@ export default function App() {
                 
                 setTimeout(() => setPopup("next"), 1500);
             } else {
-                // המשתמש טעה - מעלים את המונה ב-1 בשביל כפתור העזרה
+                // <--- כאן אנחנו סופרים טעות כדי להדליק את כפתור העזרה --->
                 setQAttempts(prev => prev + 1);
             }
         } catch (error) {
             console.error("Gemini Error:", error);
-            setMsgs(prev => [...prev, { role: "ai", text: "הייתה בעיה בתקשורת עם ה-AI. אנא נסה שוב." }]);
+            setMsgs(prev => [...prev, { role: "ai", text: "הייתה בעיה בתקשורת. אנא נסה שוב." }]);
         }
         
         setLoading(false);
@@ -232,20 +231,20 @@ export default function App() {
             {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
             {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s=>s.status==='completed')} allTopics={uploadedSets} />}
             
-            {/* השורה החשובה: מעבירה את כל הנתונים למסך ה-Training החדש שלך */}
+            {/* <--- כאן השורה הקריטית: העברנו את כל המידע למסך ה-Training ---> */}
             {screen === "training" && (
                 <TrainingScreen 
-                    user={user} setScreen={setScreen}
-                    topic={topic} questions={questions} qIdx={qIdx} setQIdx={setQIdx}
-                    msgs={msgs} setMsgs={setMsgs}
-                    input={input} setInput={setInput}
-                    sendAnswer={sendAnswer} loading={loading} chatRef={chatRef}
-                    qAttempts={qAttempts} setQAttempts={setQAttempts}
+                    user={user} setScreen={setScreen} 
+                    topic={topic} questions={questions} qIdx={qIdx} 
+                    msgs={msgs} setMsgs={setMsgs} 
+                    input={input} setInput={setInput} 
+                    sendAnswer={sendAnswer} loading={loading} chatRef={chatRef} 
+                    qAttempts={qAttempts} 
                     pops={{
                         popup, 
                         onNext: () => { 
                             setQIdx(i => i + 1); 
-                            setQAttempts(0); // איפוס טעויות לשאלה הבאה
+                            setQAttempts(0); // איפוס טעויות בשאלה חדשה
                             setPopup(null); 
                             setMsgs([{ role: "ai", text: questions[qIdx + 1]?.question || "סיימת!" }]); 
                         }
