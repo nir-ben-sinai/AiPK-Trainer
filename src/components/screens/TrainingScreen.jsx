@@ -1,203 +1,138 @@
-import { useState, useRef, useEffect } from "react";
-import * as Papa from "papaparse";
+import React from "react";
+import { HelpCircle, XCircle, Send, Loader2 } from "lucide-react";
 
-import { DB, parseCsvToSet, downloadTemplate, genId, CSS } from "./lib/mockBackend";
-import { evalAnswerWithGemini, generateDebriefWithGemini, generateQuestionsFromDocument } from "./lib/geminiApi";
-import { supabase } from "./supabase";
-
-import { AuthScreen } from "./components/screens/AuthScreen";
-import { OnboardingScreen } from "./components/screens/OnboardingScreen";
-import { DisclaimerScreen } from "./components/screens/DisclaimerScreen";
-import { AdminUploadScreen } from "./components/screens/AdminUploadScreen";
-import { HomeScreen } from "./components/screens/HomeScreen";
-import { TrainingScreen } from "./components/screens/TrainingScreen";
-import { DebriefScreen } from "./components/screens/DebriefScreen";
-import { BackofficeScreen } from "./components/screens/BackofficeScreen";
-
-const isUuid = (str) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
-
-export default function App() {
-    const [screen, setScreen] = useState("auth");
-    const [user, setUser] = useState(null);
-    const [authMode, setAuthMode] = useState("login");
-    const [form, setForm] = useState({ name: "", email: "", password: "", profession: "" });
-    const [authErr, setAuthErr] = useState("");
-    const [agreed, setAgreed] = useState(false);
-    const [tick, setTick] = useState(0); 
-
-    // Training
-    const [topic, setTopic] = useState(null);
-    const [questions, setQuestions] = useState([]);
-    const [qIdx, setQIdx] = useState(0);
-    const [msgs, setMsgs] = useState([]);
-    const [input, setInput] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [sessionId, setSessionId] = useState(null);
-    const [popup, setPopup] = useState(null);
-
-    // Back office
-    const [boTab, setBoTab] = useState("overview");
-    const [dbTable, setDbTable] = useState("users");
-    const [adminStep, setAdminStep] = useState(null);
-
-    const [uploadedSets, setUploadedSets] = useState([]);
-    const [libraryDocs, setLibraryDocs] = useState([]);
+export function TrainingScreen({ topic, questions, qIdx, msgs, setMsgs, input, setInput, sendAnswer, loading, chatRef, pops, user, setScreen, qAttempts }) {
     
-    const [uploadError, setUploadError] = useState("");
-    const chatRef = useRef(null);
+    const currentQ = questions[qIdx] || {};
     
-    const [aiLoading, setAiLoading] = useState(false);
-    const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+    // לוגיקת כפתור העזרה
+    const isHelpActive = qAttempts >= 1; // פעיל אחרי טעות אחת
+    const isAnswerReveal = qAttempts >= 3; // הופך לגילוי אחרי 3 טעויות
 
-    useEffect(() => { chatRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
+    const handleHelpClick = () => {
+        if (!isHelpActive) return;
 
-    // משיכת נתונים מסופהבייס 
-    useEffect(() => {
-        const fetchSupabaseData = async () => {
-            try {
-                const [docsRes, examsRes, usersRes, sessRes, logsRes, debRes, helpRes] = await Promise.all([
-                    supabase.from('library_docs').select('*').order('created_at', { ascending: false }),
-                    supabase.from('exams').select('*').order('created_at', { ascending: false }),
-                    supabase.from('app_users').select('*'),
-                    supabase.from('app_sessions').select('*'),
-                    supabase.from('app_logs').select('*'),
-                    supabase.from('app_debriefs').select('*'),
-                    supabase.from('app_help').select('*')
-                ]);
+        const chapterName = currentQ.topic || "כללי";
 
-                if (docsRes.data) {
-                    setLibraryDocs(docsRes.data.map(d => ({ id: d.id, filename: d.filename, fileUrl: d.file_url, uploadedAt: d.created_at, mimeType: "application/pdf" })));
-                }
-
-                if (examsRes.data) {
-                    const formattedExams = examsRes.data.map(e => {
-                        const qs = e.questions || [];
-                        const uniqueTopics = [...new Set(qs.map(q => q.topic || "כללי"))];
-                        const chapters = uniqueTopics.map((t, idx) => ({ id: `ch_${idx}`, title: t }));
-                        return { id: e.id, title: e.title, description: `${qs.length} שאלות (AI)`, isUploaded: true, filename: e.pdf_url, uploadedAt: e.created_at, chapters, questions: qs };
-                    });
-                    setUploadedSets(formattedExams);
-                    DB.uploadedSets = formattedExams;
-                }
-
-                const adminEmail = "admin@aipk.co.il";
-                const adminPassword = "admin";
-                
-                if (usersRes.data?.length > 0) {
-                    DB.users = usersRes.data.map(r => r.data);
-                } else {
-                    const admin = { id: "u_admin", name: "Admin", email: adminEmail, password: adminPassword, profession: "System Admin", role: "admin", joinedAt: new Date().toISOString() };
-                    DB.users = [admin];
-                    await supabase.from('app_users').insert([{ id: admin.id, data: admin }]);
-                }
-
-                if (sessRes.data) DB.sessions = sessRes.data.map(r => r.data);
-                if (logsRes.data) DB.logs = logsRes.data.map(r => r.data);
-                if (debRes.data) DB.debriefs = debRes.data.map(r => r.data);
-                if (helpRes.data) DB.helpRequests = helpRes.data.map(r => r.data);
-
-                setTick(t => t + 1); 
-            } catch (err) { console.error("שגיאה במשיכת נתונים:", err); }
-        };
-        fetchSupabaseData();
-    }, []);
-
-    const deleteUserRecord = async (userId) => {
-        if (!window.confirm("אזהרה חמורה: מחיקת המשתמש תמחק לצמיתות גם את כל הסשנים והלוגים שלו. האם אתה בטוח?")) return;
-        try {
-            await supabase.from('app_users').delete().eq('id', userId);
-            DB.users = DB.users.filter(u => u.id !== userId);
-            setTick(t => t + 1);
-        } catch (e) { console.error(e); }
-    };
-
-    const doLogin = () => {
-        const u = DB.users.find(x => x.email === form.email && x.password === form.password);
-        if (!u) { setAuthErr("אימייל או סיסמה שגויים"); return; }
-        setUser(u); setAuthErr("");
-        if (u.role === "admin") {
-            if (uploadedSets.length === 0) setAdminStep("upload_required");
-            else setAdminStep("upload_optional");
-            setScreen("admin_upload");
-        } else { setScreen("onboarding"); }
-    };
-    
-    const doRegister = async () => {
-        if (!form.name || !form.email || !form.password) { setAuthErr("יש למלא את כל השדות"); return; }
-        if (DB.users.find(x => x.email === form.email)) { setAuthErr("אימייל קיים במערכת"); return; }
-        const u = { id: genId("u"), name: form.name, email: form.email, password: form.password, profession: form.profession || "לא צוין", role: "trainee", joinedAt: new Date().toISOString() };
-        DB.users.push(u); setUser(u); setAuthErr(""); setScreen("onboarding");
-        await supabase.from('app_users').insert([{ id: u.id, data: u }]); 
-        setTick(t => t + 1);
-    };
-
-    const deleteSet = async id => {
-        if (!window.confirm("מחק מבחן?")) return;
-        if (isUuid(id)) await supabase.from('exams').delete().eq('id', id);
-        setUploadedSets(prev => prev.filter(s => s.id !== id));
-    };
-
-    const deleteLibraryDoc = async id => {
-        if (!window.confirm("מחק ספר?")) return;
-        if (isUuid(id)) await supabase.from('library_docs').delete().eq('id', id);
-        setLibraryDocs(prev => prev.filter(d => d.id !== id));
-    };
-
-    const addLibraryDoc = async (files) => {
-        if (!files || !files.length) return;
-        setIsUploadingDoc(true);
-        try {
-            const file = files[0];
-            const uniqueName = `${Date.now()}_${file.name}`;
-            await supabase.storage.from('pdfs').upload(uniqueName, file);
-            const { data: urlData } = supabase.storage.from('pdfs').getPublicUrl(uniqueName);
-            const dbEntry = { filename: file.name, file_url: urlData.publicUrl };
-            const { data } = await supabase.from('library_docs').insert([dbEntry]).select().single();
-            
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                setLibraryDocs(prev => [{ ...data, base64Data: reader.result.split(',')[1] }, ...prev]);
-            };
-        } catch (e) { setUploadError("שגיאה בהעלאה"); }
-        setIsUploadingDoc(false);
-    };
-
-    const processAiFile = async (docId, options = {}) => {
-        const doc = libraryDocs.find(d => d.id === docId);
-        setAiLoading(true);
-        try {
-            const qs = await generateQuestionsFromDocument(doc.base64Data, "application/pdf", doc.filename, options);
-            const set = { id: genId("us"), title: options.customTitle || doc.filename, questions: qs, chapters: [] };
-            await supabase.from('exams').insert([{ title: set.title, questions: qs, pdf_url: doc.filename }]);
-            setUploadedSets(prev => [set, ...prev]);
-            setAiLoading(false); return true;
-        } catch (e) { setAiLoading(false); return false; }
-    };
-
-    const startSession = async (t) => {
-        const sid = genId("s");
-        const sess = { id: sid, userId: user.id, topicId: t.id, startedAt: new Date().toISOString(), status: "active", score: 0 };
-        DB.sessions.push(sess);
-        await supabase.from('app_sessions').insert([{ id: sid, user_id: user.id, data: sess }]);
-        setTopic(t); setQuestions(t.questions); setQIdx(0); setSessionId(sid); setMsgs([{ role: "ai", text: t.questions[0]?.question || "אין שאלות" }]);
-        setScreen("training");
+        if (isAnswerReveal) {
+            // גילוי התשובה
+            const answerText = currentQ.correctAnswer || currentQ.answer || "לא הוגדרה תשובה למערכת";
+            setMsgs(prev => [...prev, {
+                role: "system",
+                text: `✅ התשובה המלאה (מתוך פרק "${chapterName}"):\n${answerText}`
+            }]);
+        } else {
+            // רמז
+            setMsgs(prev => [...prev, {
+                role: "system",
+                text: `💡 רמז: נסה להיזכר בנהלים המופיעים בפרק "${chapterName}".`
+            }]);
+        }
     };
 
     return (
-        <>
-            <style>{CSS}</style>
-            {screen === "auth" && <AuthScreen authMode={authMode} setAuthMode={setAuthMode} authErr={authErr} setAuthErr={setAuthErr} form={form} setForm={setForm} doLogin={doLogin} doRegister={doRegister} />}
-            {screen === "onboarding" && <OnboardingScreen user={user} setScreen={setScreen} />}
-            {screen === "disclaimer" && <DisclaimerScreen agreed={agreed} setAgreed={setAgreed} setScreen={setScreen} />}
-            {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
-            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s=>s.status==='completed')} allTopics={uploadedSets} />}
+        <div className="screen" style={{ background: "#020617", minHeight: "100vh", display: "flex", flexDirection: "column", direction: "rtl" }}>
             
-            {/* מסך האימון המעודכן */}
-            {screen === "training" && <TrainingScreen user={user} setScreen={setScreen} questions={questions} qIdx={qIdx} setQIdx={setQIdx} />}
-            
-            {screen === "debrief" && <DebriefScreen user={user} setScreen={setScreen} />}
-            {screen === "backoffice" && <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={DB.sessions.filter(s=>s.status==='completed')} avgSc={0} uploadedSets={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} tick={tick} />}
-        </>
+            {/* Header */}
+            <div style={{ background: "#0f172a", padding: "15px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b" }}>
+                <h2 style={{ color: "#fff", margin: 0, fontSize: "18px" }}>
+                    {topic?.title || "אימון פעיל"} - שאלה {qIdx + 1} מתוך {questions.length || 0}
+                </h2>
+
+                <div style={{ display: "flex", gap: "10px" }}>
+                    {/* כפתור העזרה החכם */}
+                    <button
+                        disabled={!isHelpActive}
+                        onClick={handleHelpClick}
+                        style={{
+                            display: "flex", alignItems: "center", gap: "6px",
+                            padding: "8px 16px", borderRadius: "8px", fontWeight: "bold",
+                            background: "transparent",
+                            cursor: isHelpActive ? "pointer" : "not-allowed",
+                            color: isAnswerReveal ? "#f97316" : (isHelpActive ? "#38bdf8" : "#475569"),
+                            border: `1px solid ${isAnswerReveal ? "#f97316" : (isHelpActive ? "#38bdf8" : "#334155")}`,
+                            transition: "all 0.3s"
+                        }}
+                    >
+                        <HelpCircle size={18} />
+                        {isAnswerReveal ? "הצג תשובה נכונה" : "עזרה?"}
+                    </button>
+
+                    <button
+                        onClick={() => setScreen("debrief")}
+                        style={{
+                            display: "flex", alignItems: "center", gap: "6px",
+                            padding: "8px 16px", borderRadius: "8px",
+                            background: "#334155", color: "#fff", border: "none", cursor: "pointer"
+                        }}
+                    >
+                        <XCircle size={18} /> סיום אימון
+                    </button>
+                </div>
+            </div>
+
+            {/* אזור הצ'אט */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "15px" }}>
+                {msgs.map((m, i) => (
+                    <div key={i} style={{
+                        alignSelf: m.role === "user" ? "flex-start" : "flex-end",
+                        background: m.role === "user" ? "#22c55e" : (m.role === "system" ? "rgba(56, 189, 248, 0.1)" : "#1e293b"),
+                        color: m.role === "user" ? "#052e16" : (m.role === "system" ? "#38bdf8" : "#f8fafc"),
+                        padding: "14px 20px",
+                        borderRadius: "12px",
+                        maxWidth: "75%",
+                        border: m.role === "system" ? `1px solid ${isAnswerReveal ? "#f97316" : "#38bdf8"}` : "none",
+                        fontSize: "16px",
+                        lineHeight: "1.5"
+                    }}>
+                        <div style={{ color: (m.role === "system" && isAnswerReveal) ? "#f97316" : "inherit" }}>
+                            {m.text}
+                        </div>
+                    </div>
+                ))}
+                
+                {loading && (
+                    <div style={{ alignSelf: "flex-end", color: "#94a3b8", padding: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Loader2 size={18} className="spin" /> ה-AI בודק את התשובה...
+                    </div>
+                )}
+                <div ref={chatRef} />
+            </div>
+
+            {/* אזור הקלדה */}
+            <div style={{ padding: "20px", background: "#0f172a", borderTop: "1px solid #1e293b" }}>
+                <div style={{ display: "flex", gap: "10px", maxWidth: "800px", margin: "0 auto" }}>
+                    <input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && !loading && input.trim() && sendAnswer()}
+                        placeholder="הקלד את תשובתך כאן..."
+                        style={{ flex: 1, padding: "16px", borderRadius: "10px", border: "1px solid #334155", background: "#020617", color: "#fff", fontSize: "16px", outline: "none" }}
+                    />
+                    <button
+                        onClick={sendAnswer}
+                        disabled={loading || !input.trim()}
+                        style={{ padding: "0 25px", borderRadius: "10px", background: "#22c55e", color: "#052e16", border: "none", cursor: (loading || !input.trim()) ? "not-allowed" : "pointer", opacity: (loading || !input.trim()) ? 0.5 : 1 }}
+                    >
+                        <Send size={24} />
+                    </button>
+                </div>
+            </div>
+
+            {/* פופאפ לשאלה הבאה */}
+            {pops?.popup === "next" && (
+                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(2,6,23,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+                    <div style={{ background: "#0f172a", padding: "40px", borderRadius: "20px", textAlign: "center", border: "2px solid #22c55e" }}>
+                        <h2 style={{ color: "#22c55e", fontSize: "32px", marginBottom: "10px" }}>תשובה מצוינת! ✅</h2>
+                        <button
+                            onClick={pops.onNext}
+                            style={{ padding: "14px 40px", fontSize: "18px", borderRadius: "10px", background: "#22c55e", color: "#052e16", border: "none", cursor: "pointer", fontWeight: "bold" }}
+                        >
+                            לשאלה הבאה
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
