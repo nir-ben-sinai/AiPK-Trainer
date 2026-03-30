@@ -1,24 +1,27 @@
 import React, { useState } from "react";
 import { HelpCircle, Eye, XCircle, CheckCircle2 } from "lucide-react";
 
-export function TrainingScreen({ user, setScreen, questions = [] }) {
-    const [currentQ, setCurrentQ] = useState(0);
+export function TrainingScreen({ user, setScreen, questions = [], qIdx, setQIdx }) {
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [wrongAttempts, setWrongAttempts] = useState(0); 
     const [showHint, setShowHint] = useState(false);
     const [showAnswer, setShowAnswer] = useState(false);
     const [isCorrect, setIsCorrect] = useState(null);
 
-    const q = questions[currentQ] || {
-        question: "אין שאלות זמינות במערכת",
-        options: ["תשובה 1", "תשובה 2", "תשובה 3", "תשובה 4"],
+    // משיכת השאלה המעודכנת מתוך App.jsx
+    const q = questions[qIdx] || {
+        question: "טוען שאלה מתוך המאגר...",
+        options: [],
         correctAnswer: ""
     };
 
     const handleAnswerClick = (idx) => {
-        if (isCorrect) return; 
+        if (isCorrect) return; // לא מאפשר לחיצה נוספת אחרי תשובה נכונה
+        
         setSelectedAnswer(idx);
-        if (q.options[idx] === q.correctAnswer) {
+        const selectedText = q.options[idx];
+        
+        if (selectedText === q.correctAnswer) {
             setIsCorrect(true);
         } else {
             setIsCorrect(false);
@@ -27,48 +30,51 @@ export function TrainingScreen({ user, setScreen, questions = [] }) {
     };
 
     const nextQuestion = () => {
-        if (currentQ < questions.length - 1) {
-            setCurrentQ(prev => prev + 1);
+        if (qIdx < questions.length - 1) {
+            setQIdx(prev => prev + 1); // מעדכן את האפליקציה לשאלה הבאה
             setSelectedAnswer(null);
             setWrongAttempts(0);
             setShowHint(false);
             setShowAnswer(false);
             setIsCorrect(null);
         } else {
-            setScreen("debrief");
+            setScreen("debrief"); // מסתיים המבחן
         }
     };
 
     return (
-        <div className="screen" style={{ background: "#020617", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", direction: "rtl", position: "relative", zIndex: 10 }}>
-            <div className="card" style={{ maxWidth: "700px", width: "90%", textAlign: "right", padding: "30px", position: "relative", zIndex: 20 }}>
+        <div className="screen fade" style={{ background: "#020617", padding: "20px", direction: "rtl", minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <div className="card" style={{ maxWidth: "700px", width: "100%", textAlign: "right" }}>
                 
-                {/* כפתורי עזר */}
+                {/* שורת כפתורי עזר */}
                 <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+                    
+                    {/* עזרה - נפתח אחרי טעות 1 */}
                     <button 
                         disabled={wrongAttempts < 1}
                         onClick={() => setShowHint(true)}
                         style={{ 
                             flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", 
-                            padding: "12px", borderRadius: "10px", border: "1px solid #334155",
-                            cursor: wrongAttempts >= 1 ? "pointer" : "not-allowed",
-                            background: wrongAttempts >= 1 ? "rgba(234, 179, 8, 0.1)" : "transparent",
-                            color: wrongAttempts >= 1 ? "#eab308" : "#475569",
+                            border: "1px solid #334155", 
+                            color: wrongAttempts >= 1 ? "#eab308" : "#475569", 
+                            background: wrongAttempts >= 1 ? "rgba(234, 179, 8, 0.05)" : "transparent",
+                            padding: "10px", borderRadius: "8px", cursor: wrongAttempts >= 1 ? "pointer" : "not-allowed",
                             opacity: wrongAttempts >= 1 ? 1 : 0.5
                         }}
                     >
                         <HelpCircle size={18} /> עזרה מה-AI {wrongAttempts < 1 && "🔒"}
                     </button>
 
+                    {/* הגלה תשובה - נפתח רק אחרי 3 טעויות */}
                     <button 
                         disabled={wrongAttempts < 3}
                         onClick={() => setShowAnswer(true)}
                         style={{ 
                             flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", 
-                            padding: "12px", borderRadius: "10px", border: "1px solid #334155",
-                            cursor: wrongAttempts >= 3 ? "pointer" : "not-allowed",
-                            background: wrongAttempts >= 3 ? "rgba(34, 197, 94, 0.1)" : "transparent",
+                            border: "1px solid #334155", 
                             color: wrongAttempts >= 3 ? "#22c55e" : "#475569",
+                            background: wrongAttempts >= 3 ? "rgba(34, 197, 94, 0.05)" : "transparent",
+                            padding: "10px", borderRadius: "8px", cursor: wrongAttempts >= 3 ? "pointer" : "not-allowed",
                             opacity: wrongAttempts >= 3 ? 1 : 0.5
                         }}
                     >
@@ -76,8 +82,8 @@ export function TrainingScreen({ user, setScreen, questions = [] }) {
                     </button>
                 </div>
 
-                <div style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "10px" }}>שאלה {currentQ + 1} מתוך {questions.length}</div>
-                <h2 style={{ color: "#fff", marginBottom: "25px", fontSize: "22px", lineHeight: "1.4" }}>{q.question}</h2>
+                <div style={{ marginBottom: "10px", color: "#94a3b8", fontSize: "14px" }}>שאלה {qIdx + 1} מתוך {questions.length}</div>
+                <h2 style={{ color: "#fff", marginBottom: "25px", fontSize: "22px" }}>{q.question}</h2>
 
                 <div style={{ display: "grid", gap: "12px", marginBottom: "25px" }}>
                     {q.options.map((opt, idx) => (
@@ -88,7 +94,7 @@ export function TrainingScreen({ user, setScreen, questions = [] }) {
                                 padding: "16px", borderRadius: "10px", textAlign: "right", cursor: "pointer", fontSize: "16px",
                                 border: selectedAnswer === idx ? (isCorrect ? "2px solid #22c55e" : "2px solid #ef4444") : "1px solid #1e293b",
                                 background: selectedAnswer === idx ? (isCorrect ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)") : "#0f172a",
-                                color: "#f8fafc", transition: "0.2s"
+                                color: "#f8fafc"
                             }}
                         >
                             {opt}
@@ -96,29 +102,34 @@ export function TrainingScreen({ user, setScreen, questions = [] }) {
                     ))}
                 </div>
 
-                {showHint && <div style={{ padding: "12px", background: "rgba(234, 179, 8, 0.1)", borderRadius: "8px", color: "#eab308", marginBottom: "15px" }}>💡 רמז: שים לב לנהלים המקצועיים במדריך.</div>}
-                {showAnswer && <div style={{ padding: "12px", background: "rgba(34, 197, 94, 0.1)", borderRadius: "8px", color: "#22c55e", marginBottom: "15px" }}>✅ התשובה: {q.correctAnswer}</div>}
+                {showHint && (
+                    <div style={{ padding: "12px", background: "rgba(234, 179, 8, 0.1)", borderRadius: "8px", color: "#eab308", marginBottom: "15px", fontSize: "14px" }}>
+                        💡 **רמז:** שים לב לפרטים הקטנים בנהלי הבטיחות שהוצגו.
+                    </div>
+                )}
+
+                {showAnswer && (
+                    <div style={{ padding: "12px", background: "rgba(34, 197, 94, 0.1)", borderRadius: "8px", color: "#22c55e", marginBottom: "15px", fontSize: "14px" }}>
+                        ✅ **התשובה הנכונה:** {q.correctAnswer}
+                    </div>
+                )}
 
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: "20px", borderTop: "1px solid #1e293b", paddingTop: "20px" }}>
                     <button 
-                        onClick={() => { console.log("Exit Clicked"); setScreen("debrief"); }} 
-                        style={{ background: "#334155", color: "#fff", padding: "12px 24px", border: "none", borderRadius: "10px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontWeight: "bold" }}
+                        onClick={() => setScreen("debrief")} 
+                        className="btn" 
+                        style={{ background: "#334155", color: "#fff", padding: "10px 20px", border: "none", borderRadius: "8px", cursor: "pointer", display: "flex", alignItems: "center" }}
                     >
-                        <XCircle size={18} /> סיים אימון
+                        <XCircle size={18} style={{ marginLeft: "8px" }} /> סיים אימון
                     </button>
                     
                     <button 
                         disabled={!isCorrect}
                         onClick={nextQuestion}
-                        style={{ 
-                            padding: "12px 24px", borderRadius: "10px", border: "none", fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px",
-                            background: isCorrect ? "#22c55e" : "#1e293b", 
-                            color: isCorrect ? "#052e16" : "#475569",
-                            cursor: isCorrect ? "pointer" : "not-allowed",
-                            opacity: isCorrect ? 1 : 0.6
-                        }}
+                        className="btn btn-primary" 
+                        style={{ padding: "10px 25px", opacity: isCorrect ? 1 : 0.5, cursor: isCorrect ? "pointer" : "not-allowed", display: "flex", alignItems: "center", border: "none", borderRadius: "8px" }}
                     >
-                        לשאלה הבאה <CheckCircle2 size={18} />
+                        לשאלה הבאה <CheckCircle2 size={18} style={{ marginRight: "8px" }} />
                     </button>
                 </div>
             </div>
