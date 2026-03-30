@@ -34,7 +34,7 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [sessionId, setSessionId] = useState(null);
     const [popup, setPopup] = useState(null);
-    const [qAttempts, setQAttempts] = useState(0); // <--- הוספנו לספירת טעויות
+    const [qAttempts, setQAttempts] = useState(0); // המונה לספירת טעויות (עבור כפתור העזרה)
 
     // Back office
     const [boTab, setBoTab] = useState("overview");
@@ -103,7 +103,7 @@ export default function App() {
     }, []);
 
     const deleteUserRecord = async (userId) => {
-        if (!window.confirm("אזהרה חמורה: מחיקת המשתמש תמחק לצמיתות גם את כל הסשנים והלוגים שלו. האם אתה בטוח?")) return;
+        if (!window.confirm("האם אתה בטוח?")) return;
         try {
             await supabase.from('app_users').delete().eq('id', userId);
             DB.users = DB.users.filter(u => u.id !== userId);
@@ -182,36 +182,41 @@ export default function App() {
         await supabase.from('app_sessions').insert([{ id: sid, user_id: user.id, data: sess }]);
         setTopic(t); setQuestions(t.questions); setQIdx(0); setSessionId(sid); 
         setMsgs([{ role: "ai", text: t.questions[0]?.question || "אין שאלות" }]);
-        setQAttempts(0); // איפוס טעויות בתחילת אימון
+        setQAttempts(0); // איפוס טעויות לשאלה ראשונה
         setScreen("training");
     };
 
-    // --- הנה הפונקציה החסרה שבודקת מול ה-AI ---
+    // הפונקציה שבודקת את התשובה מול ה-AI (הייתה חסרה!)
     const sendAnswer = async () => {
         if (!input.trim() || loading) return;
         const ans = input.trim(); 
         setInput(""); 
         setLoading(true);
         
-        // מציג את ההודעה של המשתמש מיד
+        // מציג מיד את תשובת המשתמש בצ'אט
         setMsgs(prev => [...prev, { role: "user", text: ans }]);
 
         try {
-            const reply = await evalAnswerWithGemini("", questions[qIdx].question, questions[qIdx].correctAnswer || questions[qIdx].answer, ans);
-            const isCorrect = reply.includes("[CORRECT]");
+            const correctAnswer = questions[qIdx].correctAnswer || questions[qIdx].answer;
+            const reply = await evalAnswerWithGemini("", questions[qIdx].question, correctAnswer, ans);
             
-            // מציג את התשובה של ה-AI
-            setMsgs(prev => [...prev, { role: "ai", text: reply.replace(/\[.*\]/g, "").trim() }]);
+            const isCorrect = reply.includes("[CORRECT]");
+            const cleanReply = reply.replace(/\[.*\]/g, "").trim();
+
+            setMsgs(prev => [...prev, { role: "ai", text: cleanReply }]);
 
             if (isCorrect) {
                 const log = { id: genId("log"), sessionId, userId: user.id, question: questions[qIdx].question, answer: ans, status: "correct" };
                 await supabase.from('app_logs').insert([{ id: log.id, session_id: sessionId, user_id: user.id, data: log }]);
-                setTimeout(() => setPopup("next"), 1000);
+                
+                // מקפיץ פופאפ מעבר שאלה אחרי שנייה
+                setTimeout(() => setPopup("next"), 1500);
             } else {
-                setQAttempts(prev => prev + 1); // <--- כאן אנחנו סופרים טעות!
+                // מעלה את ספירת הטעויות ב-1
+                setQAttempts(prev => prev + 1);
             }
         } catch (error) {
-            console.error("שגיאה בבדיקת התשובה:", error);
+            console.error("שגיאה מול Gemini:", error);
             setMsgs(prev => [...prev, { role: "ai", text: "הייתה בעיה בתקשורת עם ה-AI. אנא נסה שוב." }]);
         }
         
@@ -227,7 +232,29 @@ export default function App() {
             {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
             {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s=>s.status==='completed')} allTopics={uploadedSets} />}
             
-            {/* --- עדכון השורה הזו כדי שתעביר הכל ל-TrainingScreen --- */}
+            {/* מסך הצ'אט מקבל עכשיו את כל הנתונים כולל כמות הטעויות! */}
             {screen === "training" && (
                 <TrainingScreen 
-                    topic={topic} questions={questions} qIdx={qIdx
+                    user={user} setScreen={setScreen}
+                    topic={topic} questions={questions} qIdx={qIdx} setQIdx={setQIdx}
+                    msgs={msgs} setMsgs={setMsgs}
+                    input={input} setInput={setInput}
+                    sendAnswer={sendAnswer} loading={loading} chatRef={chatRef}
+                    qAttempts={qAttempts} setQAttempts={setQAttempts}
+                    pops={{
+                        popup, 
+                        onNext: () => { 
+                            setQIdx(i => i + 1); 
+                            setQAttempts(0); 
+                            setPopup(null); 
+                            setMsgs([{ role: "ai", text: questions[qIdx + 1]?.question || "סיימת!" }]); 
+                        }
+                    }} 
+                />
+            )}
+            
+            {screen === "debrief" && <DebriefScreen user={user} setScreen={setScreen} />}
+            {screen === "backoffice" && <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={DB.sessions.filter(s=>s.status==='completed')} avgSc={0} uploadedSets={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} tick={tick} />}
+        </>
+    );
+}
