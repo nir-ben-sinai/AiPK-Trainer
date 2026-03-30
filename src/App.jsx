@@ -34,6 +34,7 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [sessionId, setSessionId] = useState(null);
     const [popup, setPopup] = useState(null);
+    const [qAttempts, setQAttempts] = useState(0); // <--- הוספנו לספירת טעויות
 
     // Back office
     const [boTab, setBoTab] = useState("overview");
@@ -51,7 +52,6 @@ export default function App() {
 
     useEffect(() => { chatRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
-    // משיכת נתונים מסופהבייס 
     useEffect(() => {
         const fetchSupabaseData = async () => {
             try {
@@ -180,8 +180,42 @@ export default function App() {
         const sess = { id: sid, userId: user.id, topicId: t.id, startedAt: new Date().toISOString(), status: "active", score: 0 };
         DB.sessions.push(sess);
         await supabase.from('app_sessions').insert([{ id: sid, user_id: user.id, data: sess }]);
-        setTopic(t); setQuestions(t.questions); setQIdx(0); setSessionId(sid); setMsgs([{ role: "ai", text: t.questions[0]?.question || "אין שאלות" }]);
+        setTopic(t); setQuestions(t.questions); setQIdx(0); setSessionId(sid); 
+        setMsgs([{ role: "ai", text: t.questions[0]?.question || "אין שאלות" }]);
+        setQAttempts(0); // איפוס טעויות בתחילת אימון
         setScreen("training");
+    };
+
+    // --- הנה הפונקציה החסרה שבודקת מול ה-AI ---
+    const sendAnswer = async () => {
+        if (!input.trim() || loading) return;
+        const ans = input.trim(); 
+        setInput(""); 
+        setLoading(true);
+        
+        // מציג את ההודעה של המשתמש מיד
+        setMsgs(prev => [...prev, { role: "user", text: ans }]);
+
+        try {
+            const reply = await evalAnswerWithGemini("", questions[qIdx].question, questions[qIdx].correctAnswer || questions[qIdx].answer, ans);
+            const isCorrect = reply.includes("[CORRECT]");
+            
+            // מציג את התשובה של ה-AI
+            setMsgs(prev => [...prev, { role: "ai", text: reply.replace(/\[.*\]/g, "").trim() }]);
+
+            if (isCorrect) {
+                const log = { id: genId("log"), sessionId, userId: user.id, question: questions[qIdx].question, answer: ans, status: "correct" };
+                await supabase.from('app_logs').insert([{ id: log.id, session_id: sessionId, user_id: user.id, data: log }]);
+                setTimeout(() => setPopup("next"), 1000);
+            } else {
+                setQAttempts(prev => prev + 1); // <--- כאן אנחנו סופרים טעות!
+            }
+        } catch (error) {
+            console.error("שגיאה בבדיקת התשובה:", error);
+            setMsgs(prev => [...prev, { role: "ai", text: "הייתה בעיה בתקשורת עם ה-AI. אנא נסה שוב." }]);
+        }
+        
+        setLoading(false);
     };
 
     return (
@@ -193,11 +227,7 @@ export default function App() {
             {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
             {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s=>s.status==='completed')} allTopics={uploadedSets} />}
             
-            {/* מסך האימון המעודכן */}
-            {screen === "training" && <TrainingScreen user={user} setScreen={setScreen} questions={questions} qIdx={qIdx} setQIdx={setQIdx} />}
-            
-            {screen === "debrief" && <DebriefScreen user={user} setScreen={setScreen} />}
-            {screen === "backoffice" && <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={DB.sessions.filter(s=>s.status==='completed')} avgSc={0} uploadedSets={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} tick={tick} />}
-        </>
-    );
-}
+            {/* --- עדכון השורה הזו כדי שתעביר הכל ל-TrainingScreen --- */}
+            {screen === "training" && (
+                <TrainingScreen 
+                    topic={topic} questions={questions} qIdx={qIdx
