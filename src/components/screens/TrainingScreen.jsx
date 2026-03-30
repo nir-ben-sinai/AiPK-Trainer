@@ -1,59 +1,99 @@
 import React, { useState } from "react";
-import { HelpCircle, Eye, Send, XCircle, CheckCircle2 } from "lucide-react";
+import { HelpCircle, Eye, XCircle, CheckCircle2, AlertCircle } from "lucide-react";
 
 export function TrainingScreen({ user, setScreen, questions = [] }) {
     const [currentQ, setCurrentQ] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
+    const [wrongAttempts, setWrongAttempts] = useState(0); 
     const [showHint, setShowHint] = useState(false);
     const [showAnswer, setShowAnswer] = useState(false);
+    const [isCorrect, setIsCorrect] = useState(null);
 
     const q = questions[currentQ] || {
-        question: "טוען שאלה...",
-        options: ["...", "...", "...", "..."],
+        question: "אין שאלות זמינות",
+        options: [],
         correctAnswer: ""
     };
 
-    const handleFinish = () => {
-        console.log("Finishing training...");
-        setScreen("debrief"); // מעביר למסך התחקיר
+    const handleAnswerClick = (idx) => {
+        if (isCorrect) return; // מונע לחיצה אחרי שכבר צדק
+        
+        setSelectedAnswer(idx);
+        const selectedText = q.options[idx];
+        
+        if (selectedText === q.correctAnswer) {
+            setIsCorrect(true);
+        } else {
+            setIsCorrect(false);
+            setWrongAttempts(prev => prev + 1);
+        }
+    };
+
+    const nextQuestion = () => {
+        if (currentQ < questions.length - 1) {
+            setCurrentQ(prev => prev + 1);
+            setSelectedAnswer(null);
+            setWrongAttempts(0);
+            setShowHint(false);
+            setShowAnswer(false);
+            setIsCorrect(null);
+        } else {
+            setScreen("debrief");
+        }
     };
 
     return (
-        <div className="screen fade" style={{ background: "#020617", padding: "20px" }}>
-            <div className="card" style={{ maxWidth: "800px", width: "100%", textAlign: "right" }}>
+        <div className="screen fade" style={{ background: "#020617", padding: "20px", direction: "rtl" }}>
+            <div className="card" style={{ maxWidth: "700px", width: "100%", textAlign: "right" }}>
+                
                 {/* שורת כפתורי עזר */}
                 <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+                    {/* עזרה - נפתח אחרי טעות אחת */}
                     <button 
-                        className="btn-ghost" 
+                        disabled={wrongAttempts < 1}
                         onClick={() => setShowHint(true)}
-                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", border: "1px solid #334155", color: "#94a3b8", padding: "10px", borderRadius: "8px" }}
+                        style={{ 
+                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", 
+                            border: "1px solid #334155", 
+                            color: wrongAttempts >= 1 ? "#eab308" : "#475569", 
+                            background: wrongAttempts >= 1 ? "rgba(234, 179, 8, 0.05)" : "transparent",
+                            padding: "10px", borderRadius: "8px", cursor: wrongAttempts >= 1 ? "pointer" : "not-allowed",
+                            opacity: wrongAttempts >= 1 ? 1 : 0.5
+                        }}
                     >
-                        <HelpCircle size={18} /> עזרה מה-AI
+                        <HelpCircle size={18} /> עזרה מה-AI {wrongAttempts < 1 && "🔒"}
                     </button>
+
+                    {/* הגלה תשובה - נפתח רק אחרי 3 טעויות */}
                     <button 
-                        className="btn-ghost" 
+                        disabled={wrongAttempts < 3}
                         onClick={() => setShowAnswer(true)}
-                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", border: "1px solid #334155", color: "#94a3b8", padding: "10px", borderRadius: "8px" }}
+                        style={{ 
+                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", 
+                            border: "1px solid #334155", 
+                            color: wrongAttempts >= 3 ? "#22c55e" : "#475569",
+                            background: wrongAttempts >= 3 ? "rgba(34, 197, 94, 0.05)" : "transparent",
+                            padding: "10px", borderRadius: "8px", cursor: wrongAttempts >= 3 ? "pointer" : "not-allowed",
+                            opacity: wrongAttempts >= 3 ? 1 : 0.5
+                        }}
                     >
-                        <Eye size={18} /> הגלה לי את התשובה
+                        <Eye size={18} /> הגלה תשובה {wrongAttempts < 3 && `(${3 - wrongAttempts})`}
                     </button>
                 </div>
 
-                <h2 style={{ color: "#fff", marginBottom: "25px" }}>{q.question}</h2>
+                <div style={{ marginBottom: "10px", color: "#94a3b8", fontSize: "14px" }}>שאלה {currentQ + 1} מתוך {questions.length}</div>
+                <h2 style={{ color: "#fff", marginBottom: "25px", fontSize: "22px" }}>{q.question}</h2>
 
-                <div style={{ display: "grid", gap: "12px", marginBottom: "30px" }}>
+                <div style={{ display: "grid", gap: "12px", marginBottom: "25px" }}>
                     {q.options.map((opt, idx) => (
                         <button 
                             key={idx}
-                            onClick={() => setSelectedAnswer(idx)}
+                            onClick={() => handleAnswerClick(idx)}
                             style={{
-                                padding: "15px",
-                                borderRadius: "10px",
-                                border: selectedAnswer === idx ? "2px solid #22c55e" : "1px solid #1e293b",
-                                background: selectedAnswer === idx ? "rgba(34, 197, 94, 0.1)" : "#0f172a",
-                                color: "#f8fafc",
-                                textAlign: "right",
-                                cursor: "pointer"
+                                padding: "16px", borderRadius: "10px", textAlign: "right", cursor: "pointer", fontSize: "16px",
+                                border: selectedAnswer === idx ? (isCorrect ? "2px solid #22c55e" : "2px solid #ef4444") : "1px solid #1e293b",
+                                background: selectedAnswer === idx ? (isCorrect ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)") : "#0f172a",
+                                color: "#f8fafc"
                             }}
                         >
                             {opt}
@@ -61,34 +101,34 @@ export function TrainingScreen({ user, setScreen, questions = [] }) {
                     ))}
                 </div>
 
-                {showHint && <p style={{ color: "#eab308", fontSize: "14px", marginBottom: "15px" }}>💡 רמז מה-AI: נסה לחשוב על נהלי הבטיחות במקרה של תקלה טכנית.</p>}
-                {showAnswer && <p style={{ color: "#22c55e", fontSize: "14px", marginBottom: "15px" }}>✅ התשובה הנכונה היא: {q.correctAnswer}</p>}
+                {showHint && (
+                    <div style={{ padding: "12px", background: "rgba(234, 179, 8, 0.1)", borderRadius: "8px", color: "#eab308", marginBottom: "15px", fontSize: "14px" }}>
+                        💡 **רמז:** שים לב לפרטים הקטנים בנהלי הבטיחות שהוצגו.
+                    </div>
+                )}
+
+                {showAnswer && (
+                    <div style={{ padding: "12px", background: "rgba(34, 197, 94, 0.1)", borderRadius: "8px", color: "#22c55e", marginBottom: "15px", fontSize: "14px" }}>
+                        ✅ **התשובה הנכונה:** {q.correctAnswer}
+                    </div>
+                )}
 
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: "20px", borderTop: "1px solid #1e293b", paddingTop: "20px" }}>
                     <button 
-                        onClick={handleFinish}
+                        onClick={() => setScreen("debrief")} 
                         className="btn" 
-                        style={{ background: "#ef4444", color: "#fff", padding: "10px 25px", display: "flex", alignItems: "center", gap: "8px" }}
+                        style={{ background: "#334155", color: "#fff", padding: "10px 20px", border: "none", borderRadius: "8px", cursor: "pointer" }}
                     >
-                        <XCircle size={18} /> סיים אימון
+                        <XCircle size={18} style={{ marginLeft: "8px" }} /> סיים אימון
                     </button>
                     
                     <button 
-                        disabled={selectedAnswer === null}
-                        onClick={() => {
-                            if (currentQ < questions.length - 1) {
-                                setCurrentQ(currentQ + 1);
-                                setSelectedAnswer(null);
-                                setShowHint(false);
-                                setShowAnswer(false);
-                            } else {
-                                handleFinish();
-                            }
-                        }}
+                        disabled={!isCorrect}
+                        onClick={nextQuestion}
                         className="btn btn-primary" 
-                        style={{ padding: "10px 25px", display: "flex", alignItems: "center", gap: "8px" }}
+                        style={{ padding: "10px 25px", opacity: isCorrect ? 1 : 0.5, cursor: isCorrect ? "pointer" : "not-allowed" }}
                     >
-                        לשאלה הבאה <CheckCircle2 size={18} />
+                        לשאלה הבאה <CheckCircle2 size={18} style={{ marginRight: "8px" }} />
                     </button>
                 </div>
             </div>
