@@ -34,7 +34,7 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [sessionId, setSessionId] = useState(null);
     const [popup, setPopup] = useState(null);
-    const [qAttempts, setQAttempts] = useState(0); // המונה לספירת טעויות (עבור כפתור העזרה)
+    const [qAttempts, setQAttempts] = useState(0); // המונה שסופר טעויות לכפתור העזרה
 
     // Back office
     const [boTab, setBoTab] = useState("overview");
@@ -103,7 +103,7 @@ export default function App() {
     }, []);
 
     const deleteUserRecord = async (userId) => {
-        if (!window.confirm("האם אתה בטוח?")) return;
+        if (!window.confirm("אזהרה חמורה: מחיקת המשתמש תמחק לצמיתות גם את כל הסשנים והלוגים שלו. האם אתה בטוח?")) return;
         try {
             await supabase.from('app_users').delete().eq('id', userId);
             DB.users = DB.users.filter(u => u.id !== userId);
@@ -182,41 +182,41 @@ export default function App() {
         await supabase.from('app_sessions').insert([{ id: sid, user_id: user.id, data: sess }]);
         setTopic(t); setQuestions(t.questions); setQIdx(0); setSessionId(sid); 
         setMsgs([{ role: "ai", text: t.questions[0]?.question || "אין שאלות" }]);
-        setQAttempts(0); // איפוס טעויות לשאלה ראשונה
+        setQAttempts(0); // איפוס הטעויות בתחילת אימון
         setScreen("training");
     };
 
-    // הפונקציה שבודקת את התשובה מול ה-AI (הייתה חסרה!)
+    // הפונקציה המרכזית שבודקת את התשובה מול ה-AI (הייתה חסרה!)
     const sendAnswer = async () => {
         if (!input.trim() || loading) return;
         const ans = input.trim(); 
         setInput(""); 
         setLoading(true);
         
-        // מציג מיד את תשובת המשתמש בצ'אט
+        // כותב בצ'אט את התשובה של המשתמש
         setMsgs(prev => [...prev, { role: "user", text: ans }]);
 
         try {
-            const correctAnswer = questions[qIdx].correctAnswer || questions[qIdx].answer;
-            const reply = await evalAnswerWithGemini("", questions[qIdx].question, correctAnswer, ans);
+            const correctAnswer = questions[qIdx]?.correctAnswer || questions[qIdx]?.answer || "";
+            const reply = await evalAnswerWithGemini("", questions[qIdx]?.question || "", correctAnswer, ans);
             
             const isCorrect = reply.includes("[CORRECT]");
             const cleanReply = reply.replace(/\[.*\]/g, "").trim();
 
+            // כותב בצ'אט את הפידבק של ה-AI
             setMsgs(prev => [...prev, { role: "ai", text: cleanReply }]);
 
             if (isCorrect) {
                 const log = { id: genId("log"), sessionId, userId: user.id, question: questions[qIdx].question, answer: ans, status: "correct" };
                 await supabase.from('app_logs').insert([{ id: log.id, session_id: sessionId, user_id: user.id, data: log }]);
                 
-                // מקפיץ פופאפ מעבר שאלה אחרי שנייה
                 setTimeout(() => setPopup("next"), 1500);
             } else {
-                // מעלה את ספירת הטעויות ב-1
+                // המשתמש טעה - מעלים את המונה ב-1 בשביל כפתור העזרה
                 setQAttempts(prev => prev + 1);
             }
         } catch (error) {
-            console.error("שגיאה מול Gemini:", error);
+            console.error("Gemini Error:", error);
             setMsgs(prev => [...prev, { role: "ai", text: "הייתה בעיה בתקשורת עם ה-AI. אנא נסה שוב." }]);
         }
         
@@ -232,7 +232,7 @@ export default function App() {
             {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
             {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s=>s.status==='completed')} allTopics={uploadedSets} />}
             
-            {/* מסך הצ'אט מקבל עכשיו את כל הנתונים כולל כמות הטעויות! */}
+            {/* השורה החשובה: מעבירה את כל הנתונים למסך ה-Training החדש שלך */}
             {screen === "training" && (
                 <TrainingScreen 
                     user={user} setScreen={setScreen}
@@ -245,7 +245,7 @@ export default function App() {
                         popup, 
                         onNext: () => { 
                             setQIdx(i => i + 1); 
-                            setQAttempts(0); 
+                            setQAttempts(0); // איפוס טעויות לשאלה הבאה
                             setPopup(null); 
                             setMsgs([{ role: "ai", text: questions[qIdx + 1]?.question || "סיימת!" }]); 
                         }
