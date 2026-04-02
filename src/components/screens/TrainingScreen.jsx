@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { HelpCircle, Send, Loader2 } from "lucide-react";
 
 export function TrainingScreen({ 
@@ -7,6 +7,8 @@ export function TrainingScreen({
     sendAnswer, loading, chatRef, 
     qAttempts = 0, pops 
 }) {
+    // סטייט חדש לשליטה בפופאפ סיום האימון
+    const [showFinishModal, setShowFinishModal] = useState(false);
     
     const currentQ = questions[qIdx] || {};
     
@@ -17,20 +19,21 @@ export function TrainingScreen({
     const handleHelpClick = () => {
         if (!isHelpActive) return;
 
-        const chapterName = currentQ.topic || "פרק לא מוגדר";
+        // כאן אנחנו מושכים את מספר הסעיף (נא לוודא שזה השם הנכון ב-DB שלך)
+        const sectionRef = currentQ.reference || currentQ.section || "סעיף לא מוגדר";
 
         if (isRevealActive) {
             // הופך לכתום אחרי 3 טעויות
             const answerText = currentQ.correctAnswer || currentQ.answer || "לא הוזנה תשובה במערכת";
             setMsgs(prev => [...prev, {
                 role: "system",
-                text: `תשובה נכונה מתוך ${chapterName}:\n${answerText}`
+                text: `תשובה נכונה מתוך סעיף ${sectionRef}:\n${answerText}`
             }]);
         } else {
-            // תכלת אחרי טעות אחת
+            // תכלת אחרי טעות אחת - מציג את מספר הסעיף
             setMsgs(prev => [...prev, {
                 role: "system",
-                text: `רמז: נסה לחפש את התשובה בנושא: ${chapterName}`
+                text: `רמז: התשובה נמצאת בסעיף ${sectionRef}`
             }]);
         }
     };
@@ -42,7 +45,8 @@ export function TrainingScreen({
             <div style={{ padding: "15px 30px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
                     <button 
-                        onClick={() => setScreen("debrief")}
+                        // שינוי: במקום מעבר מסך ישיר, פותח את הפופאפ
+                        onClick={() => setShowFinishModal(true)}
                         style={{ padding: "8px 16px", borderRadius: "6px", background: "transparent", border: "1px solid #334155", color: "#94a3b8", cursor: "pointer" }}
                     >
                         סיים אימון
@@ -81,7 +85,7 @@ export function TrainingScreen({
                                 border: isSystemReveal || isSystemHint ? `1px solid ${borderColor}` : "1px solid #1e293b",
                                 fontSize: "16px",
                                 lineHeight: "1.6",
-                                textAlign: "right", // יישור נכון לעברית
+                                textAlign: "right",
                                 maxWidth: "90%",
                                 boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
                             }}>
@@ -153,6 +157,35 @@ export function TrainingScreen({
                         >
                             המשך לשאלה הבאה
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* חלון קופץ (Popup) לסיום אימון ותחקיר */}
+            {showFinishModal && (
+                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(2,6,23,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+                    <div style={{ background: "#0f172a", padding: "40px", borderRadius: "20px", textAlign: "center", border: "1px solid #334155", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)", maxWidth: "450px" }}>
+                        <h2 style={{ color: "#f8fafc", fontSize: "24px", marginBottom: "15px" }}>סיום אימון</h2>
+                        <p style={{ color: "#94a3b8", marginBottom: "30px", lineHeight: "1.5" }}>
+                            האם אתה בטוח שברצונך לסיים את האימון כעת? המערכת תעבד את התשובות שלך ותכין עבורך תחקיר מפורט.
+                        </p>
+                        <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
+                            <button
+                                onClick={() => {
+                                    setShowFinishModal(false);
+                                    setScreen("debrief"); // מעבר למסך התחקיר
+                                }}
+                                style={{ padding: "10px 24px", fontSize: "16px", borderRadius: "8px", background: "#3b82f6", color: "#fff", border: "none", cursor: "pointer", fontWeight: "bold" }}
+                            >
+                                כן, עבור לתחקיר
+                            </button>
+                            <button
+                                onClick={() => setShowFinishModal(false)}
+                                style={{ padding: "10px 24px", fontSize: "16px", borderRadius: "8px", background: "transparent", color: "#94a3b8", border: "1px solid #334155", cursor: "pointer" }}
+                            >
+                                ביטול
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
