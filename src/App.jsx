@@ -115,11 +115,19 @@ export default function App() {
         const u = DB.users.find(x => x.email === form.email && x.password === form.password);
         if (!u) { setAuthErr("אימייל או סיסמה שגויים"); return; }
         setUser(u); setAuthErr("");
+        
         if (u.role === "admin") {
-            if (uploadedSets.length === 0) setAdminStep("upload_required");
-            else setAdminStep("upload_optional");
-            setScreen("admin_upload");
-        } else { setScreen("onboarding"); }
+            // התיקון לבקשתך: בודק אם אין סטים ואין מסמכים
+            if (uploadedSets.length === 0 && libraryDocs.length === 0) {
+                setAdminStep("upload_required");
+                setScreen("admin_upload");
+            } else {
+                // אם יש חומר במערכת, עובר ישירות לבק אופיס
+                setScreen("backoffice");
+            }
+        } else { 
+            setScreen("onboarding"); 
+        }
     };
     
     const doRegister = async () => {
@@ -214,8 +222,6 @@ export default function App() {
         } catch (error) {
             console.error("Gemini Error:", error);
             setMsgs(prev => [...prev, { role: "ai", text: "הייתה בעיה בתקשורת מול שרתי ה-AI. אי אפשר לבדוק את התשובה כרגע." }]);
-            // הפתרון שלנו: מעלים את מספר הטעויות גם במקרה של שגיאת רשת, 
-            // כדי שהכפתור יעבוד והמשתמש יוכל להתקדם ולקבל עזרה
             setQAttempts(prev => prev + 1);
         }
         
