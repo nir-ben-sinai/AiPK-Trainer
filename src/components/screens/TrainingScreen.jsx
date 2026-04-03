@@ -7,6 +7,10 @@ export function TrainingScreen({
     sendAnswer, loading, chatRef, 
     qAttempts = 0, pops 
 }) {
+    // --- הוסף את השורה הזו ---
+    console.log("3. TrainingScreen rendered! qAttempts value is:", qAttempts);
+    // --------------------------
+    
     // סטייט חלון קופץ לסיום אימון
     const [showFinishModal, setShowFinishModal] = useState(false);
     
