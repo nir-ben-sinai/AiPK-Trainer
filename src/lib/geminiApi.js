@@ -1,9 +1,14 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// וודא שה-API Key שלך נמצא כאן (רצוי להעביר למשתנה סביבה בהמשך)
-const genAI = new GoogleGenerativeAI("aipk-trainer");
+// VITE_GEMINI_API_KEY שואב את המפתח מ-Vercel בצורה מאובטחת
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-// הגדרת המודל המתקדם והעדכני ביותר למשימות האלו
+if (!apiKey) {
+    console.error("CRITICAL ERROR: API Key is missing! Make sure VITE_GEMINI_API_KEY is set in Vercel.");
+}
+
+const genAI = new GoogleGenerativeAI(apiKey);
+
 const MODEL_NAME = "gemini-2.0-flash";
 
 // 1. הפונקציה לחילול שאלות ממסמך
@@ -17,7 +22,6 @@ export async function generateQuestionsFromDocument(content, topic) {
     const response = await result.response;
     let text = response.text();
 
-    // ניקוי עטיפות markdown במידה וג'מיני הוסיף אותן (מונע קריסות)
     text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
 
     return JSON.parse(text);
@@ -43,7 +47,7 @@ export async function generateDebriefWithGemini(quizResults, traineeName) {
   }
 }
 
-// 3. הפונקציה לבדיקת התשובה בזמן אמת (הייתה חסרה!)
+// 3. הפונקציה לבדיקת התשובה בזמן אמת בצ'אט
 export async function evalAnswerWithGemini(documentText, question, correctAnswer, userAnswer) {
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
@@ -64,7 +68,6 @@ export async function evalAnswerWithGemini(documentText, question, correctAnswer
     return response.text();
   } catch (error) {
     console.error("שגיאה בבדיקת התשובה:", error);
-    // אנו זורקים את השגיאה החוצה כדי ש-App.jsx יתפוס אותה ויעלה את מונה הטעויות
     throw error;
   }
 }
