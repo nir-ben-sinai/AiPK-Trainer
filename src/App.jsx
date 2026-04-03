@@ -80,16 +80,20 @@ export default function App() {
                     DB.uploadedSets = formattedExams;
                 }
 
+                // --- תיקון לוגיקת האדמין: תמיד לוודא שהאדמין קיים ---
                 const adminEmail = "admin@aipk.co.il";
                 const adminPassword = "admin";
                 
-                if (usersRes.data?.length > 0) {
-                    DB.users = usersRes.data.map(r => r.data);
-                } else {
+                let loadedUsers = usersRes.data?.length > 0 ? usersRes.data.map(r => r.data) : [];
+                const hasAdmin = loadedUsers.some(u => u.email === adminEmail);
+
+                if (!hasAdmin) {
                     const admin = { id: "u_admin", name: "Admin", email: adminEmail, password: adminPassword, profession: "System Admin", role: "admin", joinedAt: new Date().toISOString() };
-                    DB.users = [admin];
+                    loadedUsers.push(admin);
                     await supabase.from('app_users').insert([{ id: admin.id, data: admin }]);
                 }
+                
+                DB.users = loadedUsers;
 
                 if (sessRes.data) DB.sessions = sessRes.data.map(r => r.data);
                 if (logsRes.data) DB.logs = logsRes.data.map(r => r.data);
@@ -111,31 +115,64 @@ export default function App() {
         } catch (e) { console.error(e); }
     };
 
+    // --- שדרוג התחברות חסין שגיאות הקלדה ---
     const doLogin = () => {
-        const u = DB.users.find(x => x.email === form.email && x.password === form.password);
-        if (!u) { setAuthErr("אימייל או סיסמה שגויים"); return; }
-        setUser(u); setAuthErr("");
+        const cleanEmail = form.email.trim().toLowerCase();
+        const u = DB.users.find(x => x.email.toLowerCase() === cleanEmail);
+        
+        if (!u) { 
+            setAuthErr("משתמש לא קיים במערכת. אנא הירשם תחילה."); 
+            return; 
+        }
+        if (u.password !== form.password.trim()) {
+            setAuthErr("סיסמה שגויה. אנא נסה שוב.");
+            return;
+        }
+
+        setUser(u); 
+        setAuthErr("");
         
         if (u.role === "admin") {
-            // התיקון לבקשתך: בודק אם אין סטים ואין מסמכים
             if (uploadedSets.length === 0 && libraryDocs.length === 0) {
                 setAdminStep("upload_required");
                 setScreen("admin_upload");
             } else {
-                // אם יש חומר במערכת, עובר ישירות לבק אופיס
                 setScreen("backoffice");
             }
         } else { 
-            setScreen("onboarding"); 
+            setScreen("home"); 
         }
     };
     
-    const doRegister = async () => {
-        if (!form.name || !form.email || !form.password) { setAuthErr("יש למלא את כל השדות"); return; }
-        if (DB.users.find(x => x.email === form.email)) { setAuthErr("אימייל קיים במערכת"); return; }
-        const u = { id: genId("u"), name: form.name, email: form.email, password: form.password, profession: form.profession || "לא צוין", role: "trainee", joinedAt: new Date().toISOString() };
-        DB.users.push(u); setUser(u); setAuthErr(""); setScreen("onboarding");
-        await supabase.from('app_users').insert([{ id: u.id, data: u }]); 
+    const doRegister = () => {
+        if (!form.name || !form.email || !form.password) { 
+            setAuthErr("יש למלא לפחות שם מלא, אימייל וסיסמה כדי להירשם."); 
+            return; 
+        }
+        
+        const cleanEmail = form.email.trim().toLowerCase();
+        if (DB.users.find(x => x.email.toLowerCase() === cleanEmail)) { 
+            setAuthErr("אימייל זה כבר קיים במערכת. אנא עבור למסך ההתחברות."); 
+            return; 
+        }
+        
+        const u = { 
+            id: genId("u"), 
+            name: form.name.trim(), 
+            email: cleanEmail, 
+            password: form.password.trim(), 
+            profession: form.profession || "לא צוין", 
+            role: "trainee", 
+            joinedAt: new Date().toISOString() 
+        };
+        
+        DB.users.push(u); 
+        setUser(u); 
+        setAuthErr(""); 
+        
+        setScreen("home"); 
+        
+        supabase.from('app_users').insert([{ id: u.id, data: u }]).catch(console.error);
         setTick(t => t + 1);
     };
 
