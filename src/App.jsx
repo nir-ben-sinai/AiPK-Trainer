@@ -34,7 +34,7 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [sessionId, setSessionId] = useState(null);
     const [popup, setPopup] = useState(null);
-    const [qAttempts, setQAttempts] = useState(0); // <--- מונה הטעויות
+    const [qAttempts, setQAttempts] = useState(0); 
 
     // Back office
     const [boTab, setBoTab] = useState("overview");
@@ -186,14 +186,12 @@ export default function App() {
         setScreen("training");
     };
 
-    // <--- הפונקציה המרכזית לתקשורת מול ה-AI --->
     const sendAnswer = async () => {
         if (!input.trim() || loading) return;
         const ans = input.trim(); 
         setInput(""); 
         setLoading(true);
         
-        // מציג את תשובת המשתמש בצ'אט
         setMsgs(prev => [...prev, { role: "user", text: ans }]);
 
         try {
@@ -202,12 +200,7 @@ export default function App() {
             
             const isCorrect = reply.includes("[CORRECT]");
             const cleanReply = reply.replace(/\[.*\]/g, "").trim();
-            
-// --- הוסף את שתי השורות האלו ---
-console.log("1. Raw reply from Gemini:", reply);
-console.log("2. isCorrect evaluated to:", isCorrect);
-// -------------------------------
-            
+
             setMsgs(prev => [...prev, { role: "ai", text: cleanReply }]);
 
             if (isCorrect) {
@@ -216,12 +209,14 @@ console.log("2. isCorrect evaluated to:", isCorrect);
                 
                 setTimeout(() => setPopup("next"), 1500);
             } else {
-                // <--- כאן אנחנו סופרים טעות כדי להדליק את כפתור העזרה --->
                 setQAttempts(prev => prev + 1);
             }
         } catch (error) {
             console.error("Gemini Error:", error);
-            setMsgs(prev => [...prev, { role: "ai", text: "הייתה בעיה בתקשורת. אנא נסה שוב." }]);
+            setMsgs(prev => [...prev, { role: "ai", text: "הייתה בעיה בתקשורת מול שרתי ה-AI. אי אפשר לבדוק את התשובה כרגע." }]);
+            // הפתרון שלנו: מעלים את מספר הטעויות גם במקרה של שגיאת רשת, 
+            // כדי שהכפתור יעבוד והמשתמש יוכל להתקדם ולקבל עזרה
+            setQAttempts(prev => prev + 1);
         }
         
         setLoading(false);
@@ -236,7 +231,6 @@ console.log("2. isCorrect evaluated to:", isCorrect);
             {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
             {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s=>s.status==='completed')} allTopics={uploadedSets} />}
             
-            {/* <--- כאן השורה הקריטית: העברנו את כל המידע למסך ה-Training ---> */}
             {screen === "training" && (
                 <TrainingScreen 
                     user={user} setScreen={setScreen} 
@@ -249,7 +243,7 @@ console.log("2. isCorrect evaluated to:", isCorrect);
                         popup, 
                         onNext: () => { 
                             setQIdx(i => i + 1); 
-                            setQAttempts(0); // איפוס טעויות בשאלה חדשה
+                            setQAttempts(0);
                             setPopup(null); 
                             setMsgs([{ role: "ai", text: questions[qIdx + 1]?.question || "סיימת!" }]); 
                         }
