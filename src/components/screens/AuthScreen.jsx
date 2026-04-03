@@ -1,298 +1,108 @@
-import { useState, useRef, useEffect } from "react";
-import * as Papa from "papaparse";
+import React, { useState } from "react";
+import { Logo } from "../Logo";
+import { Mail, Lock, LogIn, UserPlus, AlertCircle, Briefcase, Eye, EyeOff } from "lucide-react";
 
-import { DB, parseCsvToSet, downloadTemplate, genId, CSS } from "./lib/mockBackend";
-import { evalAnswerWithGemini, generateDebriefWithGemini, generateQuestionsFromDocument } from "./lib/geminiApi";
-import { supabase } from "./supabase";
+export function AuthScreen({ authMode, setAuthMode, authErr, setAuthErr, form, setForm, doLogin, doRegister }) {
+  // סטייט מקומי לניהול תצוגת הסיסמה
+  const [showPassword, setShowPassword] = useState(false);
 
-import { AuthScreen } from "./components/screens/AuthScreen";
-import { OnboardingScreen } from "./components/screens/OnboardingScreen";
-import { DisclaimerScreen } from "./components/screens/DisclaimerScreen";
-import { AdminUploadScreen } from "./components/screens/AdminUploadScreen";
-import { HomeScreen } from "./components/screens/HomeScreen";
-import { TrainingScreen } from "./components/screens/TrainingScreen";
-import { DebriefScreen } from "./components/screens/DebriefScreen";
-import { BackofficeScreen } from "./components/screens/BackofficeScreen";
-
-const isUuid = (str) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
-
-export default function App() {
-    const [screen, setScreen] = useState("auth");
-    const [user, setUser] = useState(null);
-    const [authMode, setAuthMode] = useState("login");
-    const [form, setForm] = useState({ name: "", email: "", password: "", profession: "" });
-    const [authErr, setAuthErr] = useState("");
-    const [agreed, setAgreed] = useState(false);
-    const [tick, setTick] = useState(0); 
-
-    // Training
-    const [topic, setTopic] = useState(null);
-    const [questions, setQuestions] = useState([]);
-    const [qIdx, setQIdx] = useState(0);
-    const [msgs, setMsgs] = useState([]);
-    const [input, setInput] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [sessionId, setSessionId] = useState(null);
-    const [popup, setPopup] = useState(null);
-    const [qAttempts, setQAttempts] = useState(0); 
-
-    // Back office
-    const [boTab, setBoTab] = useState("overview");
-    const [dbTable, setDbTable] = useState("users");
-    const [adminStep, setAdminStep] = useState(null);
-
-    const [uploadedSets, setUploadedSets] = useState([]);
-    const [libraryDocs, setLibraryDocs] = useState([]);
-    
-    const [uploadError, setUploadError] = useState("");
-    const chatRef = useRef(null);
-    
-    const [aiLoading, setAiLoading] = useState(false);
-    const [isUploadingDoc, setIsUploadingDoc] = useState(false);
-
-    useEffect(() => { chatRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
-
-    useEffect(() => {
-        const fetchSupabaseData = async () => {
-            try {
-                const [docsRes, examsRes, usersRes, sessRes, logsRes, debRes, helpRes] = await Promise.all([
-                    supabase.from('library_docs').select('*').order('created_at', { ascending: false }),
-                    supabase.from('exams').select('*').order('created_at', { ascending: false }),
-                    supabase.from('app_users').select('*'),
-                    supabase.from('app_sessions').select('*'),
-                    supabase.from('app_logs').select('*'),
-                    supabase.from('app_debriefs').select('*'),
-                    supabase.from('app_help').select('*')
-                ]);
-
-                if (docsRes.data) {
-                    setLibraryDocs(docsRes.data.map(d => ({ id: d.id, filename: d.filename, fileUrl: d.file_url, uploadedAt: d.created_at, mimeType: "application/pdf" })));
-                }
-
-                if (examsRes.data) {
-                    const formattedExams = examsRes.data.map(e => {
-                        const qs = e.questions || [];
-                        const uniqueTopics = [...new Set(qs.map(q => q.topic || "כללי"))];
-                        const chapters = uniqueTopics.map((t, idx) => ({ id: `ch_${idx}`, title: t }));
-                        return { id: e.id, title: e.title, description: `${qs.length} שאלות (AI)`, isUploaded: true, filename: e.pdf_url, uploadedAt: e.created_at, chapters, questions: qs };
-                    });
-                    setUploadedSets(formattedExams);
-                    DB.uploadedSets = formattedExams;
-                }
-
-                const adminEmail = "admin@aipk.co.il";
-                const adminPassword = "admin";
-                
-                if (usersRes.data?.length > 0) {
-                    DB.users = usersRes.data.map(r => r.data);
-                } else {
-                    const admin = { id: "u_admin", name: "Admin", email: adminEmail, password: adminPassword, profession: "System Admin", role: "admin", joinedAt: new Date().toISOString() };
-                    DB.users = [admin];
-                    await supabase.from('app_users').insert([{ id: admin.id, data: admin }]);
-                }
-
-                if (sessRes.data) DB.sessions = sessRes.data.map(r => r.data);
-                if (logsRes.data) DB.logs = logsRes.data.map(r => r.data);
-                if (debRes.data) DB.debriefs = debRes.data.map(r => r.data);
-                if (helpRes.data) DB.helpRequests = helpRes.data.map(r => r.data);
-
-                setTick(t => t + 1); 
-            } catch (err) { console.error("שגיאה במשיכת נתונים:", err); }
-        };
-        fetchSupabaseData();
-    }, []);
-
-    const deleteUserRecord = async (userId) => {
-        if (!window.confirm("האם אתה בטוח שברצונך למחוק משתמש זה?")) return;
-        try {
-            await supabase.from('app_users').delete().eq('id', userId);
-            DB.users = DB.users.filter(u => u.id !== userId);
-            setTick(t => t + 1);
-        } catch (e) { console.error(e); }
-    };
-
-    // --- לוגיקת ההתחברות המעודכנת ---
-    const doLogin = () => {
-        const u = DB.users.find(x => x.email === form.email);
+  return (
+    <div className="screen fade" style={{ justifyContent: "center", alignItems: "center", background: "radial-gradient(circle at center, #0f172a 0%, #020617 100%)", direction: "rtl" }}>
+      <div className="card" style={{ width: "100%", maxWidth: 380, padding: 40, textAlign: "center" }}>
+        <div style={{ marginBottom: 30, display: "flex", justifyContent: "center" }}>
+          <Logo sz={80} />
+        </div>
         
-        if (!u) { 
-            setAuthErr("משתמש לא קיים במערכת. אנא הירשם תחילה."); 
-            return; 
-        }
-        if (u.password !== form.password) {
-            setAuthErr("סיסמה שגויה. אנא נסה שוב.");
-            return;
-        }
-
-        setUser(u); 
-        setAuthErr("");
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fff", marginBottom: 10 }}>AIPK</h1>
         
-        if (u.role === "admin") {
-            if (uploadedSets.length === 0 && libraryDocs.length === 0) {
-                setAdminStep("upload_required");
-                setScreen("admin_upload");
-            } else {
-                setScreen("backoffice");
-            }
-        } else { 
-            // הפנייה ישירה למסך המשתמש
-            setScreen("home"); 
-        }
-    };
-    
-    // --- לוגיקת ההרשמה המעודכנת ---
-    const doRegister = () => {
-        if (!form.name || !form.email || !form.password) { 
-            setAuthErr("יש למלא לפחות שם מלא, אימייל וסיסמה כדי להירשם."); 
-            return; 
-        }
-        if (DB.users.find(x => x.email === form.email)) { 
-            setAuthErr("אימייל זה כבר קיים במערכת. אנא עבור למסך ההתחברות."); 
-            return; 
-        }
-        
-        const u = { 
-            id: genId("u"), 
-            name: form.name, 
-            email: form.email, 
-            password: form.password, 
-            profession: form.profession || "לא צוין", 
-            role: "trainee", 
-            joinedAt: new Date().toISOString() 
-        };
-        
-        DB.users.push(u); 
-        setUser(u); 
-        setAuthErr(""); 
-        
-        // מעבר מיידי למסך הבית (כדי שהכפתור ירגיש מגיב ומהיר)
-        setScreen("home"); 
-        
-        // שמירה לשרת ברקע מבלי לעכב את ה-UI
-        supabase.from('app_users').insert([{ id: u.id, data: u }]).catch(console.error);
-        setTick(t => t + 1);
-    };
+        <p style={{ color: "#38bdf8", marginBottom: 30, fontSize: "16px", fontWeight: "bold" }}>
+            מ-לדעת ל-לדעת ליישם
+        </p>
 
-    const deleteSet = async id => {
-        if (!window.confirm("מחק מבחן?")) return;
-        if (isUuid(id)) await supabase.from('exams').delete().eq('id', id);
-        setUploadedSets(prev => prev.filter(s => s.id !== id));
-    };
+        <div style={{ textAlign: "right", display: "flex", flexDirection: "column", gap: 20 }}>
+          {authMode === "register" && (
+            <>
+              <div className="inp-group">
+                <label className="lbl">שם מלא</label>
+                <input className="inp" type="text" placeholder="ישראל ישראלי" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+              </div>
+              <div className="inp-group">
+                <label className="lbl">תפקיד / מקצוע</label>
+                <div style={{ position: "relative" }}>
+                  <Briefcase size={16} style={{ position: "absolute", right: 12, top: 14, color: "#475569" }} />
+                  <input className="inp" style={{ paddingRight: 40 }} type="text" placeholder="מנהל עבודה / מפקח..." value={form.profession || ""} onChange={e => setForm({ ...form, profession: e.target.value })} />
+                </div>
+              </div>
+            </>
+          )}
+          
+          <div className="inp-group">
+            <label className="lbl">אימייל</label>
+            <div style={{ position: "relative" }}>
+              <Mail size={16} style={{ position: "absolute", right: 12, top: 14, color: "#475569" }} />
+              <input className="inp" style={{ paddingRight: 40 }} type="email" placeholder="name@company.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+            </div>
+          </div>
+          
+          <div className="inp-group">
+            <label className="lbl">סיסמה</label>
+            <div style={{ position: "relative" }}>
+              <Lock size={16} style={{ position: "absolute", right: 12, top: 14, color: "#475569" }} />
+              <input 
+                className="inp" 
+                // שינינו את סוג השדה בהתאם לסטייט, והוספנו paddingLeft כדי שהטקסט לא יעלה על העין
+                style={{ paddingRight: 40, paddingLeft: 40 }} 
+                type={showPassword ? "text" : "password"} 
+                placeholder="••••••••" 
+                value={form.password} 
+                onChange={e => setForm({ ...form, password: e.target.value })} 
+              />
+              {/* כפתור העין שנוסף */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  top: 14,
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  color: showPassword ? "#38bdf8" : "#475569", // נצבע בתכלת כשפתוח
+                  display: "flex",
+                  alignItems: "center",
+                  transition: "color 0.2s"
+                }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+        </div>
 
-    const deleteLibraryDoc = async id => {
-        if (!window.confirm("מחק ספר?")) return;
-        if (isUuid(id)) await supabase.from('library_docs').delete().eq('id', id);
-        setLibraryDocs(prev => prev.filter(d => d.id !== id));
-    };
+        {authErr && (
+            <div style={{ marginTop: 20, padding: "10px", borderRadius: "8px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid #ef4444", color: "#ef4444", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
+                <AlertCircle size={16} style={{ flexShrink: 0 }} /> 
+                <span style={{ lineHeight: "1.4" }}>{authErr}</span>
+            </div>
+        )}
 
-    const addLibraryDoc = async (files) => {
-        if (!files || !files.length) return;
-        setIsUploadingDoc(true);
-        try {
-            const file = files[0];
-            const uniqueName = `${Date.now()}_${file.name}`;
-            await supabase.storage.from('pdfs').upload(uniqueName, file);
-            const { data: urlData } = supabase.storage.from('pdfs').getPublicUrl(uniqueName);
-            const dbEntry = { filename: file.name, file_url: urlData.publicUrl };
-            const { data } = await supabase.from('library_docs').insert([dbEntry]).select().single();
-            
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                setLibraryDocs(prev => [{ ...data, base64Data: reader.result.split(',')[1] }, ...prev]);
-            };
-        } catch (e) { setUploadError("שגיאה בהעלאה"); }
-        setIsUploadingDoc(false);
-    };
+        <button className="btn btn-primary" style={{ width: "100%", height: 50, marginTop: 30 }} onClick={authMode === "login" ? doLogin : doRegister}>
+          {authMode === "login" ? <><LogIn size={18} style={{marginLeft:8}}/> כניסה למערכת</> : <><UserPlus size={18} style={{marginLeft:8}}/> יצירת חשבון</>}
+        </button>
 
-    const processAiFile = async (docId, options = {}) => {
-        const doc = libraryDocs.find(d => d.id === docId);
-        setAiLoading(true);
-        try {
-            const qs = await generateQuestionsFromDocument(doc.base64Data, "application/pdf", doc.filename, options);
-            const set = { id: genId("us"), title: options.customTitle || doc.filename, questions: qs, chapters: [] };
-            await supabase.from('exams').insert([{ title: set.title, questions: qs, pdf_url: doc.filename }]);
-            setUploadedSets(prev => [set, ...prev]);
-            setAiLoading(false); return true;
-        } catch (e) { setAiLoading(false); return false; }
-    };
-
-    const startSession = async (t) => {
-        const sid = genId("s");
-        const sess = { id: sid, userId: user.id, topicId: t.id, startedAt: new Date().toISOString(), status: "active", score: 0 };
-        DB.sessions.push(sess);
-        await supabase.from('app_sessions').insert([{ id: sid, user_id: user.id, data: sess }]);
-        setTopic(t); setQuestions(t.questions); setQIdx(0); setSessionId(sid); 
-        setMsgs([{ role: "ai", text: t.questions[0]?.question || "אין שאלות" }]);
-        setQAttempts(0); 
-        setScreen("training");
-    };
-
-    const sendAnswer = async () => {
-        if (!input.trim() || loading) return;
-        const ans = input.trim(); 
-        setInput(""); 
-        setLoading(true);
-        
-        setMsgs(prev => [...prev, { role: "user", text: ans }]);
-
-        try {
-            const correctAnswer = questions[qIdx]?.correctAnswer || questions[qIdx]?.answer || "";
-            const reply = await evalAnswerWithGemini("", questions[qIdx]?.question || "", correctAnswer, ans);
-            
-            const isCorrect = reply.includes("[CORRECT]");
-            const cleanReply = reply.replace(/\[.*\]/g, "").trim();
-
-            setMsgs(prev => [...prev, { role: "ai", text: cleanReply }]);
-
-            if (isCorrect) {
-                const log = { id: genId("log"), sessionId, userId: user.id, question: questions[qIdx].question, answer: ans, status: "correct" };
-                await supabase.from('app_logs').insert([{ id: log.id, session_id: sessionId, user_id: user.id, data: log }]);
-                
-                setTimeout(() => setPopup("next"), 1500);
-            } else {
-                setQAttempts(prev => prev + 1);
-            }
-        } catch (error) {
-            console.error("Gemini Error:", error);
-            setMsgs(prev => [...prev, { role: "ai", text: "הייתה בעיה בתקשורת מול שרתי ה-AI. אי אפשר לבדוק את התשובה כרגע." }]);
-            setQAttempts(prev => prev + 1);
-        }
-        
-        setLoading(false);
-    };
-
-    return (
-        <>
-            <style>{CSS}</style>
-            {screen === "auth" && <AuthScreen authMode={authMode} setAuthMode={setAuthMode} authErr={authErr} setAuthErr={setAuthErr} form={form} setForm={setForm} doLogin={doLogin} doRegister={doRegister} />}
-            {screen === "onboarding" && <OnboardingScreen user={user} setScreen={setScreen} />}
-            {screen === "disclaimer" && <DisclaimerScreen agreed={agreed} setAgreed={setAgreed} setScreen={setScreen} />}
-            {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
-            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s=>s.status==='completed')} allTopics={uploadedSets} />}
-            
-            {screen === "training" && (
-                <TrainingScreen 
-                    user={user} setScreen={setScreen} 
-                    topic={topic} questions={questions} qIdx={qIdx} 
-                    msgs={msgs} setMsgs={setMsgs} 
-                    input={input} setInput={setInput} 
-                    sendAnswer={sendAnswer} loading={loading} chatRef={chatRef} 
-                    qAttempts={qAttempts} 
-                    pops={{
-                        popup, 
-                        onNext: () => { 
-                            setQIdx(i => i + 1); 
-                            setQAttempts(0);
-                            setPopup(null); 
-                            setMsgs([{ role: "ai", text: questions[qIdx + 1]?.question || "סיימת!" }]); 
-                        }
-                    }} 
-                />
-            )}
-            
-            {screen === "debrief" && <DebriefScreen user={user} setScreen={setScreen} />}
-            {screen === "backoffice" && <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={DB.sessions.filter(s=>s.status==='completed')} avgSc={0} uploadedSets={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} tick={tick} />}
-        </>
-    );
+        <button 
+          className="btn-ghost" 
+          style={{ marginTop: 20, color: "#4ade80", fontSize: 14, border: "none", background: "none", cursor: "pointer" }}
+          onClick={() => {
+              setAuthMode(authMode === "login" ? "register" : "login");
+              if (setAuthErr) setAuthErr("");
+          }}
+        >
+          {authMode === "login" ? "אין לך חשבון? הירשם כאן" : "כבר רשום? היכנס כאן"}
+        </button>
+      </div>
+    </div>
+  );
 }
