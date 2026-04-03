@@ -7,7 +7,7 @@ export function TrainingScreen({
     sendAnswer, loading, chatRef, 
     qAttempts = 0, pops 
 }) {
-    // סטייט חדש לשליטה בפופאפ סיום האימון
+    // סטייט חלון קופץ לסיום אימון
     const [showFinishModal, setShowFinishModal] = useState(false);
     
     const currentQ = questions[qIdx] || {};
@@ -19,11 +19,11 @@ export function TrainingScreen({
     const handleHelpClick = () => {
         if (!isHelpActive) return;
 
-        // כאן אנחנו מושכים את מספר הסעיף (נא לוודא שזה השם הנכון ב-DB שלך)
-        const sectionRef = currentQ.reference || currentQ.section || "סעיף לא מוגדר";
+        // שליפת מספר הסעיף (פולבק ל-topic אם אין section/reference)
+        const sectionRef = currentQ.reference || currentQ.section || currentQ.topic || "סעיף לא מוגדר";
 
         if (isRevealActive) {
-            // הופך לכתום אחרי 3 טעויות
+            // הופך לכתום אחרי 3 טעויות - מציג תשובה מלאה
             const answerText = currentQ.correctAnswer || currentQ.answer || "לא הוזנה תשובה במערכת";
             setMsgs(prev => [...prev, {
                 role: "system",
@@ -45,7 +45,6 @@ export function TrainingScreen({
             <div style={{ padding: "15px 30px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
                     <button 
-                        // שינוי: במקום מעבר מסך ישיר, פותח את הפופאפ
                         onClick={() => setShowFinishModal(true)}
                         style={{ padding: "8px 16px", borderRadius: "6px", background: "transparent", border: "1px solid #334155", color: "#94a3b8", cursor: "pointer" }}
                     >
@@ -134,8 +133,9 @@ export function TrainingScreen({
                             padding: "10px 20px", borderRadius: "8px",
                             background: "transparent",
                             cursor: isHelpActive ? "pointer" : "not-allowed",
-                            color: isRevealActive ? "#f97316" : (isHelpActive ? "#38bdf8" : "#334155"),
-                            border: `1px solid ${isRevealActive ? "#f97316" : (isHelpActive ? "#38bdf8" : "#1e293b")}`,
+                            // לוגיקת הצבעים נכתבה כאן בצורה מפורשת למניעת באגים
+                            color: !isHelpActive ? "#334155" : (isRevealActive ? "#f97316" : "#38bdf8"),
+                            border: `1px solid ${!isHelpActive ? "#1e293b" : (isRevealActive ? "#f97316" : "#38bdf8")}`,
                             transition: "all 0.3s"
                         }}
                     >
@@ -161,19 +161,19 @@ export function TrainingScreen({
                 </div>
             )}
 
-            {/* חלון קופץ (Popup) לסיום אימון ותחקיר */}
+            {/* Popup End Session */}
             {showFinishModal && (
                 <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(2,6,23,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
                     <div style={{ background: "#0f172a", padding: "40px", borderRadius: "20px", textAlign: "center", border: "1px solid #334155", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)", maxWidth: "450px" }}>
                         <h2 style={{ color: "#f8fafc", fontSize: "24px", marginBottom: "15px" }}>סיום אימון</h2>
                         <p style={{ color: "#94a3b8", marginBottom: "30px", lineHeight: "1.5" }}>
-                            האם אתה בטוח שברצונך לסיים את האימון כעת? המערכת תעבד את התשובות שלך ותכין עבורך תחקיר מפורט.
+                            האם אתה בטוח שברצונך לסיים את האימון כעת?
                         </p>
                         <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
                             <button
                                 onClick={() => {
                                     setShowFinishModal(false);
-                                    setScreen("debrief"); // מעבר למסך התחקיר
+                                    setScreen("debrief");
                                 }}
                                 style={{ padding: "10px 24px", fontSize: "16px", borderRadius: "8px", background: "#3b82f6", color: "#fff", border: "none", cursor: "pointer", fontWeight: "bold" }}
                             >
