@@ -80,9 +80,9 @@ export default function App() {
                     DB.uploadedSets = formattedExams;
                 }
 
-                // --- תיקון לוגיקת האדמין: תמיד לוודא שהאדמין קיים ---
-                const adminEmail = "admin@aipk.co.il";
-                const adminPassword = "admin";
+                // --- תיקון פרטי האדמין לאלו שרצית ---
+                const adminEmail = "admin@system.com";
+                const adminPassword = "admin123";
                 
                 let loadedUsers = usersRes.data?.length > 0 ? usersRes.data.map(r => r.data) : [];
                 const hasAdmin = loadedUsers.some(u => u.email === adminEmail);
@@ -115,7 +115,6 @@ export default function App() {
         } catch (e) { console.error(e); }
     };
 
-    // --- שדרוג התחברות חסין שגיאות הקלדה ---
     const doLogin = () => {
         const cleanEmail = form.email.trim().toLowerCase();
         const u = DB.users.find(x => x.email.toLowerCase() === cleanEmail);
