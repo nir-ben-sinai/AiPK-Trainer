@@ -202,7 +202,12 @@ export default function App() {
             
             const isCorrect = reply.includes("[CORRECT]");
             const cleanReply = reply.replace(/\[.*\]/g, "").trim();
-
+            
+// --- הוסף את שתי השורות האלו ---
+console.log("1. Raw reply from Gemini:", reply);
+console.log("2. isCorrect evaluated to:", isCorrect);
+// -------------------------------
+            
             setMsgs(prev => [...prev, { role: "ai", text: cleanReply }]);
 
             if (isCorrect) {
