@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // וודא שה-API Key שלך נמצא כאן (רצוי להעביר למשתנה סביבה בהמשך)
-const genAI = new GoogleGenerativeAI("YOUR_GEMINI_API_KEY_HERE");
+const genAI = new GoogleGenerativeAI("aipk-trainer");
 
 // הגדרת המודל המתקדם והעדכני ביותר למשימות האלו
 const MODEL_NAME = "gemini-2.0-flash";
