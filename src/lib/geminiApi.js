@@ -5,28 +5,36 @@
 async function fetchGeminiDirectly(prompt) {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     
+    // בדיקה זמנית בקונסול - האם המפתח מגיע?
+    console.log("Checking API Key status...", apiKey ? "Key exists" : "Key is MISSING");
+
     if (!apiKey) {
-        throw new Error("חובה להגדיר VITE_GEMINI_API_KEY ב-Vercel!");
+        throw new Error("Missing API Key in environment variables");
     }
 
-    // פנייה ישירה למודל היציב והמהיר
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
-    const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
-        })
-    });
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
 
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Google API Error: ${response.status} - ${errText}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Google API detailed error:", data);
+            throw new Error(data.error?.message || "Unknown API Error");
+        }
+
+        return data.candidates[0].content.parts[0].text;
+    } catch (err) {
+        console.error("Fetch error:", err);
+        throw err;
     }
-
-    const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
 }
 
 // 1. הפונקציה לחילול שאלות ממסמך
