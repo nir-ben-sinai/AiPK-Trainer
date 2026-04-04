@@ -1,31 +1,43 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// קובץ: geminiApi.js
+// מעקף ישיר: פנייה לשרתי גוגל ללא תלות בספריית צד שלישי
 
-// מושך את המפתח מ-Vercel בצורה מאובטחת
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+// הפונקציה המרכזית שמתקשרת ישירות עם השרת של גוגל
+async function fetchGeminiDirectly(prompt) {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    
+    if (!apiKey) {
+        throw new Error("חובה להגדיר VITE_GEMINI_API_KEY ב-Vercel!");
+    }
 
-if (!apiKey) {
-    console.error("CRITICAL ERROR: API Key is missing! Make sure VITE_GEMINI_API_KEY is set in Vercel.");
+    // פנייה ישירה למודל היציב והמהיר
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    
+    const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+        })
+    });
+
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Google API Error: ${response.status} - ${errText}`);
+    }
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
 }
-
-const genAI = new GoogleGenerativeAI(apiKey);
-
-// הנה התיקון: מעבר למודל היציב והזמין
-const MODEL_NAME = "gemini-1.5-flash";
 
 // 1. הפונקציה לחילול שאלות ממסמך
 export async function generateQuestionsFromDocument(content, topic) {
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `בהתבסס על הטקסט הבא: ${content}, צור 5 שאלות אמריקאיות בנושא ${topic}. 
     החזר תשובה בפורמט JSON בלבד, ללא טקסט מקדים וללא עטיפות, כרשימה של אובייקטים עם השדות: question, options, correctAnswer.`;
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
-
-    // ניקוי עטיפות markdown במידה וג'מיני הוסיף אותן (מונע קריסות)
+    let text = await fetchGeminiDirectly(prompt);
+    // ניקוי עטיפות markdown במידה וג'מיני הוסיף אותן
     text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-
     return JSON.parse(text);
   } catch (error) {
     console.error("שגיאה במחולל המבחנים:", error);
@@ -36,13 +48,10 @@ export async function generateQuestionsFromDocument(content, topic) {
 // 2. הפונקציה ליצירת תחקיר אישי
 export async function generateDebriefWithGemini(quizResults, traineeName) {
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `בהתבסס על תוצאות המבחן הבאות של ${traineeName}: ${JSON.stringify(quizResults)}, 
     צור תחקיר אישי, קצר ומעודד בעברית. הדגש נקודות לשימור ונקודות לשיפור מתוך התשובות שלו.`;
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    return await fetchGeminiDirectly(prompt);
   } catch (error) {
     console.error("שגיאה ביצירת תחקיר:", error);
     return "לא ניתן היה ליצור תחקיר אוטומטי כרגע בגלל שגיאת תקשורת.";
@@ -52,7 +61,6 @@ export async function generateDebriefWithGemini(quizResults, traineeName) {
 // 3. הפונקציה לבדיקת התשובה בזמן אמת בצ'אט
 export async function evalAnswerWithGemini(documentText, question, correctAnswer, userAnswer) {
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `
       אתה מאמן ידע מקצועי וסבלני. המשתמש נשאל את השאלה הבאה: "${question}".
       התשובה הנכונה הרשמית מתוך החומר היא: "${correctAnswer}".
@@ -65,11 +73,9 @@ export async function evalAnswerWithGemini(documentText, question, correctAnswer
       - אם התשובה שגויה או חסרה פרט קריטי: אל תשתמש במילה [CORRECT]. ענה במשפט קצר בעברית שמסביר שהתשובה אינה מדויקת, ללא מתן הפתרון.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    return await fetchGeminiDirectly(prompt);
   } catch (error) {
     console.error("שגיאה בבדיקת התשובה:", error);
-    throw error;
+    throw error; // משליך את השגיאה הלאה כדי שהצ'אט יציג את הודעת התקלה
   }
 }
