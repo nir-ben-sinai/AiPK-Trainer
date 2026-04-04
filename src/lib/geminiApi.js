@@ -1,13 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// VITE_GEMINI_API_KEY שואב את המפתח מ-Vercel בצורה מאובטחת
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-if (!apiKey) {
-    console.error("CRITICAL ERROR: API Key is missing! Make sure VITE_GEMINI_API_KEY is set in Vercel.");
-}
-
-const genAI = new GoogleGenerativeAI(apiKey);
+// מחקנו זמנית את הפנייה ל-Vercel ושמנו את המפתח ישירות
+const genAI = new GoogleGenerativeAI("AIzaSyBRvTMRX28aoy2ryYuwJ4XUXKaQmv41dtA");
 
 const MODEL_NAME = "gemini-2.0-flash";
 
