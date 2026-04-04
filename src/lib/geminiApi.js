@@ -1,40 +1,49 @@
 // קובץ: geminiApi.js
 
+// קובץ: geminiApi.js
+
 async function fetchGeminiDirectly(prompt) {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) throw new Error("Missing API Key");
 
-    // רשימת כתובות לניסוי - גוגל משנה את המיקום של המודלים בין v1 ל-v1beta
-    const endpoints = [
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`
-    ];
+    // שימוש במזהה המודל המדויק ביותר שגוגל דורשת כיום למניעת 404
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
-    for (let url of endpoints) {
-        try {
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
-                })
-            });
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
 
-            if (response.ok) {
-                const data = await response.json();
-                return data.candidates[0].content.parts[0].text;
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Google detailed error:", data);
+            // אם המודל הספציפי נכשל, ננסה פעם אחרונה עם השם הגנרי בגרסת v1
+            if (response.status === 404) {
+                const fallbackUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const fallbackRes = await fetch(fallbackUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const fallbackData = await fallbackRes.json();
+                if (fallbackRes.ok) return fallbackData.candidates[0].content.parts[0].text;
             }
-            
-            const errData = await response.json();
-            console.warn(`Attempt failed for ${url}:`, errData.error?.message);
-        } catch (e) {
-            console.error("Network error for endpoint:", e);
+            throw new Error(data.error?.message || "API Error");
         }
-    }
 
-    throw new Error("כל ניסיונות התקשורת עם גוגל נכשלו. בדוק את סטטוס המודלים ב-AI Studio.");
+        return data.candidates[0].content.parts[0].text;
+    } catch (err) {
+        console.error("Gemini Fetch Error:", err);
+        throw err;
+    }
 }
 
+// שאר הפונקציות נשארות ללא שינוי...
 export async function generateQuestionsFromDocument(content, topic) {
   try {
     const prompt = `בהתבסס על הטקסט הבא: ${content}, צור 5 שאלות אמריקאיות בנושא ${topic}. 
