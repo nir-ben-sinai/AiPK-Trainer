@@ -1,9 +1,16 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// מחקנו זמנית את הפנייה ל-Vercel ושמנו את המפתח ישירות
-const genAI = new GoogleGenerativeAI("AIzaSyBRvTMRX28aoy2ryYuwJ4XUXKaQmv41dtA");
+// מושך את המפתח מ-Vercel בצורה מאובטחת
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-const MODEL_NAME = "gemini-2.0-flash";
+if (!apiKey) {
+    console.error("CRITICAL ERROR: API Key is missing! Make sure VITE_GEMINI_API_KEY is set in Vercel.");
+}
+
+const genAI = new GoogleGenerativeAI(apiKey);
+
+// הנה התיקון: מעבר למודל היציב והזמין
+const MODEL_NAME = "gemini-1.5-flash";
 
 // 1. הפונקציה לחילול שאלות ממסמך
 export async function generateQuestionsFromDocument(content, topic) {
@@ -16,6 +23,7 @@ export async function generateQuestionsFromDocument(content, topic) {
     const response = await result.response;
     let text = response.text();
 
+    // ניקוי עטיפות markdown במידה וג'מיני הוסיף אותן (מונע קריסות)
     text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
 
     return JSON.parse(text);
