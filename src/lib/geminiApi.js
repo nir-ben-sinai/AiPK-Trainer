@@ -1,11 +1,11 @@
-// קובץ: geminiApi.js
+// geminiApi.js - מעודכן למודל Gemini 3
 
 async function fetchGeminiDirectly(prompt) {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) throw new Error("Missing API Key");
+    if (!apiKey) throw new Error("מפתח API חסר בהגדרות Vercel");
 
-    // שימוש במזהה המודל המדויק ביותר שגוגל דורשת כיום למניעת 404
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+    // עדכון למודל Gemini 3 Flash כפי שמופיע אצלך ב-Playground
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`;
 
     try {
         const response = await fetch(url, {
@@ -17,28 +17,27 @@ async function fetchGeminiDirectly(prompt) {
         });
 
         const data = await response.json();
-
-        if (!response.ok) {
-            console.error("Google detailed error:", data);
-            // אם המודל הספציפי נכשל, ננסה פעם אחרונה עם השם הגנרי בגרסת v1
-            if (response.status === 404) {
-                const fallbackUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                const fallbackRes = await fetch(fallbackUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                const fallbackData = await fallbackRes.json();
-                if (fallbackRes.ok) return fallbackData.candidates[0].content.parts[0].text;
-            }
-            throw new Error(data.error?.message || "API Error");
-        }
+        if (!response.ok) throw new Error(data.error?.message || "שגיאת API");
 
         return data.candidates[0].content.parts[0].text;
     } catch (err) {
-        console.error("Gemini Fetch Error:", err);
+        console.error("שגיאת תקשורת:", err);
         throw err;
     }
+}
+
+export async function generateQuestionsFromDocument(content, topic) {
+    const prompt = `בהתבסס על הטקסט: ${content}, צור 5 שאלות אמריקאיות על ${topic}. החזר JSON בלבד.`;
+    try {
+        let text = await fetchGeminiDirectly(prompt);
+        text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        return JSON.parse(text);
+    } catch (e) { return []; }
+}
+
+export async function evalAnswerWithGemini(documentText, question, correctAnswer, userAnswer) {
+    const prompt = `שאלה: "${question}". תשובה נכונה: "${correctAnswer}". חניך ענה: "${userAnswer}". האם הוא צדק? ענה ב-[CORRECT] והסבר קצר.`;
+    return await fetchGeminiDirectly(prompt);
 }
 
 // שאר הפונקציות נשארות ללא שינוי...
