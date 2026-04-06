@@ -1,7 +1,5 @@
 // קובץ: geminiApi.js
 
-// קובץ: geminiApi.js
-
 async function fetchGeminiDirectly(prompt) {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) throw new Error("Missing API Key");
@@ -44,6 +42,7 @@ async function fetchGeminiDirectly(prompt) {
 }
 
 // שאר הפונקציות נשארות ללא שינוי...
+
 export async function generateQuestionsFromDocument(content, topic) {
   try {
     const prompt = `בהתבסס על הטקסט הבא: ${content}, צור 5 שאלות אמריקאיות בנושא ${topic}. 
