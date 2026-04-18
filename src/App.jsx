@@ -214,12 +214,18 @@ export default function App() {
         const doc = libraryDocs.find(d => d.id === docId);
         setAiLoading(true);
         try {
-            const qs = await generateQuestionsFromDocument(doc.base64Data, "application/pdf", doc.filename, options);
+            // הנה השורה המתוקנת! הורדנו את ה-"application/pdf" האמצעי שהרס את הסדר
+            const qs = await generateQuestionsFromDocument(doc.base64Data, doc.filename, options);
+            
             const set = { id: genId("us"), title: options.customTitle || doc.filename, questions: qs, chapters: [] };
             await supabase.from('exams').insert([{ title: set.title, questions: qs, pdf_url: doc.filename }]);
             setUploadedSets(prev => [set, ...prev]);
-            setAiLoading(false); return true;
-        } catch (e) { setAiLoading(false); return false; }
+            setAiLoading(false); 
+            return true;
+        } catch (e) { 
+            setAiLoading(false); 
+            return false; 
+        }
     };
 
     const startSession = async (t) => {
