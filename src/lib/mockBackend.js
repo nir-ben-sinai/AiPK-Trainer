@@ -12,9 +12,7 @@ export const DB = {
     sessions: [],
     logs: [],
     debriefs: [],
-    // Uploaded question sets (Tests) — populated at runtime
     uploadedSets: [],
-    // Uploaded source books (PDF/TXT) — populated at runtime
     libraryDocs: [],
     helpRequests: [],
 };
@@ -34,29 +32,20 @@ export const mockDebrief = (score, title) => new Promise(res => setTimeout(() =>
     aiSummary: `[MOCK] הושלם אימון בנושא "${title}" עם ציון ${score}%. ביצועים ${score >= 80 ? "טובים מאוד" : score >= 60 ? "סבירים" : "דורשים שיפור"}.`,
 }), 550));
 
-// ═══════════════════════════════════════════
-// CSV PARSER
-// ═══════════════════════════════════════════
 export function parseCsvToSet(results, filename) {
     const rows = results.data.filter(r => Object.values(r).some(v => String(v || "").trim()));
     if (!rows.length) return null;
-
     const headers = Object.keys(rows[0]);
     const find = (...kws) => headers.find(h => kws.some(k => h.includes(k))) || null;
-
     const colTopic = find("נושא", "topic", "Topic", "TOPIC");
     const colQuestion = find("שאלה", "question", "Question", "תרחיש", "QUESTION");
     const colAnswer = find("תשובה", "answer", "Answer", "ADM", "ANSWER");
     const colCitation = find("ציטוט", "citation", "Citation");
     const colSection = find("סעיף", "section", "Section", "סעיף");
-
     if (!colQuestion || !colAnswer) return null;
-
     const uniqueTopics = [...new Set(rows.map(r => String(r[colTopic] || "כללי").trim()))];
     const chapters = uniqueTopics.map((t, i) => ({ id: `ch_${i}`, title: t }));
-
-    const questions = rows
-        .map((row, i) => {
+    const questions = rows.map((row, i) => {
             const topicVal = String(row[colTopic] || "כללי").trim();
             const ch = chapters.find(c => c.title === topicVal);
             return {
@@ -67,11 +56,8 @@ export function parseCsvToSet(results, filename) {
                 section: colSection ? String(row[colSection] || "").trim() : "",
                 chapterId: ch?.id || "ch_0",
             };
-        })
-        .filter(q => q.question && q.answer);
-
+        }).filter(q => q.question && q.answer);
     if (!questions.length) return null;
-
     return {
         id: `us_${Date.now()}`,
         title: filename.replace(/\.(csv|xlsx|txt)$/i, ""),
@@ -84,7 +70,6 @@ export function parseCsvToSet(results, filename) {
     };
 }
 
-// CSV template download
 export function downloadTemplate() {
     const rows = [
         "נושא,שאלה,תשובה,ציטוט,סעיף",
@@ -97,16 +82,10 @@ export function downloadTemplate() {
     URL.revokeObjectURL(url);
 }
 
-// ═══════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════
 export const genId = p => `${p}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 export const fmt = iso => new Date(iso).toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit", year: "2-digit" });
 export const sc = s => s >= 80 ? "#34d399" : s >= 60 ? "#fbbf24" : "#f87171";
 
-// ═══════════════════════════════════════════
-// CSS 
-// ═══════════════════════════════════════════
 export const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -127,34 +106,3 @@ body { background: #080c12; color: #c9d8e4; font-family: 'Inter', sans-serif; di
 .screen { min-height:100vh;display:flex;flex-direction:column;background:var(--bg); }
 input,textarea,button { font-family:'Rubik',sans-serif; }
 ::-webkit-scrollbar{width:3px} ::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
-::-webkit-scrollbar-thumb:hover{background:var(--t3)}
-.hdr { background:var(--s1);border-bottom:1px solid var(--bdr);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
-.btn { display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.15s;border:none;border-radius:var(--r);letter-spacing:0.02em;white-space:nowrap;font-family:'Inter',sans-serif; }
-.btn-primary { background:var(--cy);color:#050d18; }
-.btn-primary:hover:not(:disabled){background:#67d0fc;}
-.btn-primary:active:not(:disabled){background:#23aee0;}
-.btn-primary:disabled{opacity:0.3;cursor:not-allowed;}
-.btn-ghost{background:transparent;color:var(--t2);border:1px solid var(--s3);}
-.btn-ghost:hover{border-color:var(--t3);color:var(--t1);background:var(--s2);}
-.btn-subtle{background:var(--s2);color:var(--t1);border:1px solid var(--bdr);}
-.btn-subtle:hover{background:var(--s3);border-color:var(--bdr2);}
-.btn-subtle:disabled{opacity:0.3;cursor:not-allowed;}
-.btn-icon{padding:8px;border-radius:var(--r);background:transparent;color:var(--t2);border:1px solid var(--s3);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
-.btn-icon:hover{background:var(--s2);color:var(--t1);border-color:var(--t3);}
-.btn-icon:disabled{opacity:0.3;cursor:not-allowed;}
-.inp{background:var(--s2);border:1px solid var(--bdr);color:var(--t0);padding:10px 14px;font-size:14px;width:100%;outline:none;transition:border-color 0.18s,background 0.18s;border-radius:var(--r);font-family:'Rubik',sans-serif;}
-.inp:focus{border-color:var(--cy);background:rgba(56,189,248,0.04);}
-.inp::placeholder{color:var(--t3);}
-textarea.inp{resize:none;}
-.card{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);}
-.card-hover{transition:border-color 0.15s,background 0.15s,transform 0.15s;}
-.card-hover:hover{border-color:var(--cy);background:rgba(56,189,248,0.04);transform:translateY(-1px);}
-.upload-zone{border:1.5px dashed var(--bdr2);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.18s;background:var(--cy3);}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--cy);background:var(--cy2);}
-
-/* המחלקות החדשות למסכים נדבקים (Sticky) */
-.screen-layout { height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: #0b1120; }
-.screen-header { flex-shrink: 0; z-index: 10; }
-.screen-content { flex: 1; overflow-y: auto; }
-.screen-footer { flex-shrink: 0; z-index: 10; }
-`;
