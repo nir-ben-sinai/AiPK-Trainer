@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { HelpCircle, Send, Loader2 } from "lucide-react";
+import { HelpCircle, Send, Loader2, Eye } from "lucide-react";
 
 export function TrainingScreen({ 
     user, setScreen, topic, questions = [], qIdx = 0, 
@@ -7,63 +7,69 @@ export function TrainingScreen({
     sendAnswer, loading, chatRef, 
     qAttempts = 0, pops 
 }) {
-    console.log("3. TrainingScreen rendered! qAttempts value is:", qAttempts);
     
     // סטייט חלון קופץ לסיום אימון
     const [showFinishModal, setShowFinishModal] = useState(false);
     
-    // סטייט חדש לטיימר הספירה לאחור
-    const [revealTimer, setRevealTimer] = useState(null);
+    // סטייט לטיימר בתוך הצ'אט (במקום פופאפ)
+    const [inlineTimer, setInlineTimer] = useState(null);
     
     const currentQ = questions[qIdx] || {};
     
-    // הלוגיקה של הכפתור
+    // הלוגיקה של הכפתורים - מתי הם פעילים
     const isHelpActive = qAttempts >= 1;
     const isRevealActive = qAttempts >= 3;
 
-    // ניקוי הטיימר אם יוצאים מהמסך
+    // ניקוי הטיימר במקרה שהמשתמש יוצא מהמסך באמצע
     useEffect(() => {
         return () => {
             if (window.revealInterval) clearInterval(window.revealInterval);
         };
     }, []);
 
-    const handleHelpClick = () => {
-        if (!isHelpActive || revealTimer !== null) return;
-
-        // שליפת מספר הסעיף (פולבק ל-topic אם אין section/reference)
-        const sectionRef = currentQ.reference || currentQ.section || currentQ.topic || "סעיף לא מוגדר";
-
-        if (isRevealActive) {
-            // חשיפת התשובה המלאה אחרי 3 טעויות
-            const answerText = currentQ.correctAnswer || currentQ.answer || "לא הוזנה תשובה במערכת";
-            setMsgs(prev => [...prev, {
-                role: "system",
-                text: `תשובה נכונה מתוך סעיף ${sectionRef}:\n${answerText}`
-            }]);
-
-            // התחלת ספירה לאחור של 5 שניות למעבר אוטומטי
-            setRevealTimer(5);
-            let counter = 5;
-            
-            window.revealInterval = setInterval(() => {
-                counter -= 1;
-                if (counter > 0) {
-                    setRevealTimer(counter);
-                } else {
-                    clearInterval(window.revealInterval);
-                    setRevealTimer(null);
-                    if (pops?.onNext) pops.onNext(); // מעבר אוטומטי לשאלה הבאה
-                }
-            }, 1000);
-
-        } else {
-            // תכלת אחרי טעות אחת - מציג רק את מספר הסעיף כרמז
-            setMsgs(prev => [...prev, {
-                role: "system",
-                text: `רמז: התשובה נמצאת בסעיף ${sectionRef}`
-            }]);
+    // גלילה אוטומטית למטה כשמתעדכן הטיימר, כדי שהוא תמיד יהיה גלוי
+    useEffect(() => {
+        if (inlineTimer !== null) {
+            chatRef.current?.scrollIntoView({ behavior: "smooth" });
         }
+    }, [inlineTimer]);
+
+    const handleHelpClick = () => {
+        if (!isHelpActive || inlineTimer !== null) return;
+
+        const sectionRef = currentQ.reference || currentQ.section || currentQ.topic || "סעיף לא מוגדר";
+        setMsgs(prev => [...prev, {
+            role: "system",
+            text: `רמז: התשובה נמצאת בסעיף ${sectionRef}`
+        }]);
+    };
+
+    const handleRevealClick = () => {
+        if (!isRevealActive || inlineTimer !== null) return;
+
+        const sectionRef = currentQ.reference || currentQ.section || currentQ.topic || "סעיף לא מוגדר";
+        const answerText = currentQ.correctAnswer || currentQ.answer || "לא הוזנה תשובה במערכת";
+
+        // 1. הוספת התשובה הנכונה לצ'אט
+        setMsgs(prev => [...prev, {
+            role: "system",
+            text: `תשובה נכונה מתוך סעיף ${sectionRef}:\n${answerText}`
+        }]);
+
+        // 2. הפעלת טיימר רץ למשך 5 שניות
+        setInlineTimer(5);
+        let counter = 5;
+        
+        window.revealInterval = setInterval(() => {
+            counter -= 1;
+            if (counter > 0) {
+                setInlineTimer(counter);
+            } else {
+                clearInterval(window.revealInterval);
+                setInlineTimer(null); // הטיימר נעלם
+                if (pops?.onNext) pops.onNext(); // מביא את השאלה הבאה
+            }
+        }, 1000);
     };
 
     return (
@@ -123,6 +129,7 @@ export function TrainingScreen({
                     );
                 })}
                 
+                {/* Loader בדיקת תשובה */}
                 {loading && (
                     <div style={{ width: "100%", maxWidth: "800px", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
                          <div style={{ color: "#64748b", fontSize: "12px", marginBottom: "5px", fontWeight: "bold" }}>AI INSTRUCTOR</div>
@@ -131,6 +138,21 @@ export function TrainingScreen({
                          </div>
                     </div>
                 )}
+
+                {/* טיימר אינליין קטן מתחת להודעות במקום פופאפ */}
+                {inlineTimer !== null && (
+                    <div style={{ width: "100%", maxWidth: "800px", display: "flex", justifyContent: "flex-start", marginTop: "10px" }}>
+                        <div style={{ 
+                            background: "rgba(249, 115, 22, 0.08)", color: "#f97316", padding: "8px 16px", 
+                            borderRadius: "20px", fontSize: "13px", border: "1px solid rgba(249, 115, 22, 0.2)", 
+                            display: "flex", alignItems: "center", gap: "8px", fontWeight: "500"
+                        }}>
+                            <Loader2 size={14} className="spin" />
+                            מכין את השאלה הבאה בעוד {inlineTimer} שניות...
+                        </div>
+                    </div>
+                )}
+
                 <div ref={chatRef} />
             </div>
 
@@ -140,8 +162,8 @@ export function TrainingScreen({
                     
                     <button
                         onClick={sendAnswer}
-                        disabled={loading || !input.trim() || revealTimer !== null}
-                        style={{ background: "transparent", color: (loading || !input.trim() || revealTimer !== null) ? "#334155" : "#4ade80", border: "none", cursor: (loading || !input.trim() || revealTimer !== null) ? "not-allowed" : "pointer", padding: "10px" }}
+                        disabled={loading || !input.trim() || inlineTimer !== null}
+                        style={{ background: "transparent", color: (loading || !input.trim() || inlineTimer !== null) ? "#334155" : "#4ade80", border: "none", cursor: (loading || !input.trim() || inlineTimer !== null) ? "not-allowed" : "pointer", padding: "10px" }}
                     >
                         <Send size={24} style={{ transform: "scaleX(-1)" }} />
                     </button>
@@ -149,51 +171,59 @@ export function TrainingScreen({
                     <input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && !loading && input.trim() && revealTimer === null && sendAnswer()}
-                        placeholder={revealTimer !== null ? "המתן למעבר שאלה..." : "הקלד את תשובתך ..."}
-                        disabled={revealTimer !== null}
-                        style={{ flex: 1, padding: "16px", borderRadius: "10px", border: "1px solid #1e293b", background: "#0f172a", color: "#fff", fontSize: "16px", outline: "none", opacity: revealTimer !== null ? 0.5 : 1 }}
+                        onKeyDown={(e) => e.key === "Enter" && !loading && input.trim() && inlineTimer === null && sendAnswer()}
+                        placeholder={inlineTimer !== null ? "המתן לשאלה הבאה..." : "הקלד את תשובתך ..."}
+                        disabled={inlineTimer !== null}
+                        style={{ flex: 1, padding: "16px", borderRadius: "10px", border: "1px solid #1e293b", background: "#0f172a", color: "#fff", fontSize: "16px", outline: "none", opacity: inlineTimer !== null ? 0.5 : 1 }}
                     />
 
-                    <button
-                        disabled={!isHelpActive || revealTimer !== null}
-                        onClick={handleHelpClick}
-                        style={{
-                            display: "flex", alignItems: "center", gap: "6px",
-                            padding: "10px 20px", borderRadius: "8px",
-                            background: "transparent",
-                            cursor: (!isHelpActive || revealTimer !== null) ? "not-allowed" : "pointer",
-                            color: (!isHelpActive || revealTimer !== null) ? "#334155" : (isRevealActive ? "#f97316" : "#38bdf8"),
-                            border: `1px solid ${(!isHelpActive || revealTimer !== null) ? "#1e293b" : (isRevealActive ? "#f97316" : "#38bdf8")}`,
-                            transition: "all 0.3s"
-                        }}
-                    >
-                        <HelpCircle size={18} />
-                        {isRevealActive ? "הצג תשובה נכונה" : "עזרה?"}
-                    </button>
+                    {/* קבוצת כפתורי עזרה - מופרדים */}
+                    <div style={{ display: "flex", gap: "10px" }}>
+                        {/* כפתור גלה תשובה - מופיע ליד כפתור העזרה, פעיל רק אחרי 3 טעויות */}
+                        <button
+                            disabled={!isRevealActive || inlineTimer !== null}
+                            onClick={handleRevealClick}
+                            style={{
+                                display: "flex", alignItems: "center", gap: "6px",
+                                padding: "10px 15px", borderRadius: "8px",
+                                background: "transparent",
+                                cursor: (!isRevealActive || inlineTimer !== null) ? "not-allowed" : "pointer",
+                                color: (!isRevealActive || inlineTimer !== null) ? "#334155" : "#f97316",
+                                border: `1px solid ${(!isRevealActive || inlineTimer !== null) ? "#1e293b" : "#f97316"}`,
+                                transition: "all 0.3s",
+                                whiteSpace: "nowrap"
+                            }}
+                            title="פעיל אחרי 3 טעויות"
+                        >
+                            <Eye size={18} />
+                            גלה תשובה
+                        </button>
+
+                        {/* כפתור רמז (עזרה) */}
+                        <button
+                            disabled={!isHelpActive || inlineTimer !== null}
+                            onClick={handleHelpClick}
+                            style={{
+                                display: "flex", alignItems: "center", gap: "6px",
+                                padding: "10px 15px", borderRadius: "8px",
+                                background: "transparent",
+                                cursor: (!isHelpActive || inlineTimer !== null) ? "not-allowed" : "pointer",
+                                color: (!isHelpActive || inlineTimer !== null) ? "#334155" : "#38bdf8",
+                                border: `1px solid ${(!isHelpActive || inlineTimer !== null) ? "#1e293b" : "#38bdf8"}`,
+                                transition: "all 0.3s",
+                                whiteSpace: "nowrap"
+                            }}
+                            title="פעיל אחרי טעות אחת"
+                        >
+                            <HelpCircle size={18} />
+                            עזרה
+                        </button>
+                    </div>
 
                 </div>
             </div>
 
-            {/* Popup Timer For Reveal */}
-            {revealTimer !== null && (
-                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(2,6,23,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-                    <div style={{ background: "#0f172a", padding: "40px", borderRadius: "20px", textAlign: "center", border: "2px solid #f97316", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)", minWidth: "350px" }}>
-                        <h2 style={{ color: "#f97316", fontSize: "28px", marginBottom: "15px" }}>התשובה נחשפה!</h2>
-                        <p style={{ color: "#f8fafc", fontSize: "16px", marginBottom: "20px" }}>
-                            התשובה המלאה מופיעה כעת בצ'אט.
-                        </p>
-                        <div style={{ fontSize: "64px", fontWeight: "bold", color: "#f97316", margin: "20px 0", fontFamily: "monospace" }}>
-                            00:0{revealTimer}
-                        </div>
-                        <p style={{ color: "#94a3b8", fontSize: "14px", marginTop: "20px" }}>
-                            מעבר אוטומטי לשאלה הבאה...
-                        </p>
-                    </div>
-                </div>
-            )}
-
-            {/* Popup Next Question (עבור תשובה נכונה רגילה) */}
+            {/* Popup Next Question (עבור תשובה נכונה רגילה מה-AI) */}
             {pops?.popup === "next" && (
                 <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(2,6,23,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
                     <div style={{ background: "#0f172a", padding: "40px", borderRadius: "20px", textAlign: "center", border: "2px solid #22c55e", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)" }}>
