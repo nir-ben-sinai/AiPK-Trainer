@@ -529,12 +529,12 @@ export function BackofficeScreen({
                         )}
 
                         <div style={{ marginBottom: 16 }}>
-                            <label className="lbl">מסמך מקור מהספרייה</label>
-                            <select className="inp" value={genConfig.docId} onChange={e => setGenConfig({ ...genConfig, docId: e.target.value })} disabled={aiLoading}>
-                                <option value="">-- בחר מסמך --</option>
-                                {libraryDocs.map(d => <option key={d.id} value={d.id}>{d.filename}</option>)}
-                            </select>
-                        </div>
+    <label className="lbl">סגנון שאלות (מתודולוגיה)</label>
+    <select className="inp" value={genConfig.qType} onChange={e => setGenConfig({ ...genConfig, qType: e.target.value })} disabled={aiLoading}>
+        <option value="raw">ידע תיאורטי יבש (Raw Knowledge)</option>
+        <option value="sbt">מבוסס תרחישים מבצעיים (SBT)</option>
+    </select>
+</div>
 
                         <div style={{ marginBottom: 16 }}>
                             <label className="lbl">כמות שאלות במבחן</label>
