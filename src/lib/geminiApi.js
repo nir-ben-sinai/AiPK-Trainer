@@ -1,30 +1,46 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// שואב את המפתח בצורה מאובטחת מ-Vercel
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-if (!apiKey) {
-    console.error("שגיאה קריטית: מפתח ה-API חסר! ודא שהגדרת את VITE_GEMINI_API_KEY ב-Vercel.");
-}
+if (!apiKey) console.error("Missing VITE_GEMINI_API_KEY");
 
 const genAI = new GoogleGenerativeAI(apiKey);
-
-// מעודכן למודל שפתוח ומופיע אצלך בחשבון כדי למנוע שגיאות 404
 const MODEL_NAME = "gemini-3-flash-preview";
 
-// 1. הפונקציה לחילול שאלות ממסמך
-export async function generateQuestionsFromDocument(content, topic) {
+export async function generateQuestionsFromDocument(content, topic, options = {}) {
   try {
+    const count = options.count || 5; 
+    const notes = options.notes ? `דגשים מיוחדים: ${options.notes}` : "";
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-    const prompt = `בהתבסס על הטקסט הבא: ${content}, צור 5 שאלות אמריקאיות בנושא ${topic}. 
-    החזר תשובה בפורמט JSON בלבד, ללא טקסט מקדים וללא עטיפות, כרשימה של אובייקטים עם השדות: question, options, correctAnswer.`;
     
-    const result = await model.generateContent(prompt);
+    // הפרומפט המהודק שלנו
+    const prompt = `
+      אתה מומחה לכתיבת מבחני הסמכה מקצועיים. עליך ליצור ${count} שאלות אמריקאיות בנושא "${topic}".
+      ${notes}
+
+      חוקי ברזל:
+      1. התבסס אך ורק על המסמך המצורף.
+      2. אסור להמציא מידע שאינו מופיע במפורש.
+      3. החזר תשובה בפורמט JSON בלבד כרשימת אובייקטים: [{question, options, correctAnswer}].
+    `;
+    
+    // הלוגיקה החכמה: אם זה קובץ, נשגר אותו כקובץ. אם זה טקסט, נשגר כטקסט.
+    let payload;
+    if (content.length > 50000 && !content.includes(" ")) {
+        // מזהה שמדובר במחרוזת Base64 (ללא רווחים וארוכה מאוד) ובונה אובייקט PDF
+        payload = [
+            prompt,
+            { inlineData: { data: content, mimeType: "application/pdf" } }
+        ];
+    } else {
+        // טקסט רגיל
+        payload = [prompt + "\n\nטקסט המקור:\n" + content];
+    }
+    
+    const result = await model.generateContent(payload);
     const response = await result.response;
     let text = response.text();
 
     text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-
     return JSON.parse(text);
   } catch (error) {
     console.error("שגיאה במחולל המבחנים:", error);
@@ -32,43 +48,20 @@ export async function generateQuestionsFromDocument(content, topic) {
   }
 }
 
-// 2. הפונקציה ליצירת תחקיר אישי
 export async function generateDebriefWithGemini(quizResults, traineeName) {
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-    const prompt = `בהתבסס על תוצאות המבחן הבאות של ${traineeName}: ${JSON.stringify(quizResults)}, 
-    צור תחקיר אישי, קצר ומעודד בעברית. הדגש נקודות לשימור ונקודות לשיפור מתוך התשובות שלו.`;
-    
+    const prompt = `בהתבסס על תוצאות המבחן של ${traineeName}: ${JSON.stringify(quizResults)}, צור תחקיר אישי ומעודד.`;
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
-  } catch (error) {
-    console.error("שגיאה ביצירת תחקיר:", error);
-    return "לא ניתן היה ליצור תחקיר אוטומטי כרגע בגלל שגיאת תקשורת.";
-  }
+    return (await result.response).text();
+  } catch (error) { return "שגיאת תקשורת."; }
 }
 
-// 3. הפונקציה לבדיקת התשובה בזמן אמת בצ'אט
 export async function evalAnswerWithGemini(documentText, question, correctAnswer, userAnswer) {
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-    const prompt = `
-      אתה מאמן ידע מקצועי וסבלני. המשתמש נשאל את השאלה הבאה: "${question}".
-      התשובה הנכונה הרשמית מתוך החומר היא: "${correctAnswer}".
-      המשתמש ענה במילים שלו: "${userAnswer}".
-
-      המשימה שלך היא להעריך האם תשובת המשתמש נכונה (גם אם היא מנוסחת קצת אחרת, העיקר שהרעיון המרכזי זהה).
-      
-      כללים לתשובה שלך:
-      - אם התשובה נכונה: עליך להתחיל את התגובה שלך במילה [CORRECT] בדיוק ככה, ואחריה להוסיף משפט חיזוק חיובי קצר בעברית (למשל: "[CORRECT] יפה מאוד, קלעת בול!").
-      - אם התשובה שגויה או חסרה פרט קריטי: אל תשתמש במילה [CORRECT]. ענה במשפט קצר בעברית שמסביר שהתשובה אינה מדויקת, ללא מתן הפתרון.
-    `;
-
+    const prompt = `שאלה: "${question}". תשובה נכונה: "${correctAnswer}". משתמש ענה: "${userAnswer}". האם המשתמש צדק? ענה ב-[CORRECT] עם הסבר, או רק הסבר אם טעה.`;
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
-  } catch (error) {
-    console.error("שגיאה בבדיקת התשובה:", error);
-    throw error;
-  }
+    return (await result.response).text();
+  } catch (error) { throw error; }
 }
