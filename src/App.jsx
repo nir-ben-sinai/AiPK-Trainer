@@ -329,11 +329,11 @@ export default function App() {
                     pops={{
                         popup, 
                         onNext: () => { 
-                            setQIdx(i => i + 1); 
-                            setQAttempts(0);
-                            setPopup(null); 
-                            setMsgs([{ role: "ai", text: questions[qIdx + 1]?.question || "סיימת!" }]); 
-                        }
+    setQIdx(i => i + 1); 
+    setQAttempts(0);
+    setPopup(null); 
+    setMsgs(prev => [...prev, { role: "ai", text: questions[qIdx + 1]?.question || "סיימת!" }]); 
+}
                     }} 
                 />
             )}
