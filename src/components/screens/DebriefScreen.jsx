@@ -1,69 +1,78 @@
-import React from "react";
-import { CheckCircle, ArrowRight, MessageSquare, Target, Award } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Send, Loader2, CheckCircle, MessageSquare, Target, Lightbulb, AlertTriangle } from "lucide-react";
+import { DB } from "../../lib/mockBackend";
+import { startInteractiveDebrief, continueInteractiveDebrief } from "../../lib/geminiApi";
 
-export function DebriefScreen({ debriefData, setScreen, topic }) {
-    // נתונים זמניים למקרה שאין תחקיר אמיתי
-    const stats = [
-        { label: "ציון סופי", value: `${debriefData?.score || 0}%`, icon: Award, color: "#34d399" },
-        { label: "דיוק", value: "גבוה", icon: Target, color: "#38bdf8" },
-        { label: "זמן אימון", value: "12 דק'", icon: MessageSquare, color: "#fbbf24" }
-    ];
+export function DebriefScreen({ user, setScreen }) {
+    const latestSession = [...DB.sessions].reverse().find(s => s.userId === user?.id);
+    const sessionLogs = DB.logs.filter(l => l.sessionId === latestSession?.id);
+    const logsSummary = sessionLogs.length > 0 ? sessionLogs.map((l, idx) => `שאלה ${idx+1}: ${l.question}\nתשובה: ${l.answer}\nסטטוס: ${l.status}`).join('\n\n') : "אין נתונים";
+
+    const [step, setStep] = useState("form");
+    const [reflections, setReflections] = useState({ good: "", bad: "", takeaways: "" });
+    const [msgs, setMsgs] = useState([]);
+    const [input, setInput] = useState("");
+    const [loading, setLoading] = useState(false);
+    const chatRef = useRef(null);
+
+    const isFormValid = reflections.good.trim() && reflections.bad.trim() && reflections.takeaways.trim();
+
+    const handleStartDebrief = async () => {
+        if (!isFormValid) return;
+        setStep("chat");
+        setLoading(true);
+        const userRefMsg = `תחקיר עצמי:\n\nלשימור: ${reflections.good}\nלשיפור: ${reflections.bad}\nמסקנות: ${reflections.takeaways}`;
+        setMsgs([{ role: "user", text: userRefMsg }]);
+        const aiResponse = await startInteractiveDebrief(logsSummary, reflections);
+        setMsgs(prev => [...prev, { role: "ai", text: aiResponse }]);
+        setLoading(false);
+    };
+
+    const handleSendChat = async () => {
+        if (!input.trim() || loading) return;
+        const newMsg = input.trim();
+        setInput("");
+        setMsgs(prev => [...prev, { role: "user", text: newMsg }]);
+        setLoading(true);
+        const aiResponse = await continueInteractiveDebrief(msgs, newMsg);
+        setMsgs(prev => [...prev, { role: "ai", text: aiResponse }]);
+        setLoading(false);
+    };
 
     return (
-        <div className="screen-layout" style={{ direction: "rtl", fontFamily: "sans-serif" }}>
-            
-            {/* Header - מודבק למעלה */}
-            <div className="screen-header" style={{ padding: "15px 30px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a" }}>
-                <div style={{ color: "#f8fafc", fontWeight: "bold", fontSize: "18px" }}>תחקיר ביצועים</div>
-                <div style={{ color: "#94a3b8", fontSize: "14px" }}>{topic?.title || "אימון טכני"}</div>
+        <div style={{ background: "#0b1120", minHeight: "100vh", display: "flex", flexDirection: "column", direction: "rtl", fontFamily: "sans-serif" }}>
+            <div style={{ padding: "15px 30px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a" }}>
+                {step === "chat" && <button onClick={() => setScreen("home")} style={{ padding: "8px 20px", background: "#f97316", color: "#fff", border: "none", borderRadius: "6px" }}>סיום תחקיר</button>}
+                <div style={{ color: "#fff", fontWeight: "bold" }}>תחקיר ביצועים מסכם</div>
             </div>
 
-            {/* Content Area - האזור האמצעי שנגלל */}
-            <div className="screen-content" style={{ padding: "40px 20px", display: "flex", flexDirection: "column", gap: "30px", alignItems: "center" }}>
-                
-                {/* כרטיסיות סטטיסטיקה */}
-                <div style={{ display: "flex", gap: "15px", width: "100%", maxWidth: "800px" }}>
-                    {stats.map((s, i) => (
-                        <div key={i} style={{ flex: 1, background: "#0f172a", padding: "20px", borderRadius: "12px", border: "1px solid #1e293b", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
-                            <s.icon size={24} color={s.color} />
-                            <span style={{ color: "#64748b", fontSize: "12px", fontWeight: "600" }}>{s.label}</span>
-                            <span style={{ color: "#f8fafc", fontSize: "20px", fontWeight: "bold" }}>{s.value}</span>
+            {step === "form" ? (
+                <div style={{ padding: "40px 20px", display: "flex", justifyContent: "center" }}>
+                    <div style={{ maxWidth: "700px", background: "#0f172a", padding: "40px", borderRadius: "16px", border: "1px solid #1e293b" }}>
+                        <h2 style={{ color: "#fff", textAlign: "center", marginBottom: "30px" }}>שלב א': תחקיר עצמי</h2>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                            <textarea placeholder="מה עשיתי טוב?" value={reflections.good} onChange={(e) => setReflections({...reflections, good: e.target.value})} style={{ width: "100%", padding: "12px", background: "#0b1120", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px" }} />
+                            <textarea placeholder="מה לשיפור?" value={reflections.bad} onChange={(e) => setReflections({...reflections, bad: e.target.value})} style={{ width: "100%", padding: "12px", background: "#0b1120", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px" }} />
+                            <textarea placeholder="מסקנות?" value={reflections.takeaways} onChange={(e) => setReflections({...reflections, takeaways: e.target.value})} style={{ width: "100%", padding: "12px", background: "#0b1120", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px" }} />
+                            <button onClick={handleStartDebrief} disabled={!isFormValid} style={{ padding: "15px", background: isFormValid ? "#3b82f6" : "#1e293b", color: "#fff", border: "none", borderRadius: "10px" }}>התחל תחקיר</button>
                         </div>
-                    ))}
-                </div>
-
-                {/* סיכום AI */}
-                <div style={{ width: "100%", maxWidth: "800px", background: "#0f172a", borderRadius: "12px", border: "1px solid #1e293b", overflow: "hidden" }}>
-                    <div style={{ background: "rgba(56, 189, 248, 0.05)", padding: "15px 20px", borderBottom: "1px solid #1e293b", color: "#38bdf8", fontWeight: "bold", display: "flex", alignItems: "center", gap: "10px" }}>
-                        <CheckCircle size={18} /> סיכום מדריך AI
-                    </div>
-                    <div style={{ padding: "20px", color: "#94a3b8", lineHeight: "1.6", fontSize: "16px" }}>
-                        {debriefData?.aiSummary || "השלמת את האימון בהצלחה. המערכת מנתחת את התוצאות שלך כדי לשפר את השאלות הבאות."}
                     </div>
                 </div>
-
-                {/* רשימת תובנות */}
-                <div style={{ width: "100%", maxWidth: "800px", display: "flex", flexDirection: "column", gap: "15px" }}>
-                    <h3 style={{ color: "#f8fafc", fontSize: "16px", marginBottom: "5px" }}>תובנות מרכזיות:</h3>
-                    {(debriefData?.insights || ["הבנה טובה של החומר", "קצב מענה מצוין"]).map((insight, i) => (
-                        <div key={i} style={{ background: "#0f172a", padding: "15px 20px", borderRadius: "8px", border: "1px solid #1e293b", color: "#cbd5e1", display: "flex", alignItems: "center", gap: "12px" }}>
-                            <div style={{ width: "6px", height: "6px", background: "#38bdf8", borderRadius: "50%" }} />
-                            {insight}
+            ) : (
+                <div style={{ padding: "40px 20px", display: "flex", flexDirection: "column", gap: "20px", alignItems: "center" }}>
+                    {msgs.map((m, i) => (
+                        <div key={i} style={{ width: "100%", maxWidth: "800px", alignSelf: m.role === "ai" ? "flex-start" : "flex-end" }}>
+                            <div style={{ background: m.role === "ai" ? "#0f172a" : "#1e293b", color: "#fff", padding: "20px", borderRadius: "12px", textAlign: "right", whiteSpace: "pre-wrap" }}>{m.text}</div>
                         </div>
                     ))}
+                    {loading && <Loader2 className="spin" />}
+                    <div style={{ width: "100%", maxWidth: "800px", display: "flex", gap: "10px", marginTop: "20px" }}>
+                        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSendChat()} placeholder="השב למאמן..." style={{ flex: 1, padding: "15px", background: "#0f172a", color: "#fff", border: "1px solid #1e293b", borderRadius: "10px" }} />
+                        <button onClick={handleSendChat} style={{ background: "none", border: "none", color: "#38bdf8" }}><Send style={{ transform: "scaleX(-1)" }} /></button>
+                    </div>
+                    <div ref={chatRef} />
                 </div>
-
-            </div>
-
-            {/* Footer - מודבק למטה */}
-            <div className="screen-footer" style={{ padding: "20px", background: "#0b1120", borderTop: "1px solid #1e293b", display: "flex", justifyContent: "center" }}>
-                <button 
-                    onClick={() => setScreen("home")}
-                    style={{ width: "100%", maxWidth: "800px", padding: "16px", borderRadius: "10px", background: "#3b82f6", color: "#fff", border: "none", cursor: "pointer", fontSize: "16px", fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}
-                >
-                    חזרה למסך הבית <ArrowRight size={20} />
-                </button>
-            </div>
+            )}
         </div>
     );
 }
