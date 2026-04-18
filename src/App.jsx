@@ -10,54 +10,7 @@ import { OnboardingScreen } from "./components/screens/OnboardingScreen";
 import { DisclaimerScreen } from "./components/screens/DisclaimerScreen";
 import { AdminUploadScreen } from "./components/screens/AdminUploadScreen";
 import { HomeScreen } from "./components/screens/HomeScreen";
-import { TrainingScreen } from "./componentsimport React, { useState } from "react";
-import { DB } from "./lib/mockBackend";
-import { HomeScreen } from "./components/screens/HomeScreen";
 import { TrainingScreen } from "./components/screens/TrainingScreen";
-import { BackofficeScreen } from "./components/screens/BackofficeScreen";
-import { DebriefScreen } from "./components/screens/DebriefScreen";
-
-export default function App() {
-    const [user, setUser] = useState(DB.users[1]); // מחובר כיוסי כהן
-    const [screen, setScreen] = useState("home");
-    const [selectedTest, setSelectedTest] = useState(null);
-    const [uploadedSets, setUploadedSets] = useState([]);
-
-    return (
-        <div className="app-container">
-            {screen === "home" && (
-                <HomeScreen 
-                    user={user} 
-                    setScreen={setScreen} 
-                    uploadedSets={uploadedSets}
-                    setSelectedTest={setSelectedTest}
-                />
-            )}
-
-            {screen === "training" && (
-                <TrainingScreen 
-                    user={user}
-                    setScreen={setScreen}
-                    topic={selectedTest}
-                    questions={selectedTest?.questions || []}
-                />
-            )}
-
-            {screen === "backoffice" && (
-                <BackofficeScreen 
-                    setScreen={setScreen} 
-                    setUploadedSets={setUploadedSets}
-                />
-            )}
-
-            {screen === "debrief" && (
-                <DebriefScreen 
-                    setScreen={setScreen} 
-                />
-            )}
-        </div>
-    );
-}/screens/TrainingScreen";
 import { DebriefScreen } from "./components/screens/DebriefScreen";
 import { BackofficeScreen } from "./components/screens/BackofficeScreen";
 
@@ -312,18 +265,8 @@ export default function App() {
         const sess = { id: sid, userId: user.id, topicId: t.id, startedAt: new Date().toISOString(), status: "active", score: 0 };
         DB.sessions.push(sess);
         await supabase.from('app_sessions').insert([{ id: sid, user_id: user.id, data: sess }]);
-        
-        // --- הוספנו כאן ערבוב (Shuffle) אקראי של מערך השאלות ---
-        // אנחנו יוצרים עותק של השאלות ומערבבים אותו, כדי לא לשנות את קובץ המקור ב-DB
-        const shuffledQuestions = [...t.questions].sort(() => Math.random() - 0.5);
-        
-        setTopic(t); 
-        setQuestions(shuffledQuestions); // טוענים את המערך המעורבב לסטייט
-        setQIdx(0); 
-        setSessionId(sid); 
-        
-        // השאלה הראשונה שמוצגת היא כעת השאלה הראשונה מהמערך המעורבב (שהיא אקראית)
-        setMsgs([{ role: "ai", text: shuffledQuestions[0]?.question || "אין שאלות" }]);
+        setTopic(t); setQuestions(t.questions); setQIdx(0); setSessionId(sid); 
+        setMsgs([{ role: "ai", text: t.questions[0]?.question || "אין שאלות" }]);
         setQAttempts(0); 
         setScreen("training");
     };
