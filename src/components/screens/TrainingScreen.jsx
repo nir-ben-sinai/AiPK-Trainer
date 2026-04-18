@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { HelpCircle, Send, Loader2, Eye } from "lucide-react";
 
-export function TrainingScreen({ 
-    user, setScreen, topic, questions = [], qIdx = 0, 
-    msgs = [], setMsgs, input, setInput, 
-    sendAnswer, loading, chatRef, 
-    qAttempts = 0, pops 
+export function TrainingScreen({
+    user, setScreen, topic, questions = [], qIdx = 0,
+    msgs = [], setMsgs, input, setInput,
+    sendAnswer, loading, chatRef,
+    qAttempts = 0, pops, finishSession, logHelpRequest
 }) {
-    
+
     // סטייט חלון קופץ לסיום אימון
     const [showFinishModal, setShowFinishModal] = useState(false);
-    
+
     // סטייט לטיימר בתוך הצ'אט (במקום פופאפ)
     const [inlineTimer, setInlineTimer] = useState(null);
-    
+
     const currentQ = questions[qIdx] || {};
-    
+
     // הלוגיקה של הכפתורים - מתי הם פעילים
     const isHelpActive = qAttempts >= 1;
     const isRevealActive = qAttempts >= 3;
@@ -27,12 +27,14 @@ export function TrainingScreen({
         };
     }, []);
 
-    // גלילה אוטומטית למטה כשמתעדכן הטיימר, כדי שהוא תמיד יהיה גלוי
+    // גלילה אוטומטית למטה כשמתעדכן הטיימר או כשיש מעבר שאלה נכונה
     useEffect(() => {
-        if (inlineTimer !== null) {
-            chatRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (inlineTimer !== null || pops?.popup === "next") {
+            setTimeout(() => {
+                chatRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, 100);
         }
-    }, [inlineTimer]);
+    }, [inlineTimer, pops?.popup]);
 
     const handleHelpClick = () => {
         if (!isHelpActive || inlineTimer !== null) return;
@@ -42,6 +44,7 @@ export function TrainingScreen({
             role: "system",
             text: `רמז: התשובה נמצאת בסעיף ${sectionRef}`
         }]);
+        if (logHelpRequest) logHelpRequest("hint");
     };
 
     const handleRevealClick = () => {
@@ -55,11 +58,12 @@ export function TrainingScreen({
             role: "system",
             text: `תשובה נכונה מתוך סעיף ${sectionRef}:\n${answerText}`
         }]);
+        if (logHelpRequest) logHelpRequest("show_answer");
 
         // 2. הפעלת טיימר רץ למשך 5 שניות
         setInlineTimer(5);
         let counter = 5;
-        
+
         window.revealInterval = setInterval(() => {
             counter -= 1;
             if (counter > 0) {
@@ -74,18 +78,18 @@ export function TrainingScreen({
 
     return (
         <div style={{ background: "#0b1120", minHeight: "100vh", display: "flex", flexDirection: "column", direction: "rtl", fontFamily: "sans-serif" }}>
-            
+
             {/* Header / Top Bar */}
             <div style={{ padding: "15px 30px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-                    <button 
+                    <button
                         onClick={() => setShowFinishModal(true)}
                         style={{ padding: "8px 16px", borderRadius: "6px", background: "transparent", border: "1px solid #334155", color: "#94a3b8", cursor: "pointer" }}
                     >
                         סיים אימון
                     </button>
                 </div>
-                
+
                 <div style={{ display: "flex", alignItems: "center", gap: "15px", color: "#f8fafc", fontWeight: "bold" }}>
                     <span style={{ color: "#64748b", fontSize: "14px", fontWeight: "normal" }}>{qIdx + 1}/{questions.length}</span>
                     <span>{topic?.title || "אימון צ'אט"}</span>
@@ -98,12 +102,12 @@ export function TrainingScreen({
                     const isAI = m.role === "ai" || m.role === "system";
                     const isSystemReveal = m.role === "system" && m.text.includes("תשובה נכונה");
                     const isSystemHint = m.role === "system" && m.text.includes("רמז");
-                    
+
                     let borderColor = "transparent";
                     let textColor = "#f8fafc";
-                    
-                    if (isSystemReveal) { borderColor = "#f97316"; textColor = "#f97316"; } 
-                    else if (isSystemHint) { borderColor = "#38bdf8"; textColor = "#38bdf8"; } 
+
+                    if (isSystemReveal) { borderColor = "#f97316"; textColor = "#f97316"; }
+                    else if (isSystemHint) { borderColor = "#38bdf8"; textColor = "#38bdf8"; }
 
                     return (
                         <div key={i} style={{ width: "100%", maxWidth: "800px", display: "flex", flexDirection: "column", alignItems: isAI ? "flex-start" : "flex-end" }}>
@@ -128,23 +132,43 @@ export function TrainingScreen({
                         </div>
                     );
                 })}
-                
+
                 {/* Loader בדיקת תשובה */}
                 {loading && (
                     <div style={{ width: "100%", maxWidth: "800px", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                         <div style={{ color: "#64748b", fontSize: "12px", marginBottom: "5px", fontWeight: "bold" }}>AI INSTRUCTOR</div>
-                         <div style={{ background: "#0f172a", color: "#94a3b8", padding: "15px 30px", borderRadius: "12px", border: "1px solid #1e293b", display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{ color: "#64748b", fontSize: "12px", marginBottom: "5px", fontWeight: "bold" }}>AI INSTRUCTOR</div>
+                        <div style={{ background: "#0f172a", color: "#94a3b8", padding: "15px 30px", borderRadius: "12px", border: "1px solid #1e293b", display: "flex", alignItems: "center", gap: "10px" }}>
                             <Loader2 size={16} className="spin" /> ה-AI בודק את התשובה...
-                         </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Popup Next Question (Inline message instead of modal) */}
+                {pops?.popup === "next" && (
+                    <div style={{ width: "100%", maxWidth: "800px", display: "flex", justifyContent: "flex-start", marginTop: "10px" }}>
+                        <div style={{
+                            background: "rgba(34, 197, 94, 0.08)", color: "#22c55e", padding: "12px 20px",
+                            borderRadius: "12px", border: "1px solid rgba(34, 197, 94, 0.2)",
+                            display: "flex", alignItems: "center", gap: "20px", fontWeight: "500",
+                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)"
+                        }}>
+                            <span style={{ fontSize: "16px", fontWeight: "bold" }}>✅ תשובה נכונה !</span>
+                            <button
+                                onClick={pops.onNext}
+                                style={{ padding: "8px 16px", fontSize: "14px", borderRadius: "6px", background: "#22c55e", color: "#052e16", border: "none", cursor: "pointer", fontWeight: "bold" }}
+                            >
+                                המשך לשאלה הבאה
+                            </button>
+                        </div>
                     </div>
                 )}
 
                 {/* טיימר אינליין קטן מתחת להודעות במקום פופאפ */}
                 {inlineTimer !== null && (
                     <div style={{ width: "100%", maxWidth: "800px", display: "flex", justifyContent: "flex-start", marginTop: "10px" }}>
-                        <div style={{ 
-                            background: "rgba(249, 115, 22, 0.08)", color: "#f97316", padding: "8px 16px", 
-                            borderRadius: "20px", fontSize: "13px", border: "1px solid rgba(249, 115, 22, 0.2)", 
+                        <div style={{
+                            background: "rgba(249, 115, 22, 0.08)", color: "#f97316", padding: "8px 16px",
+                            borderRadius: "20px", fontSize: "13px", border: "1px solid rgba(249, 115, 22, 0.2)",
                             display: "flex", alignItems: "center", gap: "8px", fontWeight: "500"
                         }}>
                             <Loader2 size={14} className="spin" />
@@ -159,7 +183,7 @@ export function TrainingScreen({
             {/* Input Area */}
             <div style={{ padding: "20px", background: "#0b1120", borderTop: "1px solid #1e293b", display: "flex", justifyContent: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "15px", width: "100%", maxWidth: "800px" }}>
-                    
+
                     <button
                         onClick={sendAnswer}
                         disabled={loading || !input.trim() || inlineTimer !== null}
@@ -223,20 +247,6 @@ export function TrainingScreen({
                 </div>
             </div>
 
-            {/* Popup Next Question (עבור תשובה נכונה רגילה מה-AI) */}
-            {pops?.popup === "next" && (
-                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(2,6,23,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-                    <div style={{ background: "#0f172a", padding: "40px", borderRadius: "20px", textAlign: "center", border: "2px solid #22c55e", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)" }}>
-                        <h2 style={{ color: "#22c55e", fontSize: "28px", marginBottom: "15px" }}>תשובה נכונה!</h2>
-                        <button
-                            onClick={pops.onNext}
-                            style={{ padding: "12px 30px", fontSize: "16px", borderRadius: "8px", background: "#22c55e", color: "#052e16", border: "none", cursor: "pointer", fontWeight: "bold" }}
-                        >
-                            המשך לשאלה הבאה
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {/* Popup End Session */}
             {showFinishModal && (
@@ -250,6 +260,7 @@ export function TrainingScreen({
                             <button
                                 onClick={() => {
                                     setShowFinishModal(false);
+                                    if (finishSession) finishSession();
                                     setScreen("debrief");
                                 }}
                                 style={{ padding: "10px 24px", fontSize: "16px", borderRadius: "8px", background: "#3b82f6", color: "#fff", border: "none", cursor: "pointer", fontWeight: "bold" }}

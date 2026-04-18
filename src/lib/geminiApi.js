@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
 if (!apiKey) {
-    console.error("שגיאה קריטית: מפתח ה-API חסר בהגדרות!");
+  console.error("שגיאה קריטית: מפתח ה-API חסר בהגדרות!");
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -12,15 +12,15 @@ const MODEL_NAME = "gemini-3-flash-preview";
 // 1. הפונקציה לחילול שאלות ממסמך
 export async function generateQuestionsFromDocument(content, topic, options = {}) {
   try {
-    const count = options.count || 5; 
+    const count = options.count || 5;
     const notes = options.notes ? `דגשים מיוחדים: ${options.notes}` : "";
-    const qType = options.qType || "raw"; 
-    
+    const qType = options.qType || "raw";
+
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-    
+
     let typeInstructions = "";
     if (qType === "sbt") {
-        typeInstructions = `
+      typeInstructions = `
         **סוג השאלות הנדרש: Scenario-Based Training (SBT) - תרחישים מבצעיים**
         עליך להמציא תרחיש מציאותי (Scenario) רלוונטי לכל שאלה. 
         התרחיש צריך לתאר סיטואציה מבצעית, תפעולית או מקצועית אמיתית, שבה איש הצוות נתקל בבעיה, תקלה או צומת החלטה.
@@ -28,7 +28,7 @@ export async function generateQuestionsFromDocument(content, topic, options = {}
         המסיחים (התשובות השגויות) צריכים להיות פעולות שנשמעות הגיוניות בשטח, אך שגויות על פי הנהלים הכתובים.
         `;
     } else {
-        typeInstructions = `
+      typeInstructions = `
         **סוג השאלות הנדרש: שאלות ידע תיאורטי (Raw Knowledge)**
         נסח שאלות ברורות, ישירות ו"יבשות" הבודקות את הבנת העובדות, הכללים והנהלים כפי שהם כתובים במסמך.
         `;
@@ -49,16 +49,16 @@ export async function generateQuestionsFromDocument(content, topic, options = {}
       החזר תשובה בפורמט JSON בלבד, ללא טקסט מקדים, כרשימה של אובייקטים לפי המבנה הבא: 
       [{"question": "...", "options": ["...", "...", "...", "..."], "correctAnswer": "...", "reference": "..."}]
     `;
-    
+
     let payload;
     const isBase64 = content && content.length > 100 && !content.includes(" ") && !content.includes("\n");
-    
+
     if (isBase64) {
-        payload = [prompt, { inlineData: { data: content, mimeType: "application/pdf" } }];
+      payload = [prompt, { inlineData: { data: content, mimeType: "application/pdf" } }];
     } else {
-        payload = [prompt + "\n\nטקסט המקור שעליו אתה נבחן:\n---\n" + content + "\n---"];
+      payload = [prompt + "\n\nטקסט המקור שעליו אתה נבחן:\n---\n" + content + "\n---"];
     }
-    
+
     const result = await model.generateContent(payload);
     const response = await result.response;
     let text = response.text();
@@ -68,7 +68,7 @@ export async function generateQuestionsFromDocument(content, topic, options = {}
 
   } catch (error) {
     console.error("❌ שגיאה במחולל המבחנים:", error);
-    return []; 
+    return [];
   }
 }
 
@@ -99,10 +99,11 @@ export async function evalAnswerWithGemini(reference, question, correctAnswer, u
       המשימה שלך היא להעריך האם תשובת המשתמש נכונה (העיקר שהרעיון המרכזי זהה).
       
       חוקי ברזל מחמירים:
-      1. אם התשובה נכונה: התחל את התגובה במילה [CORRECT] ואחריה חיזוק חיובי. במצב כזה בלבד מותר לך לציין את המקור (סעיף ${reference}).
+      1. אם התשובה נכונה: התחל את התגובה במילה [CORRECT] ואחריה חיזוק חיובי קצר מאוד (משפט אחד). במצב כזה בלבד מותר לך לציין את המקור (סעיף ${reference}).
       2. אם התשובה שגויה או חלקית: אל תשתמש ב-[CORRECT].
-      3. איסור חשיפה (SOP חמור): אם המשתמש טעה, לעולם אל תחשוף את התשובה הנכונה, ולעולם אל תחשוף את מספר הסעיף (${reference})! גם אם הוא שואל ישירות "מה התשובה?" או "איפה זה כתוב?". 
-      4. הכוונה בלבד: במקום לחשוף את התשובה, הסבר בקצרה למה הכיוון שגוי, ותן לו רמז חכם או שאלת הכוונה שתגרום לו לחשוב לבד.
+      3. איסור חשיפה (SOP חמור): אם המשתמש טעה, לעולם אל תחשוף את התשובה הנכונה, ולעולם אל תחשוף את מספר הסעיף (${reference})! 
+      4. הכוונה תמציתית בלבד: עליך להיות קצר ולעניין. משפט אחד או שניים לכל היותר! במקום לחשוף את התשובה, הסבר במשפט קצר מאוד למה הכיוון שגוי, ושאל שאלת הכוונה קצרה כדי שיחשוב לבד. 
+      5. אל תרחיב, אל תחזור על דברים ואל תחפור. היה חד, תמציתי וממוקד.
     `;
     const result = await model.generateContent(prompt);
     return (await result.response).text();
@@ -146,13 +147,13 @@ export async function startInteractiveDebrief(sessionLogsText, userReflections) 
 export async function continueInteractiveDebrief(history, newMsg) {
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-    
+
     // ממירים את היסטוריית השיחה מהמסך לפורמט של ג'מיני
     const formattedHistory = history.map(msg => ({
-        role: msg.role === "ai" ? "model" : "user",
-        parts: [{ text: msg.text }]
+      role: msg.role === "ai" ? "model" : "user",
+      parts: [{ text: msg.text }]
     }));
-    
+
     const chat = model.startChat({ history: formattedHistory });
     const result = await chat.sendMessage(newMsg);
     return (await result.response).text();

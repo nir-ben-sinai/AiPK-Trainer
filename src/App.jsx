@@ -23,7 +23,7 @@ export default function App() {
     const [form, setForm] = useState({ name: "", email: "", password: "", profession: "" });
     const [authErr, setAuthErr] = useState("");
     const [agreed, setAgreed] = useState(false);
-    const [tick, setTick] = useState(0); 
+    const [tick, setTick] = useState(0);
 
     // Training
     const [topic, setTopic] = useState(null);
@@ -34,7 +34,7 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [sessionId, setSessionId] = useState(null);
     const [popup, setPopup] = useState(null);
-    const [qAttempts, setQAttempts] = useState(0); 
+    const [qAttempts, setQAttempts] = useState(0);
 
     // Back office
     const [boTab, setBoTab] = useState("overview");
@@ -86,7 +86,7 @@ export default function App() {
                 // --- תיקון פרטי האדמין לאלו שרצית ---
                 const adminEmail = "admin@system.com";
                 const adminPassword = "admin123";
-                
+
                 let loadedUsers = usersRes.data?.length > 0 ? usersRes.data.map(r => r.data) : [];
                 const hasAdmin = loadedUsers.some(u => u.email === adminEmail);
 
@@ -95,7 +95,7 @@ export default function App() {
                     loadedUsers.push(admin);
                     await supabase.from('app_users').insert([{ id: admin.id, data: admin }]);
                 }
-                
+
                 DB.users = loadedUsers;
 
                 if (sessRes.data) DB.sessions = sessRes.data.map(r => r.data);
@@ -103,7 +103,7 @@ export default function App() {
                 if (debRes.data) DB.debriefs = debRes.data.map(r => r.data);
                 if (helpRes.data) DB.helpRequests = helpRes.data.map(r => r.data);
 
-                setTick(t => t + 1); 
+                setTick(t => t + 1);
             } catch (err) { console.error("שגיאה במשיכת נתונים:", err); }
         };
         fetchSupabaseData();
@@ -121,19 +121,19 @@ export default function App() {
     const doLogin = () => {
         const cleanEmail = form.email.trim().toLowerCase();
         const u = DB.users.find(x => x.email.toLowerCase() === cleanEmail);
-        
-        if (!u) { 
-            setAuthErr("משתמש לא קיים במערכת. אנא הירשם תחילה."); 
-            return; 
+
+        if (!u) {
+            setAuthErr("משתמש לא קיים במערכת. אנא הירשם תחילה.");
+            return;
         }
         if (u.password !== form.password.trim()) {
             setAuthErr("סיסמה שגויה. אנא נסה שוב.");
             return;
         }
 
-        setUser(u); 
+        setUser(u);
         setAuthErr("");
-        
+
         if (u.role === "admin") {
             if (uploadedSets.length === 0 && libraryDocs.length === 0) {
                 setAdminStep("upload_required");
@@ -141,39 +141,39 @@ export default function App() {
             } else {
                 setScreen("backoffice");
             }
-        } else { 
-            setScreen("home"); 
+        } else {
+            setScreen("home");
         }
     };
 
     const doRegister = () => {
-        if (!form.name || !form.email || !form.password) { 
-            setAuthErr("יש למלא לפחות שם מלא, אימייל וסיסמה כדי להירשם."); 
-            return; 
+        if (!form.name || !form.email || !form.password) {
+            setAuthErr("יש למלא לפחות שם מלא, אימייל וסיסמה כדי להירשם.");
+            return;
         }
-        
+
         const cleanEmail = form.email.trim().toLowerCase();
-        if (DB.users.find(x => x.email.toLowerCase() === cleanEmail)) { 
-            setAuthErr("אימייל זה כבר קיים במערכת. אנא עבור למסך ההתחברות."); 
-            return; 
+        if (DB.users.find(x => x.email.toLowerCase() === cleanEmail)) {
+            setAuthErr("אימייל זה כבר קיים במערכת. אנא עבור למסך ההתחברות.");
+            return;
         }
-        
-        const u = { 
-            id: genId("u"), 
-            name: form.name.trim(), 
-            email: cleanEmail, 
-            password: form.password.trim(), 
-            profession: form.profession || "לא צוין", 
-            role: "trainee", 
-            joinedAt: new Date().toISOString() 
+
+        const u = {
+            id: genId("u"),
+            name: form.name.trim(),
+            email: cleanEmail,
+            password: form.password.trim(),
+            profession: form.profession || "לא צוין",
+            role: "trainee",
+            joinedAt: new Date().toISOString()
         };
-        
-        DB.users.push(u); 
-        setUser(u); 
-        setAuthErr(""); 
-        
-        setScreen("home"); 
-        
+
+        DB.users.push(u);
+        setUser(u);
+        setAuthErr("");
+
+        setScreen("home");
+
         supabase.from('app_users').insert([{ id: u.id, data: u }]).catch(console.error);
         setTick(t => t + 1);
     };
@@ -200,7 +200,7 @@ export default function App() {
             const { data: urlData } = supabase.storage.from('pdfs').getPublicUrl(uniqueName);
             const dbEntry = { filename: file.name, file_url: urlData.publicUrl };
             const { data } = await supabase.from('library_docs').insert([dbEntry]).select().single();
-            
+
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = () => {
@@ -213,7 +213,7 @@ export default function App() {
     const processAiFile = async (docId, options = {}) => {
         const doc = libraryDocs.find(d => d.id === docId);
         if (!doc) return false;
-        
+
         setAiLoading(true);
         try {
             let fileContent = doc.base64Data;
@@ -223,7 +223,7 @@ export default function App() {
                 console.log("מוריד קובץ מהענן לצורך ניתוח AI...");
                 const response = await fetch(doc.fileUrl);
                 const blob = await response.blob();
-                
+
                 // ממירים את הקובץ שירד ל-Base64
                 fileContent = await new Promise((resolve) => {
                     const reader = new FileReader();
@@ -240,7 +240,7 @@ export default function App() {
 
             // משגרים לג'מיני את התוכן האמיתי!
             const qs = await generateQuestionsFromDocument(fileContent, doc.filename, options);
-            
+
             if (!qs || qs.length === 0) {
                 alert("ה-AI לא הצליח לחלץ שאלות. ייתכן שהמסמך סרוק כתמונה או שגיאת תקשורת.");
                 setAiLoading(false);
@@ -250,14 +250,44 @@ export default function App() {
             const set = { id: genId("us"), title: options.customTitle || doc.filename, questions: qs, chapters: [] };
             await supabase.from('exams').insert([{ title: set.title, questions: qs, pdf_url: doc.filename }]);
             setUploadedSets(prev => [set, ...prev]);
-            
-            setAiLoading(false); 
+
+            setAiLoading(false);
             return true;
-        } catch (e) { 
+        } catch (e) {
             console.error(e);
-            setAiLoading(false); 
-            return false; 
+            setAiLoading(false);
+            return false;
         }
+    };
+
+    const finishSession = async () => {
+        const sess = DB.sessions.find(s => s.id === sessionId);
+        if (sess) {
+            const sessionLogs = DB.logs.filter(l => l.sessionId === sessionId);
+            const correctLogs = sessionLogs.filter(l => l.status === "correct").length;
+            const total = questions.length || 1;
+            sess.score = Math.round((correctLogs / total) * 100);
+            sess.status = "completed";
+            supabase.from('app_sessions').update({ data: sess }).eq('id', sessionId);
+            setTick(t => t + 1);
+        }
+    };
+
+    const logHelpRequest = async (type) => {
+        const req = {
+            id: genId("help"), userId: user.id, sessionId: sessionId, topicId: topic?.id,
+            type: type, questionText: questions[qIdx]?.question, qIdx: qIdx, timestamp: new Date().toISOString()
+        };
+        DB.helpRequests.push(req);
+
+        const sess = DB.sessions.find(s => s.id === sessionId);
+        if (sess) {
+            if (type === "show_answer") { sess.showAnswerClicks = (sess.showAnswerClicks || 0) + 1; }
+            else { sess.helpClicks = (sess.helpClicks || 0) + 1; }
+            supabase.from('app_sessions').update({ data: sess }).eq('id', sessionId);
+        }
+        supabase.from('app_help').insert([{ id: req.id, user_id: user.id, data: req }]);
+        setTick(t => t + 1);
     };
 
     const startSession = async (t) => {
@@ -265,38 +295,38 @@ export default function App() {
         const sess = { id: sid, userId: user.id, topicId: t.id, startedAt: new Date().toISOString(), status: "active", score: 0 };
         DB.sessions.push(sess);
         await supabase.from('app_sessions').insert([{ id: sid, user_id: user.id, data: sess }]);
-        
+
         // --- הוספנו כאן ערבוב (Shuffle) אקראי של מערך השאלות ---
         // אנחנו יוצרים עותק של השאלות ומערבבים אותו, כדי לא לשנות את קובץ המקור ב-DB
         const shuffledQuestions = [...t.questions].sort(() => Math.random() - 0.5);
-        
-        setTopic(t); 
+
+        setTopic(t);
         setQuestions(shuffledQuestions); // טוענים את המערך המעורבב לסטייט
-        setQIdx(0); 
-        setSessionId(sid); 
-        
+        setQIdx(0);
+        setSessionId(sid);
+
         // השאלה הראשונה שמוצגת היא כעת השאלה הראשונה מהמערך המעורבב (שהיא אקראית)
         setMsgs([{ role: "ai", text: shuffledQuestions[0]?.question || "אין שאלות" }]);
-        setQAttempts(0); 
+        setQAttempts(0);
         setScreen("training");
     };
 
     const sendAnswer = async () => {
         if (!input.trim() || loading) return;
-        const ans = input.trim(); 
-        setInput(""); 
+        const ans = input.trim();
+        setInput("");
         setLoading(true);
-        
+
         setMsgs(prev => [...prev, { role: "user", text: ans }]);
 
         try {
             const correctAnswer = questions[qIdx]?.correctAnswer || questions[qIdx]?.answer || "";
             // שולפים את המקור החדש מתוך השאלה
-            const reference = questions[qIdx]?.reference || "לא צוין סעיף מדויק"; 
-            
+            const reference = questions[qIdx]?.reference || "לא צוין סעיף מדויק";
+
             // מעבירים למאמן את המקור במקום מחרוזת ריקה!
             const reply = await evalAnswerWithGemini(reference, questions[qIdx]?.question || "", correctAnswer, ans);
-            
+
             const isCorrect = reply.includes("[CORRECT]");
             const cleanReply = reply.replace(/\[.*\]/g, "").trim();
 
@@ -305,7 +335,7 @@ export default function App() {
             if (isCorrect) {
                 const log = { id: genId("log"), sessionId, userId: user.id, question: questions[qIdx].question, answer: ans, status: "correct" };
                 await supabase.from('app_logs').insert([{ id: log.id, session_id: sessionId, user_id: user.id, data: log }]);
-                
+
                 setTimeout(() => setPopup("next"), 1500);
             } else {
                 setQAttempts(prev => prev + 1);
@@ -315,7 +345,7 @@ export default function App() {
             setMsgs(prev => [...prev, { role: "ai", text: "הייתה בעיה בתקשורת מול שרתי ה-AI. אי אפשר לבדוק את התשובה כרגע." }]);
             setQAttempts(prev => prev + 1);
         }
-        
+
         setLoading(false);
     };
 
@@ -326,30 +356,39 @@ export default function App() {
             {screen === "onboarding" && <OnboardingScreen user={user} setScreen={setScreen} />}
             {screen === "disclaimer" && <DisclaimerScreen agreed={agreed} setAgreed={setAgreed} setScreen={setScreen} />}
             {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
-            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s=>s.status==='completed')} allTopics={uploadedSets} />}
-            
+            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s => s.status === 'completed')} allTopics={uploadedSets} />}
+
             {screen === "training" && (
-                <TrainingScreen 
-                    user={user} setScreen={setScreen} 
-                    topic={topic} questions={questions} qIdx={qIdx} 
-                    msgs={msgs} setMsgs={setMsgs} 
-                    input={input} setInput={setInput} 
-                    sendAnswer={sendAnswer} loading={loading} chatRef={chatRef} 
-                    qAttempts={qAttempts} 
+                <TrainingScreen
+                    user={user} setScreen={setScreen}
+                    topic={topic} questions={questions} qIdx={qIdx}
+                    msgs={msgs} setMsgs={setMsgs}
+                    input={input} setInput={setInput}
+                    sendAnswer={sendAnswer} loading={loading} chatRef={chatRef}
+                    qAttempts={qAttempts} finishSession={finishSession} logHelpRequest={logHelpRequest}
                     pops={{
-                        popup, 
-                        onNext: () => { 
-    setQIdx(i => i + 1); 
-    setQAttempts(0);
-    setPopup(null); 
-    setMsgs(prev => [...prev, { role: "ai", text: questions[qIdx + 1]?.question || "סיימת!" }]); 
-}
-                    }} 
+                        popup,
+                        onNext: () => {
+                            setQIdx(i => i + 1);
+                            setQAttempts(0);
+                            setPopup(null);
+                            if (qIdx + 1 >= questions.length) {
+                                finishSession();
+                                setScreen("debrief");
+                            } else {
+                                setMsgs(prev => [...prev, { role: "ai", text: questions[qIdx + 1]?.question || "סיימת!" }]);
+                            }
+                        }
+                    }}
                 />
             )}
-            
+
             {screen === "debrief" && <DebriefScreen user={user} setScreen={setScreen} />}
-            {screen === "backoffice" && <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={DB.sessions.filter(s=>s.status==='completed')} avgSc={0} uploadedSets={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} tick={tick} />}
+            {screen === "backoffice" && (() => {
+                const completedSessions = DB.sessions.filter(s => s.status === 'completed');
+                const calculatedAvgSc = completedSessions.length ? Math.round(completedSessions.reduce((acc, s) => acc + s.score, 0) / completedSessions.length) : 0;
+                return <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={completedSessions} avgSc={calculatedAvgSc} uploadedSets={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} tick={tick} />;
+            })()}
         </>
     );
 }

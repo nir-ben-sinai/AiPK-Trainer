@@ -7,15 +7,15 @@ export function DebriefScreen({ user, setScreen }) {
     // משיכת נתוני האימון האחרון של המשתמש מה-DB
     const latestSession = [...DB.sessions].reverse().find(s => s.userId === user?.id);
     const sessionLogs = DB.logs.filter(l => l.sessionId === latestSession?.id);
-    
+
     // יצירת תקציר ביצועים עבור המאמן (ה-AI)
-    const logsSummary = sessionLogs.length > 0 
-        ? sessionLogs.map((l, idx) => `שאלה ${idx+1}: ${l.question}\nתשובת המתאמן: ${l.answer}\nסטטוס: ${l.status === 'correct' ? 'תשובה נכונה' : 'טעות / חשיפת תשובה'}`).join('\n\n')
+    const logsSummary = sessionLogs.length > 0
+        ? sessionLogs.map((l, idx) => `שאלה ${idx + 1}: ${l.question}\nתשובת המתאמן: ${l.answer}\nסטטוס: ${l.status === 'correct' ? 'תשובה נכונה' : 'טעות / חשיפת תשובה'}`).join('\n\n')
         : "אין נתונים על שאלות מהסשן (ייתכן שהסשן הופסק מוקדם).";
 
     const [step, setStep] = useState("form"); // "form" | "chat"
     const [reflections, setReflections] = useState({ good: "", bad: "", takeaways: "" });
-    
+
     const [msgs, setMsgs] = useState([]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -44,6 +44,23 @@ export function DebriefScreen({ user, setScreen }) {
         const aiResponse = await startInteractiveDebrief(logsSummary, reflections);
         setMsgs(prev => [...prev, { role: "ai", text: aiResponse }]);
         setLoading(false);
+
+        // שמירת התחקיר לאדמין ב-DB
+        if (latestSession) {
+            const debriefObj = {
+                id: `deb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                userId: user.id,
+                sessionId: latestSession.id,
+                score: latestSession.score,
+                aiSummary: aiResponse.slice(0, 200) + '...',
+                insights: [reflections.takeaways, reflections.bad].filter(Boolean),
+                timestamp: new Date().toISOString()
+            };
+            DB.debriefs.push(debriefObj);
+
+            // To ensure it syncs across reloads (optional but nice, using Supabase natively if available)
+            // But just pushing to DB.debriefs will immediately fix the prototype view for the session
+        }
     };
 
     const handleSendChat = async () => {
@@ -61,12 +78,12 @@ export function DebriefScreen({ user, setScreen }) {
 
     return (
         <div style={{ background: "#0b1120", minHeight: "100vh", display: "flex", flexDirection: "column", direction: "rtl", fontFamily: "sans-serif" }}>
-            
+
             {/* Header */}
             <div style={{ padding: "15px 30px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a" }}>
                 <div>
                     {step === "chat" ? (
-                        <button 
+                        <button
                             onClick={() => setScreen("home")}
                             style={{ padding: "8px 20px", borderRadius: "6px", background: "#f97316", color: "#fff", border: "none", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 6px -1px rgba(249, 115, 22, 0.2)" }}
                         >
@@ -86,7 +103,7 @@ export function DebriefScreen({ user, setScreen }) {
             {step === "form" && (
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px", overflowY: "auto" }}>
                     <div style={{ width: "100%", maxWidth: "700px", background: "#0f172a", padding: "40px", borderRadius: "16px", border: "1px solid #1e293b", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.5)" }}>
-                        
+
                         <h2 style={{ color: "#f8fafc", fontSize: "22px", marginBottom: "10px", textAlign: "center" }}>שלב א': תחקיר עצמי</h2>
                         <p style={{ color: "#94a3b8", textAlign: "center", marginBottom: "40px", fontSize: "14px", lineHeight: "1.6" }}>
                             לפני שניגש למאמן, קח רגע לנתח את הביצועים שלך. מה עבד? איפה כשלת? מלא את השדות כדי להתחיל את התחקיר.
@@ -95,10 +112,10 @@ export function DebriefScreen({ user, setScreen }) {
                         <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
                             <div>
                                 <label style={{ display: "flex", alignItems: "center", gap: "8px", color: "#4ade80", fontWeight: "bold", marginBottom: "10px" }}><CheckCircle size={18} /> לשימור (מה עשיתי טוב?)</label>
-                                <textarea 
+                                <textarea
                                     rows="3"
                                     value={reflections.good}
-                                    onChange={(e) => setReflections({...reflections, good: e.target.value})}
+                                    onChange={(e) => setReflections({ ...reflections, good: e.target.value })}
                                     placeholder="פרט דברים שעבדו לך טוב במהלך האימון..."
                                     style={{ width: "100%", padding: "12px", background: "#0b1120", border: "1px solid #1e293b", borderRadius: "8px", color: "#fff", resize: "none", outline: "none" }}
                                 />
@@ -106,10 +123,10 @@ export function DebriefScreen({ user, setScreen }) {
 
                             <div>
                                 <label style={{ display: "flex", alignItems: "center", gap: "8px", color: "#f87171", fontWeight: "bold", marginBottom: "10px" }}><AlertTriangle size={18} /> לשיפור (איפה היו טעויות?)</label>
-                                <textarea 
+                                <textarea
                                     rows="3"
                                     value={reflections.bad}
-                                    onChange={(e) => setReflections({...reflections, bad: e.target.value})}
+                                    onChange={(e) => setReflections({ ...reflections, bad: e.target.value })}
                                     placeholder="היכן התקשית? האם מיהרת לענות? האם חסר ידע תיאורטי?"
                                     style={{ width: "100%", padding: "12px", background: "#0b1120", border: "1px solid #1e293b", borderRadius: "8px", color: "#fff", resize: "none", outline: "none" }}
                                 />
@@ -117,10 +134,10 @@ export function DebriefScreen({ user, setScreen }) {
 
                             <div>
                                 <label style={{ display: "flex", alignItems: "center", gap: "8px", color: "#38bdf8", fontWeight: "bold", marginBottom: "10px" }}><Lightbulb size={18} /> מסקנות ולקחים להמשך</label>
-                                <textarea 
+                                <textarea
                                     rows="3"
                                     value={reflections.takeaways}
-                                    onChange={(e) => setReflections({...reflections, takeaways: e.target.value})}
+                                    onChange={(e) => setReflections({ ...reflections, takeaways: e.target.value })}
                                     placeholder="איך אתה מתכנן ליישם את מה שלמדת באימון הבא?"
                                     style={{ width: "100%", padding: "12px", background: "#0b1120", border: "1px solid #1e293b", borderRadius: "8px", color: "#fff", resize: "none", outline: "none" }}
                                 />
@@ -128,7 +145,7 @@ export function DebriefScreen({ user, setScreen }) {
                         </div>
 
                         <div style={{ marginTop: "40px", display: "flex", justifyContent: "center" }}>
-                            <button 
+                            <button
                                 onClick={handleStartDebrief}
                                 disabled={!isFormValid || loading}
                                 style={{
@@ -177,7 +194,7 @@ export function DebriefScreen({ user, setScreen }) {
                                 </div>
                             );
                         })}
-                        
+
                         {loading && (
                             <div style={{ width: "100%", maxWidth: "800px", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
                                 <div style={{ color: "#64748b", fontSize: "12px", marginBottom: "5px", fontWeight: "bold" }}>AI DEBRIEFER</div>
