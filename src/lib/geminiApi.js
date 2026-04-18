@@ -111,3 +111,53 @@ export async function evalAnswerWithGemini(reference, question, correctAnswer, u
     throw error;
   }
 }
+
+// --- הפונקציות החדשות למערכת התחקיר האינטראקטיבי ---
+
+export async function startInteractiveDebrief(sessionLogsText, userReflections) {
+  try {
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    const prompt = `
+      אתה מאמן מקצועי (Instructor) בארגון תעופתי, שעורך עכשיו שיחת תחקיר מסכמת למתאמן לאחר סשן תרגול.
+      
+      כדי שתכיר את הביצועים שלו, הנה תיעוד של השאלות שנשאל ואיך הוא ענה (כולל אם צדק, טעה או השתמש ברמזים):
+      ${sessionLogsText}
+      
+      המתאמן התבקש לכתוב תחקיר עצמי לפני שהוא ניגש לדבר איתך, וזה מה שהוא כתב:
+      1. מה עשיתי טוב (לשימור): "${userReflections.good}"
+      2. מה אני צריך לשפר: "${userReflections.bad}"
+      3. מסקנות ולקחים: "${userReflections.takeaways}"
+
+      משימתך כמאמן בדיאלוג הזה:
+      1. קרא את התחקיר העצמי שלו והגב אליו. היה חיובי אבל ביקורתי ואסרטיבי. בדוק האם יש אחיזה במציאות למה שכתב ביחס לאיך שבאמת ענה במבחן.
+      2. הוסף נקודות משלך ביחס לאיכות התשובות שלו (האם הוא מדויק? האם הוא נכנע מהר וביקש עזרה? איך ההתנהלות הכללית שלו בשפה וברצינות?).
+      3. סיים במתן 1-2 כלים או עצות מעשיות לשיפור, ובמשפט מחזק ומעודד להמשך.
+      
+      הנחיות סגנון: ענה בעברית, בגובה העיניים (כמו קפטן לחניך), פנה אליו בגוף שני (אתה), ללא כותרות פורמליות מיותרות – פשוט דבר אליו.
+    `;
+    const result = await model.generateContent(prompt);
+    return (await result.response).text();
+  } catch (error) {
+    console.error("שגיאה ביצירת התחקיר:", error);
+    return "הייתה בעיה בתקשורת מול השרת. התחקיר לא נוצר.";
+  }
+}
+
+export async function continueInteractiveDebrief(history, newMsg) {
+  try {
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    
+    // ממירים את היסטוריית השיחה מהמסך לפורמט של ג'מיני
+    const formattedHistory = history.map(msg => ({
+        role: msg.role === "ai" ? "model" : "user",
+        parts: [{ text: msg.text }]
+    }));
+    
+    const chat = model.startChat({ history: formattedHistory });
+    const result = await chat.sendMessage(newMsg);
+    return (await result.response).text();
+  } catch (error) {
+    console.error("שגיאה בהמשך התחקיר:", error);
+    return "תקלת תקשורת. לא הצלחתי לענות כרגע.";
+  }
+}
