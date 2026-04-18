@@ -8,19 +8,26 @@ export function TrainingScreen({
     qAttempts = 0, pops 
 }) {
     
+    // סטייט חלון קופץ לסיום אימון
     const [showFinishModal, setShowFinishModal] = useState(false);
+    
+    // סטייט לטיימר בתוך הצ'אט (במקום פופאפ)
     const [inlineTimer, setInlineTimer] = useState(null);
+    
     const currentQ = questions[qIdx] || {};
     
+    // הלוגיקה של הכפתורים - מתי הם פעילים
     const isHelpActive = qAttempts >= 1;
     const isRevealActive = qAttempts >= 3;
 
+    // ניקוי הטיימר במקרה שהמשתמש יוצא מהמסך באמצע
     useEffect(() => {
         return () => {
             if (window.revealInterval) clearInterval(window.revealInterval);
         };
     }, []);
 
+    // גלילה אוטומטית למטה כשמתעדכן הטיימר, כדי שהוא תמיד יהיה גלוי
     useEffect(() => {
         if (inlineTimer !== null) {
             chatRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -43,11 +50,13 @@ export function TrainingScreen({
         const sectionRef = currentQ.reference || currentQ.section || currentQ.topic || "סעיף לא מוגדר";
         const answerText = currentQ.correctAnswer || currentQ.answer || "לא הוזנה תשובה במערכת";
 
+        // 1. הוספת התשובה הנכונה לצ'אט
         setMsgs(prev => [...prev, {
             role: "system",
             text: `תשובה נכונה מתוך סעיף ${sectionRef}:\n${answerText}`
         }]);
 
+        // 2. הפעלת טיימר רץ למשך 5 שניות
         setInlineTimer(5);
         let counter = 5;
         
@@ -57,18 +66,17 @@ export function TrainingScreen({
                 setInlineTimer(counter);
             } else {
                 clearInterval(window.revealInterval);
-                setInlineTimer(null); 
-                if (pops?.onNext) pops.onNext(); 
+                setInlineTimer(null); // הטיימר נעלם
+                if (pops?.onNext) pops.onNext(); // מביא את השאלה הבאה
             }
         }, 1000);
     };
 
     return (
-        {/* העטיפה ננעלת לגובה המסך */}
-        <div style={{ background: "#0b1120", height: "100vh", overflow: "hidden", display: "flex", flexDirection: "column", direction: "rtl", fontFamily: "sans-serif" }}>
+        <div style={{ background: "#0b1120", minHeight: "100vh", display: "flex", flexDirection: "column", direction: "rtl", fontFamily: "sans-serif" }}>
             
-            {/* Header - מודבק למעלה */}
-            <div style={{ flexShrink: 0, padding: "15px 30px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a", zIndex: 10 }}>
+            {/* Header / Top Bar */}
+            <div style={{ padding: "15px 30px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
                     <button 
                         onClick={() => setShowFinishModal(true)}
@@ -84,7 +92,7 @@ export function TrainingScreen({
                 </div>
             </div>
 
-            {/* Chat Area - אזור נגלל */}
+            {/* Chat Area */}
             <div style={{ flex: 1, overflowY: "auto", padding: "40px 20px", display: "flex", flexDirection: "column", gap: "20px", alignItems: "center" }}>
                 {msgs.map((m, i) => {
                     const isAI = m.role === "ai" || m.role === "system";
@@ -121,6 +129,7 @@ export function TrainingScreen({
                     );
                 })}
                 
+                {/* Loader בדיקת תשובה */}
                 {loading && (
                     <div style={{ width: "100%", maxWidth: "800px", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
                          <div style={{ color: "#64748b", fontSize: "12px", marginBottom: "5px", fontWeight: "bold" }}>AI INSTRUCTOR</div>
@@ -130,6 +139,7 @@ export function TrainingScreen({
                     </div>
                 )}
 
+                {/* טיימר אינליין קטן מתחת להודעות במקום פופאפ */}
                 {inlineTimer !== null && (
                     <div style={{ width: "100%", maxWidth: "800px", display: "flex", justifyContent: "flex-start", marginTop: "10px" }}>
                         <div style={{ 
@@ -146,8 +156,8 @@ export function TrainingScreen({
                 <div ref={chatRef} />
             </div>
 
-            {/* Input Area - מודבק למטה */}
-            <div style={{ flexShrink: 0, padding: "20px", background: "#0b1120", borderTop: "1px solid #1e293b", display: "flex", justifyContent: "center", zIndex: 10 }}>
+            {/* Input Area */}
+            <div style={{ padding: "20px", background: "#0b1120", borderTop: "1px solid #1e293b", display: "flex", justifyContent: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "15px", width: "100%", maxWidth: "800px" }}>
                     
                     <button
@@ -167,7 +177,9 @@ export function TrainingScreen({
                         style={{ flex: 1, padding: "16px", borderRadius: "10px", border: "1px solid #1e293b", background: "#0f172a", color: "#fff", fontSize: "16px", outline: "none", opacity: inlineTimer !== null ? 0.5 : 1 }}
                     />
 
+                    {/* קבוצת כפתורי עזרה - מופרדים */}
                     <div style={{ display: "flex", gap: "10px" }}>
+                        {/* כפתור גלה תשובה - מופיע ליד כפתור העזרה, פעיל רק אחרי 3 טעויות */}
                         <button
                             disabled={!isRevealActive || inlineTimer !== null}
                             onClick={handleRevealClick}
@@ -187,6 +199,7 @@ export function TrainingScreen({
                             גלה תשובה
                         </button>
 
+                        {/* כפתור רמז (עזרה) */}
                         <button
                             disabled={!isHelpActive || inlineTimer !== null}
                             onClick={handleHelpClick}
@@ -210,6 +223,7 @@ export function TrainingScreen({
                 </div>
             </div>
 
+            {/* Popup Next Question (עבור תשובה נכונה רגילה מה-AI) */}
             {pops?.popup === "next" && (
                 <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(2,6,23,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
                     <div style={{ background: "#0f172a", padding: "40px", borderRadius: "20px", textAlign: "center", border: "2px solid #22c55e", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)" }}>
@@ -224,6 +238,7 @@ export function TrainingScreen({
                 </div>
             )}
 
+            {/* Popup End Session */}
             {showFinishModal && (
                 <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(2,6,23,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
                     <div style={{ background: "#0f172a", padding: "40px", borderRadius: "20px", textAlign: "center", border: "1px solid #334155", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)", maxWidth: "450px" }}>
