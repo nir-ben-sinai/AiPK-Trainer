@@ -30,7 +30,7 @@ export function BackofficeScreen({
     const aiFileInputRef = useRef(null);
 
     const [isGenPopupOpen, setIsGenPopupOpen] = useState(false);
-    const [genConfig, setGenConfig] = useState({ docId: "", name: "", count: "20", notes: "" });
+    const [genConfig, setGenConfig] = useState({ docId: "", name: "", count: "20", notes: "", qType: "raw" });
     
     // סטייט חדש להצגת השאלות של מבחן ספציפי
     const [testToView, setTestToView] = useState(null);
