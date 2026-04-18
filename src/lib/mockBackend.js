@@ -149,23 +149,12 @@ textarea.inp{resize:none;}
 .card{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);}
 .card-hover{transition:border-color 0.15s,background 0.15s,transform 0.15s;}
 .card-hover:hover{border-color:var(--cy);background:rgba(56,189,248,0.04);transform:translateY(-1px);}
-.nav-it{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:12px;font-weight:500;color:var(--t2);transition:all 0.15s;border-radius:4px;margin:1px 6px;}
-.nav-it:hover{color:var(--t1);background:var(--s2);}
-.nav-it.on{color:var(--cy);background:var(--cy2);}
-.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;font-size:10px;font-weight:600;border-radius:20px;letter-spacing:0.04em;white-space:nowrap;}
-.tag-cyan{background:var(--cy2);color:var(--cy);border:1px solid rgba(56,189,248,0.25);}
-.tag-ok{background:rgba(52,211,153,0.1);color:var(--ok);border:1px solid rgba(52,211,153,0.25);}
-.tag-warn{background:rgba(251,191,36,0.1);color:var(--warn);border:1px solid rgba(251,191,36,0.25);}
-.tag-err{background:rgba(248,113,113,0.1);color:var(--err);border:1px solid rgba(248,113,113,0.25);}
-.lbl{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--t3);font-family:'Inter',sans-serif;}
-table{width:100%;border-collapse:collapse;}
-th{text-align:right;padding:8px 14px;font-size:10px;font-weight:600;color:var(--cy);border-bottom:1px solid var(--bdr);letter-spacing:0.08em;text-transform:uppercase;}
-td{padding:10px 14px;font-size:13px;border-bottom:1px solid rgba(56,189,248,0.05);color:var(--t1);}
-tr:last-child td{border-bottom:none;}
-tr:hover td{background:rgba(56,189,248,0.02);}
-.prog-wrap{height:3px;background:var(--s3);border-radius:2px;overflow:hidden;}
-.prog-fill{height:100%;background:var(--cy);border-radius:2px;transition:width 0.4s ease;}
-.mock-badge{position:fixed;bottom:12px;left:12px;z-index:99990;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);color:var(--warn);font-size:10px;font-weight:600;padding:4px 10px;border-radius:4px;letter-spacing:0.06em;font-family:'IBM Plex Mono',monospace;}
 .upload-zone{border:1.5px dashed var(--bdr2);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.18s;background:var(--cy3);}
 .upload-zone:hover,.upload-zone.drag{border-color:var(--cy);background:var(--cy2);}
+
+/* המחלקות החדשות למסכים נדבקים (Sticky) */
+.screen-layout { height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: #0b1120; }
+.screen-header { flex-shrink: 0; z-index: 10; }
+.screen-content { flex: 1; overflow-y: auto; }
+.screen-footer { flex-shrink: 0; z-index: 10; }
 `;
