@@ -24,15 +24,16 @@ export function BackofficeScreen({
     isUploadingDoc,
     deleteUserRecord,
     tick,
-    setSelectedTest // <--- הוספנו את זה כדי שנוכל לבחור מבחן ולהתחיל אותו
+    setSelectedTest 
 }) {
     const fileInputRef = useRef(null);
     const aiFileInputRef = useRef(null);
 
     const [isGenPopupOpen, setIsGenPopupOpen] = useState(false);
+    // הוספנו כאן את ה-qType לסטייט ההתחלתי
     const [genConfig, setGenConfig] = useState({ docId: "", name: "", count: "20", notes: "", qType: "raw" });
     
-    // סטייט חדש להצגת השאלות של מבחן ספציפי
+    // סטייט חדש להצגת השאלות של מבחן ספציפי (לאדמין)
     const [testToView, setTestToView] = useState(null);
 
     const [progress, setProgress] = useState(0);
@@ -529,12 +530,12 @@ export function BackofficeScreen({
                         )}
 
                         <div style={{ marginBottom: 16 }}>
-    <label className="lbl">סגנון שאלות (מתודולוגיה)</label>
-    <select className="inp" value={genConfig.qType} onChange={e => setGenConfig({ ...genConfig, qType: e.target.value })} disabled={aiLoading}>
-        <option value="raw">ידע תיאורטי יבש (Raw Knowledge)</option>
-        <option value="sbt">מבוסס תרחישים מבצעיים (SBT)</option>
-    </select>
-</div>
+                            <label className="lbl">מסמך מקור מהספרייה</label>
+                            <select className="inp" value={genConfig.docId} onChange={e => setGenConfig({ ...genConfig, docId: e.target.value })} disabled={aiLoading}>
+                                <option value="">-- בחר מסמך --</option>
+                                {libraryDocs.map(d => <option key={d.id} value={d.id}>{d.filename}</option>)}
+                            </select>
+                        </div>
 
                         <div style={{ marginBottom: 16 }}>
                             <label className="lbl">כמות שאלות במבחן</label>
@@ -544,6 +545,15 @@ export function BackofficeScreen({
                                 <option value="30">30 שאלות</option>
                                 <option value="40">40 שאלות</option>
                                 <option value="50">50 שאלות</option>
+                            </select>
+                        </div>
+
+                        {/* תפריט סוג השאלות החדש */}
+                        <div style={{ marginBottom: 16 }}>
+                            <label className="lbl">סגנון שאלות (מתודולוגיה)</label>
+                            <select className="inp" value={genConfig.qType} onChange={e => setGenConfig({ ...genConfig, qType: e.target.value })} disabled={aiLoading}>
+                                <option value="raw">ידע תיאורטי יבש (Raw Knowledge)</option>
+                                <option value="sbt">מבוסס תרחישים מבצעיים (SBT)</option>
                             </select>
                         </div>
 
@@ -574,8 +584,9 @@ export function BackofficeScreen({
                             <button className="btn btn-subtle" style={{ flex: 1 }} onClick={() => setIsGenPopupOpen(false)} disabled={aiLoading}>ביטול</button>
                             <button className="btn btn-primary" style={{ flex: 2, height: 40 }} onClick={async () => {
                                 if (!genConfig.docId) { alert("יש לבחור מסמך מהספרייה"); return; }
-                                const success = await processAiFile(genConfig.docId, { count: genConfig.count, notes: genConfig.notes, customTitle: genConfig.name });
-                                if (success) { setIsGenPopupOpen(false); setGenConfig({ docId: "", name: "", count: "20", notes: "" }); }
+                                // הוספת genConfig.qType לקריאה לפונקציה הוכנסה לכאן
+                                const success = await processAiFile(genConfig.docId, { count: genConfig.count, notes: genConfig.notes, customTitle: genConfig.name, qType: genConfig.qType });
+                                if (success) { setIsGenPopupOpen(false); setGenConfig({ docId: "", name: "", count: "20", notes: "", qType: "raw" }); }
                             }} disabled={aiLoading || !genConfig.docId}>
                                 {aiLoading ? <><Loader2 className="spin" size={15} /> ממתין לשרת...</> : <><Sparkles size={15} /> חולל מבחן</>}
                             </button>
@@ -610,11 +621,11 @@ export function BackofficeScreen({
                         <div style={{ padding: 24, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
                             {testToView.questions?.map((q, index) => (
                                 <div key={index} style={{ padding: 16, background: "var(--s1)", borderRadius: 8, border: "1px solid var(--bdr)" }}>
-                                    <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 12 }}>
-                                        <span style={{ color: "var(--cy)", marginRight: 8, display: "inline-block", direction: "ltr" }}>{index + 1}.</span>
+                                    <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 12, direction: "ltr", textAlign: "left" }}>
+                                        <span style={{ color: "var(--cy)", marginRight: 8, display: "inline-block" }}>{index + 1}.</span>
                                         {q.question}
                                     </div>
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingRight: 24 }}>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 24, direction: "ltr", textAlign: "left" }}>
                                         {q.options?.map((opt, i) => {
                                             const isCorrect = opt === q.correctAnswer;
                                             return (
