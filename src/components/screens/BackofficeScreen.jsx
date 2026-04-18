@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2 } from "lucide-react";
+import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2, Play, Eye } from "lucide-react";
 import { DB, sc, fmt } from "../../lib/mockBackend";
 import { Logo } from "../Logo";
 
@@ -18,21 +18,23 @@ export function BackofficeScreen({
     addLibraryDoc,
     deleteLibraryDoc,
     aiLoading,
-    handleFileInput, // במידה ויש לך פונקציית טיפול ב-CSV ב-App.jsx
+    handleFileInput,
     uploadError,
     deleteSet,
     isUploadingDoc,
     deleteUserRecord,
-    tick
+    tick,
+    setSelectedTest // <--- הוספנו את זה כדי שנוכל לבחור מבחן ולהתחיל אותו
 }) {
-    // הוספנו את הרפרנסים לכאן כדי שחלון בחירת הקבצים ייפתח!
     const fileInputRef = useRef(null);
     const aiFileInputRef = useRef(null);
 
     const [isGenPopupOpen, setIsGenPopupOpen] = useState(false);
     const [genConfig, setGenConfig] = useState({ docId: "", name: "", count: "20", notes: "" });
     
-    // מנגנון פס התקדמות ברור למחולל השאלות
+    // סטייט חדש להצגת השאלות של מבחן ספציפי
+    const [testToView, setTestToView] = useState(null);
+
     const [progress, setProgress] = useState(0);
 
     useEffect(() => {
@@ -57,7 +59,6 @@ export function BackofficeScreen({
 
     const trainees = DB.users.filter(u => u.role === "trainee");
 
-    // פונקציה להורדת תבנית קובץ CSV בעברית
     const localDownloadTemplate = () => {
         const csvContent = "data:text/csv;charset=utf-8,\uFEFFQuestion,Option 1,Option 2,Option 3,Option 4,Correct Answer\nדוגמה לשאלה,תשובה א,תשובה ב,תשובה ג,תשובה ד,תשובה א";
         const encodedUri = encodeURI(csvContent);
@@ -69,7 +70,6 @@ export function BackofficeScreen({
         document.body.removeChild(link);
     };
 
-    // פונקציית גיבוי למקרה שאין עדיין לוגיקת CSV ב-App.jsx
     const onCsvSelected = (e) => {
         if (handleFileInput) {
             handleFileInput(e);
@@ -77,7 +77,6 @@ export function BackofficeScreen({
             const file = e.target.files[0];
             if (file) alert(`קובץ ${file.name} נבחר! כדי לקרוא את השאלות ממנו, יש לחבר את לוגיקת ה-CSV בקובץ הראשי.`);
         }
-        // איפוס ה-input כדי שיהיה אפשר לבחור את אותו קובץ שוב אם צריך
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
@@ -340,7 +339,7 @@ export function BackofficeScreen({
                         </div>
                     )}
 
-                    {/* KNOWLEDGE BASE + UPLOAD - כעת עובד בצורה מושלמת */}
+                    {/* KNOWLEDGE BASE + UPLOAD */}
                     {boTab === "kb" && (
                         <div className="fade">
                             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 18 }}>בסיס ידע והעלאת חומרים</div>
@@ -367,7 +366,7 @@ export function BackofficeScreen({
                                         style={{ display: "none" }} 
                                         onChange={e => {
                                             addLibraryDoc(e.target.files);
-                                            if (aiFileInputRef.current) aiFileInputRef.current.value = ""; // מאפשר העלאה חוזרת של אותו קובץ
+                                            if (aiFileInputRef.current) aiFileInputRef.current.value = ""; 
                                         }} 
                                     />
                                 </div>
@@ -458,9 +457,38 @@ export function BackofficeScreen({
                                                     <CheckCircle size={18} color="var(--ok)" style={{ flexShrink: 0 }} />
                                                     <div style={{ flex: 1, minWidth: 0 }}>
                                                         <div style={{ fontSize: 14, fontWeight: 500, color: "var(--t0)", marginBottom: 2 }}>{s.title}</div>
-                                                        <div style={{ fontSize: 12, color: "var(--t2)" }}>{s.description} · נוצר בתאריך {fmt(s.uploadedAt)}</div>
+                                                        <div style={{ fontSize: 12, color: "var(--t2)" }}>{s.description || "מבחן פעיל"} · נוצר בתאריך {fmt(s.uploadedAt)}</div>
                                                     </div>
-                                                    <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteSet(s.id)} disabled={aiLoading || isUploadingDoc}>
+                                                    
+                                                    {/* כפתור "התחל אימון" */}
+                                                    <button 
+                                                        className="btn-icon" 
+                                                        style={{ border: "1px solid var(--bdr)", color: "var(--t0)", background: "var(--s1)", width: 34, height: 34 }} 
+                                                        onClick={() => { setSelectedTest && setSelectedTest(s); setScreen('training'); }} 
+                                                        title="התחל אימון במבחן זה"
+                                                    >
+                                                        <Play size={14} style={{ position: "relative", left: 1 }} />
+                                                    </button>
+
+                                                    {/* כפתור "צפה בשאלות" לאדמין */}
+                                                    {user?.role === 'admin' && (
+                                                        <button 
+                                                            className="btn-icon" 
+                                                            style={{ border: "1px solid rgba(56,189,248,0.3)", color: "var(--cy)", background: "rgba(56,189,248,0.1)", width: 34, height: 34 }} 
+                                                            onClick={() => setTestToView(s)} 
+                                                            title="צפה בשאלות ותשובות (Admin)"
+                                                        >
+                                                            <Eye size={14} />
+                                                        </button>
+                                                    )}
+
+                                                    <button 
+                                                        className="btn-icon" 
+                                                        style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)", width: 34, height: 34, marginLeft: 4 }} 
+                                                        onClick={() => deleteSet(s.id)} 
+                                                        disabled={aiLoading || isUploadingDoc} 
+                                                        title="מחק מבחן"
+                                                    >
                                                         <Trash2 size={14} />
                                                     </button>
                                                 </div>
@@ -551,6 +579,58 @@ export function BackofficeScreen({
                             }} disabled={aiLoading || !genConfig.docId}>
                                 {aiLoading ? <><Loader2 className="spin" size={15} /> ממתין לשרת...</> : <><Sparkles size={15} /> חולל מבחן</>}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal לתצוגת שאלות (זמין לאדמין בלבד) */}
+            {testToView && (
+                <div style={{
+                    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: "rgba(0,0,0,0.7)", zIndex: 99999,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    backdropFilter: "blur(4px)", padding: 20
+                }}>
+                    <div className="card fade" style={{
+                        width: "100%", maxWidth: 800, maxHeight: "85vh", display: "flex", flexDirection: "column",
+                        backgroundColor: "var(--bg)", borderRadius: 12,
+                        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+                        border: "1px solid var(--bdr)", overflow: "hidden"
+                    }}>
+                        <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--bdr)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ fontSize: 18, fontWeight: 600, color: "var(--cy)", display: "flex", alignItems: "center", gap: 10 }}>
+                                <BookOpen size={20} />
+                                תצוגת שאלות: {testToView.title}
+                            </div>
+                            <button className="btn-icon" onClick={() => setTestToView(null)} style={{ border: "none", background: "transparent", color: "var(--t2)" }}>
+                                <XCircle size={24} />
+                            </button>
+                        </div>
+                        <div style={{ padding: 24, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+                            {testToView.questions?.map((q, index) => (
+                                <div key={index} style={{ padding: 16, background: "var(--s1)", borderRadius: 8, border: "1px solid var(--bdr)" }}>
+                                    <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 12 }}>
+                                        <span style={{ color: "var(--cy)", marginRight: 8, display: "inline-block", direction: "ltr" }}>{index + 1}.</span>
+                                        {q.question}
+                                    </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingRight: 24 }}>
+                                        {q.options?.map((opt, i) => {
+                                            const isCorrect = opt === q.correctAnswer;
+                                            return (
+                                                <div key={i} style={{
+                                                    padding: "8px 12px", borderRadius: 6, fontSize: 13,
+                                                    background: isCorrect ? "rgba(34,197,94,0.15)" : "var(--s2)",
+                                                    color: isCorrect ? "#4ade80" : "var(--t1)",
+                                                    border: `1px solid ${isCorrect ? "rgba(34,197,94,0.3)" : "transparent"}`
+                                                }}>
+                                                    {opt} {isCorrect && " ✓"}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
