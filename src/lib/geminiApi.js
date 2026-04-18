@@ -14,11 +14,10 @@ export async function generateQuestionsFromDocument(content, topic, options = {}
   try {
     const count = options.count || 5; 
     const notes = options.notes ? `דגשים מיוחדים: ${options.notes}` : "";
-    const qType = options.qType || "raw"; // קולט איזה סוג מבחן ביקשנו
+    const qType = options.qType || "raw"; 
     
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     
-    // התאמת ההנחיות לסוג השאלה
     let typeInstructions = "";
     if (qType === "sbt") {
         typeInstructions = `
@@ -42,26 +41,21 @@ export async function generateQuestionsFromDocument(content, topic, options = {}
       ${typeInstructions}
 
       חוקי ברזל מחמירים למשימה (SOP):
-      1. **שפת המבחן:** חובה עליך לזהות את השפה שבה כתוב מסמך המקור, ולכתוב את כל השאלות, התרחישים והתשובות **בדיוק באותה השפה** (למשל: מסמך באנגלית = שאלות באנגלית).
+      1. **שפת המבחן:** חובה עליך לזהות את השפה שבה כתוב מסמך המקור, ולכתוב את כל השאלות, התרחישים והתשובות **בדיוק באותה השפה**.
       2. חובה לבסס את הפתרון לכל שאלה ותרחיש אך ורק על המסמך המצורף.
       3. אסור לך להמציא חוקים או נהלים מהידע הכללי שלך. 
-      4. כל תשובה נכונה חייבת להיות מגובה בעובדה ברורה מתוך חומר המקור.
+      4. **מקור התשובה (Reference):** עבור כל שאלה שאתה יוצר, חובה עליך לציין מהו מספר הסעיף, הפרק, או העמוד המדויק מתוך המסמך שעליו מבוססת התשובה.
 
-      החזר תשובה בפורמט JSON בלבד, ללא טקסט מקדים, כרשימה של אובייקטים: 
-      [{"question": "...", "options": ["...", "...", "...", "..."], "correctAnswer": "..."}]
+      החזר תשובה בפורמט JSON בלבד, ללא טקסט מקדים, כרשימה של אובייקטים לפי המבנה הבא: 
+      [{"question": "...", "options": ["...", "...", "...", "..."], "correctAnswer": "...", "reference": "..."}]
     `;
     
     let payload;
     const isBase64 = content && content.length > 100 && !content.includes(" ") && !content.includes("\n");
     
     if (isBase64) {
-        console.log("✈️ AI Engine: מזהה קובץ. משגר את המסמך כ-PDF לשרתים של גוגל...");
-        payload = [
-            prompt,
-            { inlineData: { data: content, mimeType: "application/pdf" } }
-        ];
+        payload = [prompt, { inlineData: { data: content, mimeType: "application/pdf" } }];
     } else {
-        console.log("✈️ AI Engine: מזהה טקסט רגיל. משגר לניתוח...");
         payload = [prompt + "\n\nטקסט המקור שעליו אתה נבחן:\n---\n" + content + "\n---"];
     }
     
@@ -70,10 +64,7 @@ export async function generateQuestionsFromDocument(content, topic, options = {}
     let text = response.text();
 
     text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-    const parsedData = JSON.parse(text);
-    
-    console.log(`✅ AI Engine: חולצו בהצלחה ${parsedData.length} שאלות (${qType === 'sbt' ? 'תרחישים' : 'ידע'}).`);
-    return parsedData;
+    return JSON.parse(text);
 
   } catch (error) {
     console.error("❌ שגיאה במחולל המבחנים:", error);
@@ -95,14 +86,22 @@ export async function generateDebriefWithGemini(quizResults, traineeName) {
 }
 
 // 3. הפונקציה לבדיקת התשובה בזמן אמת בצ'אט
-export async function evalAnswerWithGemini(documentText, question, correctAnswer, userAnswer) {
+export async function evalAnswerWithGemini(reference, question, correctAnswer, userAnswer) {
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `
-      אתה מאמן ידע מקצועי וסבלני. המשתמש נשאל את השאלה הבאה: "${question}".
+      אתה מאמן ידע מקצועי וסבלני. 
+      המשתמש נשאל את השאלה הבאה: "${question}".
       התשובה הנכונה הרשמית היא: "${correctAnswer}".
+      מקור התשובה במסמך הנהלים (סעיף/פרק): "${reference}".
       המשתמש ענה במילים שלו: "${userAnswer}".
-      האם המשתמש צדק? ענה ב-[CORRECT] והסבר קצר, או רק הסבר אם טעה.
+      
+      המשימה שלך היא להעריך האם תשובת המשתמש נכונה (העיקר שהרעיון המרכזי זהה).
+      אם המשתמש שואל שאלות כמו "למה?", "איפה זה כתוב?" או מבקש הבהרה, עליך להשתמש במידע שבשדה המקור ("${reference}") כדי להפנות אותו לסעיף הרלוונטי בנוהל.
+      
+      כללים לתשובה שלך:
+      - אם התשובה נכונה: התחל את התגובה במילה [CORRECT] ואחריה חיזוק חיובי (ואתה יכול לציין שזה מבוסס על סעיף ${reference}).
+      - אם התשובה שגויה: אל תשתמש ב-[CORRECT]. ענה במשפט קצר שמסביר שהתשובה אינה מדויקת, ללא מתן הפתרון מיד.
     `;
     const result = await model.generateContent(prompt);
     return (await result.response).text();
