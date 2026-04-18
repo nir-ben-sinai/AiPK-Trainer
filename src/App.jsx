@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import * as Papa from "papaparse";
 
-import { DB, parseCsvToSet, downloadTemplate, genId, CSS } from "./lib/mockBackend";
+import { DB, parseCsvToSet, downloadTemplate, genId, CSS, saveDbLocal, loadDbLocal } from "./lib/mockBackend";
 import { evalAnswerWithGemini, generateDebriefWithGemini, generateQuestionsFromDocument } from "./lib/geminiApi";
 import { supabase } from "./supabase";
 
@@ -23,7 +23,8 @@ export default function App() {
     const [form, setForm] = useState({ name: "", email: "", password: "", profession: "" });
     const [authErr, setAuthErr] = useState("");
     const [agreed, setAgreed] = useState(false);
-    const [tick, setTick] = useState(0);
+    const [tick, _setTick] = useState(0);
+    const setTick = (val) => { saveDbLocal(); _setTick(val); };
 
     // Training
     const [topic, setTopic] = useState(null);
@@ -83,25 +84,35 @@ export default function App() {
                     DB.uploadedSets = formattedExams;
                 }
 
+                loadDbLocal();
+
+                const mergeData = (localArr, supData) => {
+                    if (!supData) return localArr;
+                    const sb = supData.map(r => r.data);
+                    const merged = [...(localArr || [])];
+                    sb.forEach(su => {
+                        const idx = merged.findIndex(u => u.id === su.id);
+                        if (idx === -1) merged.push(su); else merged[idx] = su;
+                    });
+                    return merged;
+                };
+
+                DB.users = mergeData(DB.users, usersRes.data);
+                DB.sessions = mergeData(DB.sessions, sessRes.data);
+                DB.logs = mergeData(DB.logs, logsRes.data);
+                DB.debriefs = mergeData(DB.debriefs, debRes.data);
+                DB.helpRequests = mergeData(DB.helpRequests, helpRes.data);
+
                 // --- תיקון פרטי האדמין לאלו שרצית ---
                 const adminEmail = "admin@system.com";
                 const adminPassword = "admin123";
 
-                let loadedUsers = usersRes.data?.length > 0 ? usersRes.data.map(r => r.data) : [];
-                const hasAdmin = loadedUsers.some(u => u.email === adminEmail);
-
+                const hasAdmin = DB.users.some(u => u.email === adminEmail);
                 if (!hasAdmin) {
                     const admin = { id: "u_admin", name: "Admin", email: adminEmail, password: adminPassword, profession: "System Admin", role: "admin", joinedAt: new Date().toISOString() };
-                    loadedUsers.push(admin);
+                    DB.users.push(admin);
                     await supabase.from('app_users').insert([{ id: admin.id, data: admin }]);
                 }
-
-                DB.users = loadedUsers;
-
-                if (sessRes.data) DB.sessions = sessRes.data.map(r => r.data);
-                if (logsRes.data) DB.logs = logsRes.data.map(r => r.data);
-                if (debRes.data) DB.debriefs = debRes.data.map(r => r.data);
-                if (helpRes.data) DB.helpRequests = helpRes.data.map(r => r.data);
 
                 setTick(t => t + 1);
             } catch (err) { console.error("שגיאה במשיכת נתונים:", err); }

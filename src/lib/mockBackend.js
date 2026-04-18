@@ -20,6 +20,35 @@ export const DB = {
 };
 
 // ═══════════════════════════════════════════
+// LOCAL STORAGE PERSISTENCE (PROTOTYPE FALLBACK)
+// ═══════════════════════════════════════════
+export const saveDbLocal = () => {
+    try {
+        localStorage.setItem('proto_db', JSON.stringify({
+            users: DB.users, sessions: DB.sessions, logs: DB.logs,
+            debriefs: DB.debriefs, uploadedSets: DB.uploadedSets,
+            libraryDocs: DB.libraryDocs, helpRequests: DB.helpRequests
+        }));
+    } catch (e) { }
+};
+
+export const loadDbLocal = () => {
+    try {
+        const raw = localStorage.getItem('proto_db');
+        if (raw) {
+            const p = JSON.parse(raw);
+            if (p.users && p.users.length) DB.users = p.users;
+            if (p.sessions) DB.sessions = p.sessions;
+            if (p.logs) DB.logs = p.logs;
+            if (p.debriefs) DB.debriefs = p.debriefs;
+            if (p.uploadedSets) DB.uploadedSets = p.uploadedSets;
+            if (p.libraryDocs) DB.libraryDocs = p.libraryDocs;
+            if (p.helpRequests) DB.helpRequests = p.helpRequests;
+        }
+    } catch (e) { }
+};
+
+// ═══════════════════════════════════════════
 // MOCK AI
 // ═══════════════════════════════════════════
 export const mockEval = ans => new Promise(res => setTimeout(() => {

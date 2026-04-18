@@ -24,7 +24,7 @@ export function BackofficeScreen({
     isUploadingDoc,
     deleteUserRecord,
     tick,
-    setSelectedTest 
+    setSelectedTest
 }) {
     const fileInputRef = useRef(null);
     const aiFileInputRef = useRef(null);
@@ -32,7 +32,7 @@ export function BackofficeScreen({
     const [isGenPopupOpen, setIsGenPopupOpen] = useState(false);
     // הוספנו כאן את ה-qType לסטייט ההתחלתי
     const [genConfig, setGenConfig] = useState({ docId: "", name: "", count: "20", notes: "", qType: "raw" });
-    
+
     // סטייט חדש להצגת השאלות של מבחן ספציפי (לאדמין)
     const [testToView, setTestToView] = useState(null);
 
@@ -89,7 +89,7 @@ export function BackofficeScreen({
         { id: "kb", label: "ידע", Icon: BookOpen },
         { id: "database", label: "DB", Icon: Database },
     ];
-    
+
     return (
         <>
             <div className="mock-badge">PROTOTYPE</div>
@@ -351,24 +351,24 @@ export function BackofficeScreen({
                                     <BookOpen size={36} color="var(--cy)" style={{ marginBottom: 12 }} />
                                     <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 6 }}>העלאת ספר או נוהל (PDF/TXT)</div>
                                     <div style={{ fontSize: 12, color: "var(--t2)", marginBottom: 20, lineHeight: 1.4 }}>העלה חומר עיוני לספרייה. לאחר מכן, ה-AI יוכל לנתח אותו ולחולל ממנו שאלות אוטומטית למבחן.</div>
-                                    
-                                    <button 
-                                        className="btn btn-primary" 
-                                        onClick={() => !aiLoading && !isUploadingDoc && aiFileInputRef.current?.click()} 
+
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={() => !aiLoading && !isUploadingDoc && aiFileInputRef.current?.click()}
                                         disabled={aiLoading || isUploadingDoc}
                                     >
-                                        {isUploadingDoc ? <Loader2 className="spin" size={16} /> : <Upload size={16} />} 
+                                        {isUploadingDoc ? <Loader2 className="spin" size={16} /> : <Upload size={16} />}
                                         {isUploadingDoc ? "מעלה מסמך לשרת..." : "העלה ספרייה חדשה"}
                                     </button>
-                                    <input 
-                                        ref={aiFileInputRef} 
-                                        type="file" 
-                                        accept=".pdf,.txt" 
-                                        style={{ display: "none" }} 
+                                    <input
+                                        ref={aiFileInputRef}
+                                        type="file"
+                                        accept=".pdf,.txt"
+                                        style={{ display: "none" }}
                                         onChange={e => {
                                             addLibraryDoc(e.target.files);
-                                            if (aiFileInputRef.current) aiFileInputRef.current.value = ""; 
-                                        }} 
+                                            if (aiFileInputRef.current) aiFileInputRef.current.value = "";
+                                        }}
                                     />
                                 </div>
 
@@ -377,12 +377,12 @@ export function BackofficeScreen({
                                     <FileText size={36} color="var(--t2)" style={{ marginBottom: 12 }} />
                                     <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 6 }}>העלאת שאלות מוכנות (CSV)</div>
                                     <div style={{ fontSize: 12, color: "var(--t2)", marginBottom: 20, lineHeight: 1.4 }}>העלה בנק שאלות מוכן מראש שיצרת בקובץ אקסל, תוך שימוש בתבנית הנדרשת של המערכת.</div>
-                                    
+
                                     <div style={{ display: "flex", gap: 10 }}>
-                                        <button 
-                                            className="btn btn-ghost" 
-                                            style={{ background: "var(--s2)", border: "1px solid var(--bdr)" }} 
-                                            onClick={() => !aiLoading && !isUploadingDoc && fileInputRef.current?.click()} 
+                                        <button
+                                            className="btn btn-ghost"
+                                            style={{ background: "var(--s2)", border: "1px solid var(--bdr)" }}
+                                            onClick={() => !aiLoading && !isUploadingDoc && fileInputRef.current?.click()}
                                             disabled={aiLoading || isUploadingDoc}
                                         >
                                             <Upload size={16} /> בחר קובץ CSV
@@ -391,12 +391,12 @@ export function BackofficeScreen({
                                             <Download size={16} /> הורד תבנית
                                         </button>
                                     </div>
-                                    <input 
-                                        ref={fileInputRef} 
-                                        type="file" 
-                                        accept=".csv" 
-                                        style={{ display: "none" }} 
-                                        onChange={onCsvSelected} 
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".csv"
+                                        style={{ display: "none" }}
+                                        onChange={onCsvSelected}
                                     />
                                 </div>
                             </div>
@@ -409,7 +409,7 @@ export function BackofficeScreen({
                             )}
 
                             <div style={{ display: "flex", gap: 20, flexDirection: "column" }}>
-                                
+
                                 <div>
                                     <div className="lbl" style={{ marginBottom: 12, fontSize: 14 }}>ספריית הדרכה - מסמכי מקור ({libraryDocs.length})</div>
                                     {libraryDocs.length === 0 ? (
@@ -425,9 +425,9 @@ export function BackofficeScreen({
                                                         <div style={{ fontSize: 14, fontWeight: 500, color: "var(--t0)", marginBottom: 2 }}>{d.filename}</div>
                                                         <div style={{ fontSize: 12, color: "var(--t2)" }}>הועלה בתאריך {fmt(d.uploadedAt)}</div>
                                                     </div>
-                                                    <button 
-                                                        className="btn btn-ghost" 
-                                                        style={{ fontSize: 12, gap: 6, color: "var(--cy)", padding: "6px 12px", border: "1px solid rgba(56,189,248,0.2)" }} 
+                                                    <button
+                                                        className="btn btn-ghost"
+                                                        style={{ fontSize: 12, gap: 6, color: "var(--cy)", padding: "6px 12px", border: "1px solid rgba(56,189,248,0.2)" }}
                                                         onClick={() => {
                                                             setGenConfig({ ...genConfig, docId: d.id, name: d.filename.replace(/\.(pdf|txt|md)$/i, "") + " - מבחן חדש" });
                                                             setIsGenPopupOpen(true);
@@ -458,14 +458,14 @@ export function BackofficeScreen({
                                                     <CheckCircle size={18} color="var(--ok)" style={{ flexShrink: 0 }} />
                                                     <div style={{ flex: 1, minWidth: 0 }}>
                                                         <div style={{ fontSize: 14, fontWeight: 500, color: "var(--t0)", marginBottom: 2 }}>{s.title}</div>
-                                                        <div style={{ fontSize: 12, color: "var(--t2)" }}>{s.description || "מבחן פעיל"} · נוצר בתאריך {fmt(s.uploadedAt)}</div>
+                                                        <div style={{ fontSize: 12, color: "var(--t2)" }}>{s.description || "מבחן פעיל"} · בוצעו {done.filter(se => se.topicId === s.id).length} אימונים · נוצר בתאריך {fmt(s.uploadedAt)}</div>
                                                     </div>
-                                                    
+
                                                     {/* כפתור "התחל אימון" */}
-                                                    <button 
-                                                        className="btn-icon" 
-                                                        style={{ border: "1px solid var(--bdr)", color: "var(--t0)", background: "var(--s1)", width: 34, height: 34 }} 
-                                                        onClick={() => { setSelectedTest && setSelectedTest(s); setScreen('training'); }} 
+                                                    <button
+                                                        className="btn-icon"
+                                                        style={{ border: "1px solid var(--bdr)", color: "var(--t0)", background: "var(--s1)", width: 34, height: 34 }}
+                                                        onClick={() => { setSelectedTest && setSelectedTest(s); setScreen('training'); }}
                                                         title="התחל אימון במבחן זה"
                                                     >
                                                         <Play size={14} style={{ position: "relative", left: 1 }} />
@@ -473,21 +473,21 @@ export function BackofficeScreen({
 
                                                     {/* כפתור "צפה בשאלות" לאדמין */}
                                                     {user?.role === 'admin' && (
-                                                        <button 
-                                                            className="btn-icon" 
-                                                            style={{ border: "1px solid rgba(56,189,248,0.3)", color: "var(--cy)", background: "rgba(56,189,248,0.1)", width: 34, height: 34 }} 
-                                                            onClick={() => setTestToView(s)} 
+                                                        <button
+                                                            className="btn-icon"
+                                                            style={{ border: "1px solid rgba(56,189,248,0.3)", color: "var(--cy)", background: "rgba(56,189,248,0.1)", width: 34, height: 34 }}
+                                                            onClick={() => setTestToView(s)}
                                                             title="צפה בשאלות ותשובות (Admin)"
                                                         >
                                                             <Eye size={14} />
                                                         </button>
                                                     )}
 
-                                                    <button 
-                                                        className="btn-icon" 
-                                                        style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)", width: 34, height: 34, marginLeft: 4 }} 
-                                                        onClick={() => deleteSet(s.id)} 
-                                                        disabled={aiLoading || isUploadingDoc} 
+                                                    <button
+                                                        className="btn-icon"
+                                                        style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)", width: 34, height: 34, marginLeft: 4 }}
+                                                        onClick={() => deleteSet(s.id)}
+                                                        disabled={aiLoading || isUploadingDoc}
                                                         title="מחק מבחן"
                                                     >
                                                         <Trash2 size={14} />
@@ -512,8 +512,8 @@ export function BackofficeScreen({
                     display: "flex", alignItems: "center", justifyContent: "center",
                     backdropFilter: "blur(4px)"
                 }}>
-                    <div className="card fade" style={{ 
-                        width: "100%", maxWidth: 480, padding: 24, 
+                    <div className="card fade" style={{
+                        width: "100%", maxWidth: 480, padding: 24,
                         backgroundColor: "var(--bg)", borderRadius: 12,
                         boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5)",
                         border: "1px solid var(--bdr)"
@@ -522,7 +522,7 @@ export function BackofficeScreen({
                             <Wand2 size={18} color="var(--cy)" />
                             <div style={{ fontSize: 17, fontWeight: 600, color: "var(--t0)" }}>מחולל שאלות מתקדם</div>
                         </div>
-                        
+
                         {!aiLoading && (
                             <div style={{ fontSize: 13, color: "var(--t2)", marginBottom: 24, lineHeight: 1.5 }}>
                                 בחר מסמך מהספרייה והגדר את מאפייני המבחן שברצונך לייצר. המערכת תפיק את השאלות בתוך מספר שניות.
@@ -570,7 +570,7 @@ export function BackofficeScreen({
                         {aiLoading && (
                             <div style={{ marginTop: 16, marginBottom: 24, padding: "16px", background: "rgba(56,189,248,0.1)", borderRadius: 8, border: "1px solid rgba(56,189,248,0.3)" }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, color: "var(--cy)", marginBottom: 8 }}>
-                                    <span><Loader2 className="spin" size={14} style={{ display: "inline", marginRight: 6, position: "relative", top: 2 }}/> מנתח את המסמך ומייצר שאלות...</span>
+                                    <span><Loader2 className="spin" size={14} style={{ display: "inline", marginRight: 6, position: "relative", top: 2 }} /> מנתח את המסמך ומייצר שאלות...</span>
                                     <span style={{ fontFamily: "'IBM Plex Mono',monospace" }}>{Math.round(progress)}%</span>
                                 </div>
                                 <div className="prog-wrap" style={{ height: 8, background: "var(--s2)", borderRadius: 10, overflow: "hidden" }}>
