@@ -10,7 +10,54 @@ import { OnboardingScreen } from "./components/screens/OnboardingScreen";
 import { DisclaimerScreen } from "./components/screens/DisclaimerScreen";
 import { AdminUploadScreen } from "./components/screens/AdminUploadScreen";
 import { HomeScreen } from "./components/screens/HomeScreen";
+import { TrainingScreen } from "./componentsimport React, { useState } from "react";
+import { DB } from "./lib/mockBackend";
+import { HomeScreen } from "./components/screens/HomeScreen";
 import { TrainingScreen } from "./components/screens/TrainingScreen";
+import { BackofficeScreen } from "./components/screens/BackofficeScreen";
+import { DebriefScreen } from "./components/screens/DebriefScreen";
+
+export default function App() {
+    const [user, setUser] = useState(DB.users[1]); // מחובר כיוסי כהן
+    const [screen, setScreen] = useState("home");
+    const [selectedTest, setSelectedTest] = useState(null);
+    const [uploadedSets, setUploadedSets] = useState([]);
+
+    return (
+        <div className="app-container">
+            {screen === "home" && (
+                <HomeScreen 
+                    user={user} 
+                    setScreen={setScreen} 
+                    uploadedSets={uploadedSets}
+                    setSelectedTest={setSelectedTest}
+                />
+            )}
+
+            {screen === "training" && (
+                <TrainingScreen 
+                    user={user}
+                    setScreen={setScreen}
+                    topic={selectedTest}
+                    questions={selectedTest?.questions || []}
+                />
+            )}
+
+            {screen === "backoffice" && (
+                <BackofficeScreen 
+                    setScreen={setScreen} 
+                    setUploadedSets={setUploadedSets}
+                />
+            )}
+
+            {screen === "debrief" && (
+                <DebriefScreen 
+                    setScreen={setScreen} 
+                />
+            )}
+        </div>
+    );
+}/screens/TrainingScreen";
 import { DebriefScreen } from "./components/screens/DebriefScreen";
 import { BackofficeScreen } from "./components/screens/BackofficeScreen";
 
