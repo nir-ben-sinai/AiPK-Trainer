@@ -212,17 +212,49 @@ export default function App() {
 
     const processAiFile = async (docId, options = {}) => {
         const doc = libraryDocs.find(d => d.id === docId);
+        if (!doc) return false;
+        
         setAiLoading(true);
         try {
-            // הנה השורה המתוקנת! הורדנו את ה-"application/pdf" האמצעי שהרס את הסדר
-            const qs = await generateQuestionsFromDocument(doc.base64Data, doc.filename, options);
+            let fileContent = doc.base64Data;
+
+            // אם אין לנו את התוכן בזיכרון (קורה אחרי רענון עמוד), נוריד אותו עכשיו מהלינק
+            if (!fileContent && doc.fileUrl) {
+                console.log("מוריד קובץ מהענן לצורך ניתוח AI...");
+                const response = await fetch(doc.fileUrl);
+                const blob = await response.blob();
+                
+                // ממירים את הקובץ שירד ל-Base64
+                fileContent = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                    reader.readAsDataURL(blob);
+                });
+            }
+
+            if (!fileContent) {
+                alert("שגיאה: לא הצלחנו לקרוא את תוכן הקובץ.");
+                setAiLoading(false);
+                return false;
+            }
+
+            // משגרים לג'מיני את התוכן האמיתי!
+            const qs = await generateQuestionsFromDocument(fileContent, doc.filename, options);
             
+            if (!qs || qs.length === 0) {
+                alert("ה-AI לא הצליח לחלץ שאלות. ייתכן שהמסמך סרוק כתמונה או שגיאת תקשורת.");
+                setAiLoading(false);
+                return false;
+            }
+
             const set = { id: genId("us"), title: options.customTitle || doc.filename, questions: qs, chapters: [] };
             await supabase.from('exams').insert([{ title: set.title, questions: qs, pdf_url: doc.filename }]);
             setUploadedSets(prev => [set, ...prev]);
+            
             setAiLoading(false); 
             return true;
         } catch (e) { 
+            console.error(e);
             setAiLoading(false); 
             return false; 
         }
