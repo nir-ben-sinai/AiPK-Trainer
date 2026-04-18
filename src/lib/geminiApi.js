@@ -1,72 +1,74 @@
-// geminiApi.js - מעודכן למודל Gemini 3
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-async function fetchGeminiDirectly(prompt) {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) throw new Error("מפתח API חסר בהגדרות Vercel");
+// שואב את המפתח בצורה מאובטחת מ-Vercel
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-    // עדכון למודל Gemini 3 Flash כפי שמופיע אצלך ב-Playground
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`;
-
-    try {
-        const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
-        });
-
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || "שגיאת API");
-
-        return data.candidates[0].content.parts[0].text;
-    } catch (err) {
-        console.error("שגיאת תקשורת:", err);
-        throw err;
-    }
+if (!apiKey) {
+    console.error("שגיאה קריטית: מפתח ה-API חסר! ודא שהגדרת את VITE_GEMINI_API_KEY ב-Vercel.");
 }
 
-export async function generateQuestionsFromDocument(content, topic) {
-    const prompt = `בהתבסס על הטקסט: ${content}, צור 5 שאלות אמריקאיות על ${topic}. החזר JSON בלבד.`;
-    try {
-        let text = await fetchGeminiDirectly(prompt);
-        text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        return JSON.parse(text);
-    } catch (e) { return []; }
-}
+const genAI = new GoogleGenerativeAI(apiKey);
 
-export async function evalAnswerWithGemini(documentText, question, correctAnswer, userAnswer) {
-    const prompt = `שאלה: "${question}". תשובה נכונה: "${correctAnswer}". חניך ענה: "${userAnswer}". האם הוא צדק? ענה ב-[CORRECT] והסבר קצר.`;
-    return await fetchGeminiDirectly(prompt);
-}
+// מעודכן למודל שפתוח ומופיע אצלך בחשבון כדי למנוע שגיאות 404
+const MODEL_NAME = "gemini-3-flash-preview";
 
-// שאר הפונקציות נשארות ללא שינוי...
-
+// 1. הפונקציה לחילול שאלות ממסמך
 export async function generateQuestionsFromDocument(content, topic) {
   try {
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `בהתבסס על הטקסט הבא: ${content}, צור 5 שאלות אמריקאיות בנושא ${topic}. 
-    החזר תשובה בפורמט JSON בלבד (ללא גרשיים של markdown), כרשימה של אובייקטים: question, options, correctAnswer.`;
-    let text = await fetchGeminiDirectly(prompt);
+    החזר תשובה בפורמט JSON בלבד, ללא טקסט מקדים וללא עטיפות, כרשימה של אובייקטים עם השדות: question, options, correctAnswer.`;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text();
+
     text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+
     return JSON.parse(text);
-  } catch (error) { return []; }
+  } catch (error) {
+    console.error("שגיאה במחולל המבחנים:", error);
+    return [];
+  }
 }
 
+// 2. הפונקציה ליצירת תחקיר אישי
 export async function generateDebriefWithGemini(quizResults, traineeName) {
   try {
-    const prompt = `צור תחקיר אימון קצר ומעודד בעברית עבור ${traineeName}: ${JSON.stringify(quizResults)}`;
-    return await fetchGeminiDirectly(prompt);
-  } catch (error) { return "לא ניתן לייצר תחקיר כרגע."; }
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    const prompt = `בהתבסס על תוצאות המבחן הבאות של ${traineeName}: ${JSON.stringify(quizResults)}, 
+    צור תחקיר אישי, קצר ומעודד בעברית. הדגש נקודות לשימור ונקודות לשיפור מתוך התשובות שלו.`;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error("שגיאה ביצירת תחקיר:", error);
+    return "לא ניתן היה ליצור תחקיר אוטומטי כרגע בגלל שגיאת תקשורת.";
+  }
 }
 
+// 3. הפונקציה לבדיקת התשובה בזמן אמת בצ'אט
 export async function evalAnswerWithGemini(documentText, question, correctAnswer, userAnswer) {
   try {
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `
-      שאלה: "${question}"
-      תשובה נכונה: "${correctAnswer}"
-      תשובת המשתמש: "${userAnswer}"
-      האם המשתמש צדק? ענה בפורמט: [CORRECT] + הסבר קצר אם כן, או רק הסבר קצר אם לא.
+      אתה מאמן ידע מקצועי וסבלני. המשתמש נשאל את השאלה הבאה: "${question}".
+      התשובה הנכונה הרשמית מתוך החומר היא: "${correctAnswer}".
+      המשתמש ענה במילים שלו: "${userAnswer}".
+
+      המשימה שלך היא להעריך האם תשובת המשתמש נכונה (גם אם היא מנוסחת קצת אחרת, העיקר שהרעיון המרכזי זהה).
+      
+      כללים לתשובה שלך:
+      - אם התשובה נכונה: עליך להתחיל את התגובה שלך במילה [CORRECT] בדיוק ככה, ואחריה להוסיף משפט חיזוק חיובי קצר בעברית (למשל: "[CORRECT] יפה מאוד, קלעת בול!").
+      - אם התשובה שגויה או חסרה פרט קריטי: אל תשתמש במילה [CORRECT]. ענה במשפט קצר בעברית שמסביר שהתשובה אינה מדויקת, ללא מתן הפתרון.
     `;
-    return await fetchGeminiDirectly(prompt);
-  } catch (error) { throw error; }
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error("שגיאה בבדיקת התשובה:", error);
+    throw error;
+  }
 }
