@@ -146,7 +146,7 @@ export default function App() {
         }
     };
 
-    const doRegister = () => {
+    const doRegister = async () => {
         if (!form.name || !form.email || !form.password) {
             setAuthErr("יש למלא לפחות שם מלא, אימייל וסיסמה כדי להירשם.");
             return;
@@ -174,7 +174,8 @@ export default function App() {
 
         setScreen("home");
 
-        supabase.from('app_users').insert([{ id: u.id, data: u }]).catch(console.error);
+        // ממתינים לשמירה כדי להבטיח שהיא תושלם גם אם המשתמש ירפרש את העמוד
+        await supabase.from('app_users').insert([{ id: u.id, data: u }]).catch(console.error);
         setTick(t => t + 1);
     };
 
