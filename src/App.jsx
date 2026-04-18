@@ -281,7 +281,11 @@ export default function App() {
 
         try {
             const correctAnswer = questions[qIdx]?.correctAnswer || questions[qIdx]?.answer || "";
-            const reply = await evalAnswerWithGemini("", questions[qIdx]?.question || "", correctAnswer, ans);
+            // שולפים את המקור החדש מתוך השאלה
+            const reference = questions[qIdx]?.reference || "לא צוין סעיף מדויק"; 
+            
+            // מעבירים למאמן את המקור במקום מחרוזת ריקה!
+            const reply = await evalAnswerWithGemini(reference, questions[qIdx]?.question || "", correctAnswer, ans);
             
             const isCorrect = reply.includes("[CORRECT]");
             const cleanReply = reply.replace(/\[.*\]/g, "").trim();
