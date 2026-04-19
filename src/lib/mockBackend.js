@@ -197,4 +197,14 @@ tr:hover td{background:rgba(56,189,248,0.02);}
 .mock-badge{position:fixed;bottom:12px;left:12px;z-index:99990;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);color:var(--warn);font-size:10px;font-weight:600;padding:4px 10px;border-radius:4px;letter-spacing:0.06em;font-family:'IBM Plex Mono',monospace;}
 .upload-zone{border:1.5px dashed var(--bdr2);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.18s;background:var(--cy3);}
 .upload-zone:hover,.upload-zone.drag{border-color:var(--cy);background:var(--cy2);}
+.dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.topics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 820px; }
+@media (max-width: 900px) {
+  .dash-grid { grid-template-columns: repeat(2, 1fr); }
+  .topics-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .topics-grid { grid-template-columns: 1fr; }
+}
 `;

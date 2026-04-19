@@ -61,7 +61,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                 </div>
                             </div>
 
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+                            <div className="dash-grid">
                                 {/* ממוצע הצלחה */}
                                 <div className="card card-hover" style={{ padding: 20, position: "relative", overflow: "hidden", background: "linear-gradient(135deg, rgba(34,197,94,0.05), rgba(34,197,94,0.01))" }}>
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
@@ -138,7 +138,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                         <div style={{ fontSize: 16, fontWeight: 600, color: "var(--t0)", marginBottom: 4 }}>ספריית עזר לחזרה ועיון</div>
                                         <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>חומרי קריאה מקצועיים (PDF)</div>
                                     </div>
-                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, maxWidth: 820 }}>
+                                    <div className="topics-grid">
                                         {libraryDocs.map(d => (
                                             <div key={d.id} className="card card-hover" style={{ padding: "16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }} onClick={() => window.open(d.fileUrl, '_blank')}>
                                                 <div style={{ padding: 10, background: "rgba(56,189,248,0.1)", borderRadius: 8, color: "var(--cy)", flexShrink: 0 }}>
@@ -159,7 +159,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                 <div style={{ fontSize: 16, fontWeight: 600, color: "var(--t0)", marginBottom: 4 }}>בחר נושא לאימון</div>
                                 <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>שאלות אקראיות ממאגר הנושא הנבחר</div>
                             </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, maxWidth: 820, marginBottom: 28 }}>
+                            <div className="topics-grid" style={{ marginBottom: 28 }}>
                                 {uploadedSets.map(t => {
                                     const mySess = DB.sessions.filter(s => s.userId === user?.id && s.topicId === t.id && s.status === "completed");
                                     const best = mySess.length ? Math.max(...mySess.map(s => s.score)) : null;
