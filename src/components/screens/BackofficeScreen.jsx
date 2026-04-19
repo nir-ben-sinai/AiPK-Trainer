@@ -1,7 +1,20 @@
-import { useState, useEffect, useRef } from "react";
-import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2, Play, Eye, Edit2, Save, Target } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2, Play, Eye, Edit2, Save, Target, Search } from "lucide-react";
 import { DB, sc, fmt } from "../../lib/mockBackend";
 import { Logo } from "../Logo";
+import { useTableData } from "../../hooks/useTableData";
+
+const SortableTH = ({ label, sortKey, config, requestSort, style }) => {
+    const isSorted = config.key === sortKey;
+    return (
+        <th onClick={() => requestSort(sortKey)} style={{ cursor: "pointer", userSelect: "none", ...style }}>
+            {label}
+            <span style={{ fontSize: 10, color: isSorted ? "var(--cy)" : "transparent", display: "inline-block", marginLeft: 4, width: 12 }}>
+                {isSorted ? (config.direction === 'asc' ? '▲' : '▼') : '▲'}
+            </span>
+        </th>
+    );
+};
 
 export function BackofficeScreen({
     user,
@@ -61,6 +74,33 @@ export function BackofficeScreen({
     }, [aiLoading]);
 
     const trainees = DB.users.filter(u => u.role === "trainee");
+
+    const processedUsers = useMemo(() => {
+        return DB.users.map(u => {
+            const us = done.filter(s => s.userId === u.id);
+            const ua = us.length ? Math.round(us.reduce((a, s) => a + s.score, 0) / us.length) : null;
+            return { ...u, sessionCount: us.length, avgScore: ua };
+        });
+    }, [done]);
+    const usersTable = useTableData(processedUsers, { initialSortKey: 'joinedAt', initialSortDir: 'desc' });
+
+    const processedSessions = useMemo(() => {
+        return [...DB.sessions].map(s => {
+            const u = DB.users.find(u => u.id === s.userId);
+            const t = [...uploadedSets].find(t => t.id === s.topicId);
+            return { ...s, userName: u?.name || '', topicName: t?.title || s.topicId, helpTotal: (s.helpClicks || 0) + (s.showAnswerClicks || 0) };
+        });
+    }, [uploadedSets, done]);
+    const sessionsTable = useTableData(processedSessions, { initialSortKey: 'startedAt', initialSortDir: 'desc' });
+
+    const processedHelp = useMemo(() => {
+        return [...DB.helpRequests].map(h => {
+            const u = DB.users.find(u => u.id === h.userId);
+            const t = [...uploadedSets].find(t => t.id === h.topicId);
+            return { ...h, userName: u?.name || '', topicName: t?.title || h.topicId };
+        });
+    }, [uploadedSets]);
+    const helpTable = useTableData(processedHelp, { initialSortKey: 'time', initialSortDir: 'desc' });
 
     const localDownloadTemplate = () => {
         const csvContent = "data:text/csv;charset=utf-8,\uFEFFQuestion,Option 1,Option 2,Option 3,Option 4,Correct Answer\nדוגמה לשאלה,תשובה א,תשובה ב,תשובה ג,תשובה ד,תשובה א";
@@ -194,15 +234,31 @@ export function BackofficeScreen({
                     {/* CREW */}
                     {boTab === "users" && (
                         <div className="fade">
-                            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 18 }}>משתמשים במערכת</div>
+                            <div className="flex-resp" style={{ marginBottom: 16 }}>
+                                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 0 }}>משתמשים במערכת</div>
+                                <div style={{ position: "relative", width: 220, maxWidth: "100%" }}>
+                                    <Search size={14} style={{ position: "absolute", right: 10, top: 10, color: "var(--t2)" }} />
+                                    <input type="text" placeholder="חיפוש..." value={usersTable.searchQuery} onChange={e => usersTable.setSearchQuery(e.target.value)} style={{ background: "var(--bg)", border: "1px solid var(--bdr)", borderRadius: 6, padding: "7px 10px 7px 30px", fontSize: 13, color: "var(--t0)", width: "100%" }} />
+                                </div>
+                            </div>
                             <div className="card" style={{ overflow: "hidden" }}>
                                 <div className="table-wrap">
                                     <table>
-                                        <thead><tr><th>שם מלא</th><th>אימייל</th><th>סיסמה</th><th>תפקיד</th><th>דרגה</th><th>סשנים</th><th>ממוצע</th><th>הצטרף</th><th>פעולות</th></tr></thead>
+                                        <thead><tr>
+                                            <SortableTH label="שם מלא" sortKey="name" config={usersTable.sortConfig} requestSort={usersTable.requestSort} />
+                                            <SortableTH label="אימייל" sortKey="email" config={usersTable.sortConfig} requestSort={usersTable.requestSort} />
+                                            <SortableTH label="סיסמה" sortKey="password" config={usersTable.sortConfig} requestSort={usersTable.requestSort} />
+                                            <SortableTH label="תפקיד" sortKey="profession" config={usersTable.sortConfig} requestSort={usersTable.requestSort} />
+                                            <SortableTH label="דרגה" sortKey="role" config={usersTable.sortConfig} requestSort={usersTable.requestSort} />
+                                            <SortableTH label="סשנים" sortKey="sessionCount" config={usersTable.sortConfig} requestSort={usersTable.requestSort} />
+                                            <SortableTH label="ממוצע" sortKey="avgScore" config={usersTable.sortConfig} requestSort={usersTable.requestSort} />
+                                            <SortableTH label="הצטרף" sortKey="joinedAt" config={usersTable.sortConfig} requestSort={usersTable.requestSort} />
+                                            <th>פעולות</th>
+                                        </tr></thead>
                                         <tbody>
-                                            {DB.users.map(u => {
-                                                const us = done.filter(s => s.userId === u.id);
-                                                const ua = us.length ? Math.round(us.reduce((a, s) => a + s.score, 0) / us.length) : null;
+                                            {usersTable.data.map(u => {
+                                                const ua = u.avgScore;
+                                                const usLength = u.sessionCount;
                                                 return (
                                                     <tr key={u.id}>
                                                         <td data-label="שם מלא" style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u.name}</td>
@@ -210,7 +266,7 @@ export function BackofficeScreen({
                                                         <td data-label="סיסמה" style={{ color: "var(--t1)", fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{u.password}</td>
                                                         <td data-label="תפקיד" className="rb" style={{ color: "var(--t2)" }}>{u.profession}</td>
                                                         <td data-label="דרגה"><span className={`tag ${u.role === "admin" ? "tag-cyan" : "tag-ok"}`}>{u.role}</span></td>
-                                                        <td data-label="סשנים" style={{ color: "var(--t2)" }}>{us.length}</td>
+                                                        <td data-label="סשנים" style={{ color: "var(--t2)" }}>{usLength}</td>
                                                         <td data-label="ממוצע">{ua !== null ? <span style={{ fontWeight: 600, color: sc(ua), fontFamily: "'IBM Plex Mono',monospace" }}>{ua}%</span> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
                                                         <td data-label="הצטרף" style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(u.joinedAt)}</td>
                                                         <td data-label="פעולות">
@@ -233,15 +289,31 @@ export function BackofficeScreen({
                     {/* SESSIONS */}
                     {boTab === "sessions" && (
                         <div className="fade">
-                            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 18 }}>יומן סשנים</div>
+                            <div className="flex-resp" style={{ marginBottom: 16 }}>
+                                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 0 }}>יומן סשנים</div>
+                                <div style={{ position: "relative", width: 220, maxWidth: "100%" }}>
+                                    <Search size={14} style={{ position: "absolute", right: 10, top: 10, color: "var(--t2)" }} />
+                                    <input type="text" placeholder="חיפוש..." value={sessionsTable.searchQuery} onChange={e => sessionsTable.setSearchQuery(e.target.value)} style={{ background: "var(--bg)", border: "1px solid var(--bdr)", borderRadius: 6, padding: "7px 10px 7px 30px", fontSize: 13, color: "var(--t0)", width: "100%" }} />
+                                </div>
+                            </div>
                             <div className="card" style={{ overflow: "hidden" }}>
                                 <div className="table-wrap">
                                     <table>
-                                        <thead><tr><th>ID</th><th>משתמש</th><th>נושא</th><th>סטטוס</th><th>ציון</th><th>ניסיונות</th><th>עזרה</th><th>דגל</th><th>תאריך</th></tr></thead>
+                                        <thead><tr>
+                                            <SortableTH label="ID" sortKey="id" config={sessionsTable.sortConfig} requestSort={sessionsTable.requestSort} />
+                                            <SortableTH label="משתמש" sortKey="userName" config={sessionsTable.sortConfig} requestSort={sessionsTable.requestSort} />
+                                            <SortableTH label="נושא" sortKey="topicName" config={sessionsTable.sortConfig} requestSort={sessionsTable.requestSort} />
+                                            <SortableTH label="סטטוס" sortKey="status" config={sessionsTable.sortConfig} requestSort={sessionsTable.requestSort} />
+                                            <SortableTH label="ציון" sortKey="score" config={sessionsTable.sortConfig} requestSort={sessionsTable.requestSort} />
+                                            <SortableTH label="ניסיונות" sortKey="attemptCount" config={sessionsTable.sortConfig} requestSort={sessionsTable.requestSort} />
+                                            <SortableTH label="עזרה" sortKey="helpTotal" config={sessionsTable.sortConfig} requestSort={sessionsTable.requestSort} />
+                                            <SortableTH label="דגל" sortKey="isCopied" config={sessionsTable.sortConfig} requestSort={sessionsTable.requestSort} />
+                                            <SortableTH label="תאריך" sortKey="startedAt" config={sessionsTable.sortConfig} requestSort={sessionsTable.requestSort} />
+                                        </tr></thead>
                                         <tbody>
-                                            {[...DB.sessions].reverse().map(s => {
-                                                const u = DB.users.find(u => u.id === s.userId);
-                                                const t = [...uploadedSets].find(t => t.id === s.topicId);
+                                            {sessionsTable.data.map(s => {
+                                                const u = { name: s.userName };
+                                                const t = { title: s.topicName };
                                                 const hlp = s.helpClicks || 0;
                                                 const ansShow = s.showAnswerClicks || 0;
                                                 return (
@@ -318,31 +390,47 @@ export function BackofficeScreen({
                                 </div>
                             </div>
                             <div className="card" style={{ overflow: "hidden" }}>
-                                <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--bdr)", display: "flex", alignItems: "center", gap: 8 }}>
-                                    <MapPin size={13} color="var(--warn)" />
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warn)" }}>בקשות עזרה ({DB.helpRequests.length})</span>
+                                <div className="flex-resp" style={{ padding: "12px 16px", borderBottom: "1px solid var(--bdr)", alignItems: "center" }}>
+                                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                        <MapPin size={13} color="var(--warn)" />
+                                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--warn)" }}>בקשות עזרה ({DB.helpRequests.length})</span>
+                                    </div>
+                                    <div style={{ position: "relative", width: 220, maxWidth: "100%" }}>
+                                        <Search size={14} style={{ position: "absolute", right: 10, top: 9, color: "var(--t2)" }} />
+                                        <input type="text" placeholder="חיפוש..." value={helpTable.searchQuery} onChange={e => helpTable.setSearchQuery(e.target.value)} style={{ background: "var(--bg)", border: "1px solid var(--bdr)", borderRadius: 6, padding: "6px 10px 6px 30px", fontSize: 12, color: "var(--t0)", width: "100%" }} />
+                                    </div>
                                 </div>
-                                {DB.helpRequests.length === 0
+                                {helpTable.data.length === 0
                                     ? <div className="rb" style={{ color: "var(--t2)", fontSize: 12, padding: "14px 16px" }}>אין נתונים</div>
-                                    : <table>
-                                        <thead><tr><th>משתמש</th><th>נושא</th><th>סוג</th><th>שאלה</th><th>מס׳</th><th>שעה</th></tr></thead>
-                                        <tbody>
-                                            {[...DB.helpRequests].reverse().map(h => {
-                                                const u = DB.users.find(u => u.id === h.userId);
-                                                const t = [...uploadedSets].find(t => t.id === h.topicId);
-                                                return (
-                                                    <tr key={h.id}>
-                                                        <td style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u?.name}</td>
-                                                        <td className="rb" style={{ color: "var(--t2)" }}>{t?.title || h.topicId}</td>
-                                                        <td>{h.type === 'show_answer' ? <span className="tag tag-err" style={{ fontSize: 9 }}>נחשפה תשובה</span> : <span className="tag tag-warn" style={{ fontSize: 9 }}>בקשת רמז</span>}</td>
-                                                        <td className="rb" style={{ color: "var(--t1)", maxWidth: 220 }}>{h.questionText?.slice(0, 45)}…</td>
-                                                        <td style={{ color: "var(--t2)", fontFamily: "'IBM Plex Mono',monospace" }}>#{h.qIdx + 1}</td>
-                                                        <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(h.timestamp)}</td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>}
+                                    : <div className="table-wrap">
+                                        <table>
+                                            <thead><tr>
+                                                <SortableTH label="משתמש" sortKey="userName" config={helpTable.sortConfig} requestSort={helpTable.requestSort} />
+                                                <SortableTH label="נושא" sortKey="topicName" config={helpTable.sortConfig} requestSort={helpTable.requestSort} />
+                                                <SortableTH label="סוג" sortKey="type" config={helpTable.sortConfig} requestSort={helpTable.requestSort} />
+                                                <SortableTH label="שאלה נידונה" sortKey="questionPart" config={helpTable.sortConfig} requestSort={helpTable.requestSort} />
+                                                <SortableTH label="מס׳ אימון" sortKey="sessionAttempt" config={helpTable.sortConfig} requestSort={helpTable.requestSort} />
+                                                <SortableTH label="שעה" sortKey="time" config={helpTable.sortConfig} requestSort={helpTable.requestSort} />
+                                            </tr></thead>
+                                            <tbody>
+                                                {helpTable.data.map(h => {
+                                                    const u = { name: h.userName };
+                                                    const t = { title: h.topicName };
+                                                    return (
+                                                        <tr key={h.id}>
+                                                            <td style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u?.name}</td>
+                                                            <td className="rb" style={{ color: "var(--t2)" }}>{t?.title || h.topicId}</td>
+                                                            <td>{h.type === 'show_answer' ? <span className="tag tag-err" style={{ fontSize: 9 }}>נחשפה תשובה</span> : <span className="tag tag-warn" style={{ fontSize: 9 }}>בקשת רמז</span>}</td>
+                                                            <td className="rb" style={{ fontSize: 11, color: "var(--t1)", maxWidth: 180, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{h.questionPart}</td>
+                                                            <td>{h.sessionAttempt}</td>
+                                                            <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(h.time)}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
                             </div>
                         </div>
                     )}

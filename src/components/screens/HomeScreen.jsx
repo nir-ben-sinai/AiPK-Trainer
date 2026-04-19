@@ -1,12 +1,34 @@
-import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target } from "lucide-react";
+import { useMemo } from "react";
+import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target, Search } from "lucide-react";
 import { Logo } from "../Logo";
 import { DB, fmt, sc } from "../../lib/mockBackend";
+import { useTableData } from "../../hooks/useTableData";
+
+const SortableTH = ({ label, sortKey, config, requestSort, style }) => {
+    const isSorted = config.key === sortKey;
+    return (
+        <th onClick={() => requestSort(sortKey)} style={{ cursor: "pointer", userSelect: "none", ...style }}>
+            {label}
+            <span style={{ fontSize: 10, color: isSorted ? "var(--cy)" : "transparent", display: "inline-block", marginLeft: 4, width: 12 }}>
+                {isSorted ? (config.direction === 'asc' ? '▲' : '▼') : '▲'}
+            </span>
+        </th>
+    );
+};
 
 export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [] }) {
     const myDone = done.filter(s => s.userId === user?.id);
     const totalSessions = myDone.length;
     const avgScore = totalSessions > 0 ? Math.round(myDone.reduce((a, s) => a + s.score, 0) / totalSessions) : 0;
     const myHelps = DB.helpRequests.filter(h => h.userId === user?.id).length;
+
+    const processedHistory = useMemo(() => {
+        return myDone.map(s => {
+            const t = allTopics.find(t => t.id === s.topicId);
+            return { ...s, topicName: t?.title || s.topicId };
+        });
+    }, [myDone, allTopics]);
+    const historyTable = useTableData(processedHistory, { initialSortKey: 'startedAt', initialSortDir: 'desc' });
 
     let rank = "מתלמד";
     let rankColor = "#94a3b8";
@@ -194,30 +216,42 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                             {done.filter(s => s.userId === user?.id).length > 0 && (
                                 <div style={{ maxWidth: 820 }}>
                                     <div style={{ height: 1, background: "rgba(56,189,248,0.08)", margin: "40px 0 24px 0", borderRadius: 2 }} />
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                                        <Activity size={16} color="var(--t2)" />
-                                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>יומן אימונים היסטורי</div>
-                                    </div>
-                                    <div className="card" style={{ overflow: "hidden" }}>
-                                        <div className="table-wrap">
-                                            <table>
-                                                <thead><tr><th>נושא</th><th>ציון</th><th>ניסיונות</th><th>תאריך</th></tr></thead>
-                                                <tbody>
-                                                    {done.filter(s => s.userId === user?.id).slice(-5).reverse().map(s => {
-                                                        const t = allTopics.find(t => t.id === s.topicId);
-                                                        return (
-                                                            <tr key={s.id}>
-                                                                <td data-label="נושא" className="rb">{t?.title || s.topicId}</td>
-                                                                <td data-label="ציון"><span style={{ fontWeight: 600, color: sc(s.score) }}>{s.score}%</span></td>
-                                                                <td data-label="ניסיונות" style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
-                                                                <td data-label="תאריך" style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
+                                    <div className="flex-resp" style={{ marginBottom: 14 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 0 }}>
+                                            <Activity size={16} color="var(--t2)" />
+                                            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>יומן אימונים היסטורי</div>
+                                        </div>
+                                        <div style={{ position: "relative", width: 220, maxWidth: "100%" }}>
+                                            <Search size={14} style={{ position: "absolute", right: 10, top: 10, color: "var(--t2)" }} />
+                                            <input type="text" placeholder="חיפוש..." value={historyTable.searchQuery} onChange={e => historyTable.setSearchQuery(e.target.value)} style={{ background: "var(--s2)", border: "1px solid var(--bdr)", borderRadius: 6, padding: "7px 10px 7px 30px", fontSize: 13, color: "var(--t0)", width: "100%" }} />
                                         </div>
                                     </div>
+                                    {historyTable.data.length === 0 ? <div className="rb" style={{ color: "var(--t2)", fontSize: 12 }}>אין נתונים התואמים לחיפוש</div> :
+                                        <div className="card" style={{ overflow: "hidden" }}>
+                                            <div className="table-wrap">
+                                                <table>
+                                                    <thead><tr>
+                                                        <SortableTH label="נושא" sortKey="topicName" config={historyTable.sortConfig} requestSort={historyTable.requestSort} />
+                                                        <SortableTH label="ציון" sortKey="score" config={historyTable.sortConfig} requestSort={historyTable.requestSort} />
+                                                        <SortableTH label="ניסיונות" sortKey="attemptCount" config={historyTable.sortConfig} requestSort={historyTable.requestSort} />
+                                                        <SortableTH label="תאריך" sortKey="startedAt" config={historyTable.sortConfig} requestSort={historyTable.requestSort} />
+                                                    </tr></thead>
+                                                    <tbody>
+                                                        {historyTable.data.map(s => {
+                                                            const tSelectedTitle = s.topicName;
+                                                            return (
+                                                                <tr key={s.id}>
+                                                                    <td data-label="נושא" className="rb">{tSelectedTitle}</td>
+                                                                    <td data-label="ציון"><span style={{ fontWeight: 600, color: sc(s.score) }}>{s.score}%</span></td>
+                                                                    <td data-label="ניסיונות" style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
+                                                                    <td data-label="תאריך" style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>}
                                 </div>
                             )}
                         </>

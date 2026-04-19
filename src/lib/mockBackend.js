@@ -10,13 +10,24 @@ export const DB = {
         { id: "u_2", name: "מיכל לוי", email: "michal@test.com", password: "1234", role: "trainee", profession: "טייס", joinedAt: new Date(Date.now() - 86400000 * 7).toISOString() },
     ],
     sessions: [],
-    logs: [],
-    debriefs: [],
+    logs: [
+        { id: "log_1", userId: "u_1", status: "correct", question: "הפרעות בגישה — מה המרחק המינימלי?", answer: "1000 רגל לפחות." },
+        { id: "log_2", userId: "u_2", status: "partial", question: "תקלה במערכת דיחוס בגובה שיוט", answer: "יש לבצע הנמכת חירום." },
+        { id: "log_3", userId: "u_2", status: "wrong", question: "פערי מהירות בגישה של 737", answer: "שומרים מהירות VREF+15 תמיד." },
+        { id: "log_4", userId: "u_1", status: "correct", question: "שימוש במערכת ראייה מוגברת", answer: "מוסיף שטח תצפית אך לא מחליף קשר עין." },
+    ],
+    debriefs: [
+        { id: "deb_1", userId: "u_1", sessionId: "sess_x1", score: 85, aiSummary: "ביצועים טובים עם שליטה טובה בחומר. יש לחזק הבנה בנהלי התקרחות.", insights: ["הבנה טובה של נוהל חירום", "קצב מענה מהיר ויעיל"] },
+        { id: "deb_2", userId: "u_2", sessionId: "sess_x2", score: 65, aiSummary: "רמה בינונית. ניכר קושי בתרחישי מהירות גישה.", insights: ["דרוש שיפור בחישובי VREF", "פירוט חסר בתשובות ארוכות"] },
+    ],
     // Uploaded question sets (Tests) — populated at runtime
     uploadedSets: [],
     // Uploaded source books (PDF/TXT) — populated at runtime
     libraryDocs: [],
-    helpRequests: [],
+    helpRequests: [
+        { id: "hr_1", userId: "u_1", topicId: "general", type: "hint", questionPart: "מהי פעולת החירום הראשון ב...", sessionAttempt: 1, time: new Date(Date.now() - 3600000).toISOString() },
+        { id: "hr_2", userId: "u_2", topicId: "general", type: "show_answer", questionPart: "כיצד מגדירים התקרחות חמורה...", sessionAttempt: 2, time: new Date(Date.now() - 7200000).toISOString() }
+    ],
 };
 
 // ═══════════════════════════════════════════
