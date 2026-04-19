@@ -1,4 +1,4 @@
-import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp } from "lucide-react";
+import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target } from "lucide-react";
 import { Logo } from "../Logo";
 import { DB, fmt, sc } from "../../lib/mockBackend";
 
@@ -114,6 +114,9 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                     <div style={{ position: "absolute", bottom: -20, right: -10, opacity: 0.05, transform: "rotate(-15deg)" }}><LifeBuoy size={100} /></div>
                                 </div>
                             </div>
+
+                            {/* הפרדה ויזואלית עדינה */}
+                            <div style={{ height: 1, background: "rgba(56,189,248,0.08)", margin: "36px 0 0 0", borderRadius: 2 }} />
                         </div>
                     )}
 
@@ -133,9 +136,9 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                         /* ── Files exist: show topics ── */
                         <>
                             {libraryDocs?.length > 0 && (
-                                <div style={{ marginBottom: 32 }}>
+                                <div style={{ marginBottom: 36 }}>
                                     <div style={{ marginBottom: 16 }}>
-                                        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--t0)", marginBottom: 4 }}>ספריית עזר לחזרה ועיון</div>
+                                        <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t1)", marginBottom: 4 }}>ספריית עזר לחזרה ועיון</div>
                                         <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>חומרי קריאה מקצועיים (PDF)</div>
                                     </div>
                                     <div className="topics-grid">
@@ -155,9 +158,12 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                 </div>
                             )}
 
-                            <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--t0)", marginBottom: 4 }}>בחר נושא לאימון</div>
-                                <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>שאלות אקראיות ממאגר הנושא הנבחר</div>
+                            <div style={{ marginBottom: 18 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                                    <Target size={20} color="var(--cy)" />
+                                    <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t0)", letterSpacing: "-0.01em" }}>מוכנים לאימון? בחר מאגר שאלות</div>
+                                </div>
+                                <div className="rb" style={{ fontSize: 13, color: "var(--t2)", paddingRight: 28 }}>מעבר למבדק אקראי מתוך בחירת הנושא.</div>
                             </div>
                             <div className="topics-grid" style={{ marginBottom: 28 }}>
                                 {uploadedSets.map(t => {
@@ -182,7 +188,11 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
 
                             {done.filter(s => s.userId === user?.id).length > 0 && (
                                 <div style={{ maxWidth: 820 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", marginBottom: 12 }}>יומן אימונים</div>
+                                    <div style={{ height: 1, background: "rgba(56,189,248,0.08)", margin: "40px 0 24px 0", borderRadius: 2 }} />
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                                        <Activity size={16} color="var(--t2)" />
+                                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>יומן אימונים היסטורי</div>
+                                    </div>
                                     <div className="card" style={{ overflow: "hidden" }}>
                                         <table>
                                             <thead><tr><th>נושא</th><th>ציון</th><th>ניסיונות</th><th>תאריך</th></tr></thead>
