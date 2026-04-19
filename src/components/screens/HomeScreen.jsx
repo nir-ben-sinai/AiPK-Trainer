@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target, Search, Wand2, Lock, XCircle, Loader2 } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target, Search, Wand2, Lock, XCircle, Loader2, Sparkles } from "lucide-react";
 import { Logo } from "../Logo";
 import { DB, fmt, sc } from "../../lib/mockBackend";
 import { useTableData } from "../../hooks/useTableData";
@@ -24,6 +24,24 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
 
     const [diyModalOpen, setDiyModalOpen] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState(null);
+    const [genConfig, setGenConfig] = useState({ name: "", count: "20", notes: "", qType: "raw" });
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        let interval;
+        if (diyModalOpen && !selectedDoc) setGenConfig({ name: "", count: "20", notes: "", qType: "raw" });
+        if (aiLoading) {
+            setProgress(Math.random() * 10 + 5);
+            interval = setInterval(() => {
+                setProgress(p => Math.min(p + Math.random() * 8, 98));
+            }, 1500);
+        } else {
+            setProgress(100);
+            const timer = setTimeout(() => setProgress(0), 500);
+            return () => clearTimeout(timer);
+        }
+        return () => clearTimeout(interval);
+    }, [aiLoading, diyModalOpen, selectedDoc]);
 
     const processedHistory = useMemo(() => {
         return myDone.map(s => {
@@ -267,47 +285,84 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                 </div>
             </div>
             {diyModalOpen && (
-                <div className="modal-bg">
+                <div className="modal-bg" style={{ zIndex: 9999 }}>
                     <div className="modal-box" style={{ maxWidth: 500 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                 <Wand2 size={24} color="var(--cy)" />
                                 <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t0)" }}>מחולל מבדק מהיר מתוך ספר</div>
                             </div>
-                            <button className="btn-icon" onClick={() => setDiyModalOpen(false)}>
+                            <button className="btn-icon" onClick={() => setDiyModalOpen(false)} disabled={aiLoading}>
                                 <XCircle size={22} color="var(--t2)" />
                             </button>
                         </div>
-                        <div className="rb" style={{ fontSize: 14, color: "var(--t1)", marginBottom: 24, lineHeight: 1.5 }}>
-                            בחר ספר או מסמך מתוך מאגר הספרייה, והמערכת תייצר עבורך 5 שאלות ממוקדות באמצעות מודל השפה.
-                        </div>
 
-                        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24, maxHeight: 300, overflowY: "auto" }}>
-                            {libraryDocs.map(doc => (
-                                <div key={doc.id} onClick={() => setSelectedDoc(doc.id)} style={{ padding: "12px 14px", border: `1.5px solid ${selectedDoc === doc.id ? "var(--cy)" : "var(--bdr)"}`, background: selectedDoc === doc.id ? "rgba(56,189,248,0.1)" : "var(--s2)", borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, transition: "0.2s" }} >
-                                    <FileText size={18} color={selectedDoc === doc.id ? "var(--cy)" : "var(--t2)"} />
-                                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)" }}>{doc.filename}</div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {aiLoading ? (
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 0" }}>
-                                <Loader2 size={32} className="spin" color="var(--cy)" style={{ marginBottom: 16 }} />
-                                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 6 }}>ה-AI לומד את הספר ובונה שאלות...</div>
-                                <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>זה ייקח כ-20 שניות</div>
+                        {!aiLoading && (
+                            <div className="rb" style={{ fontSize: 13, color: "var(--t2)", marginBottom: 24, lineHeight: 1.5 }}>
+                                בחר מסמך מהספרייה והגדר את מאפייני המבחן שברצונך לייצר. המערכת תפיק את השאלות בתוך מספר שניות.
                             </div>
-                        ) : (
-                            <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", padding: "12px", background: "var(--cy)", color: "#000", fontWeight: 700 }} disabled={!selectedDoc} onClick={async () => {
-                                const doc = libraryDocs.find(d => d.id === selectedDoc);
-                                if (doc && processAiFile) {
-                                    await processAiFile(doc, { count: 5 });
-                                    setDiyModalOpen(false);
-                                }
-                            }}>
-                                <Wand2 size={16} /> מחולל מבדק קפסולה עכשיו
-                            </button>
                         )}
+
+                        <div style={{ marginBottom: 16 }}>
+                            <label className="lbl">מסמך ללימוד</label>
+                            <select className="inp" value={selectedDoc || ""} onChange={e => setSelectedDoc(e.target.value)} disabled={aiLoading}>
+                                <option value="">-- יש לבחור מסמך --</option>
+                                {libraryDocs.map(d => <option key={d.id} value={d.id}>{d.filename}</option>)}
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: 16 }}>
+                            <label className="lbl">כמות שאלות במבחן</label>
+                            <select className="inp" value={genConfig.count} onChange={e => setGenConfig({ ...genConfig, count: e.target.value })} disabled={aiLoading}>
+                                <option value="10">10 שאלות</option>
+                                <option value="20">20 שאלות</option>
+                                <option value="30">30 שאלות</option>
+                                <option value="40">40 שאלות</option>
+                                <option value="50">50 שאלות</option>
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: 16 }}>
+                            <label className="lbl">סגנון שאלות (מתודולוגיה)</label>
+                            <select className="inp" value={genConfig.qType} onChange={e => setGenConfig({ ...genConfig, qType: e.target.value })} disabled={aiLoading}>
+                                <option value="raw">ידע תיאורטי יבש (Raw Knowledge)</option>
+                                <option value="sbt">מבוסס תרחישים מבצעיים (SBT)</option>
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: 16 }}>
+                            <label className="lbl">שם המבחן (אישי)</label>
+                            <input className="inp" type="text" placeholder="לדוגמה: תרגול אישי על פרק 8..." value={genConfig.name} onChange={e => setGenConfig({ ...genConfig, name: e.target.value })} disabled={aiLoading} />
+                        </div>
+
+                        <div style={{ marginBottom: 24 }}>
+                            <label className="lbl">הערות מיקוד ל-AI (אופציונלי)</label>
+                            <textarea className="inp" style={{ resize: "none" }} rows="3" placeholder="למשל: התמקד רק בפרק הסיכונים..." value={genConfig.notes} onChange={e => setGenConfig({ ...genConfig, notes: e.target.value })} disabled={aiLoading} />
+                        </div>
+
+                        {aiLoading && (
+                            <div style={{ marginTop: 16, marginBottom: 24, padding: "16px", background: "rgba(56,189,248,0.1)", borderRadius: 8, border: "1px solid rgba(56,189,248,0.3)" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, color: "var(--cy)", marginBottom: 8 }}>
+                                    <span><Loader2 className="spin" size={14} style={{ display: "inline", marginRight: 6, position: "relative", top: 2 }} /> מנתח את המסמך ומייצר מבדק...</span>
+                                    <span style={{ fontFamily: "'IBM Plex Mono',monospace" }}>{Math.round(progress)}%</span>
+                                </div>
+                                <div className="prog-wrap" style={{ height: 8, background: "var(--s2)", borderRadius: 10, overflow: "hidden" }}>
+                                    <div className="prog-fill" style={{ width: `${progress}%`, background: "var(--cy)", transition: "width 0.4s ease-out", height: "100%" }} />
+                                </div>
+                                <div style={{ fontSize: 11, color: "var(--t2)", marginTop: 8, textAlign: "center" }}>אנו מרכיבים עבורך מבדק מותאם אישית (התהליך עשוי לקחת כדקה).</div>
+                            </div>
+                        )}
+
+                        <div style={{ display: "flex", gap: 12 }}>
+                            <button className="btn btn-subtle" style={{ flex: 1 }} onClick={() => setDiyModalOpen(false)} disabled={aiLoading}>ביטול</button>
+                            <button className="btn btn-primary" style={{ flex: 2, height: 40 }} onClick={async () => {
+                                if (!selectedDoc) { alert("יש לבחור עזר מהספרייה"); return; }
+                                const success = await processAiFile(selectedDoc, { count: genConfig.count, notes: genConfig.notes, customTitle: genConfig.name || "תרגול אישי עצמאי", qType: genConfig.qType });
+                                if (success) { setDiyModalOpen(false); setGenConfig({ name: "", count: "20", notes: "", qType: "raw" }); setSelectedDoc(null); }
+                            }} disabled={aiLoading || !selectedDoc}>
+                                {aiLoading ? <><Loader2 className="spin" size={15} /> ממתין לשרת...</> : <><Sparkles size={15} /> חולל מבדק עכשיו</>}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

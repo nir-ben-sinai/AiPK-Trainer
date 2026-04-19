@@ -60,7 +60,7 @@ export function BackofficeScreen({
             const ua = us.length ? Math.round(us.reduce((a, s) => a + s.score, 0) / us.length) : null;
             return { ...u, sessionCount: us.length, avgScore: ua };
         });
-    }, [done]);
+    }, [done, tick]);
     const usersTable = useTableData(processedUsers, { initialSortKey: 'joinedAt', initialSortDir: 'desc' });
 
     const processedSessions = useMemo(() => {
@@ -69,7 +69,7 @@ export function BackofficeScreen({
             const t = [...uploadedSets].find(t => t.id === s.topicId);
             return { ...s, userName: u?.name || '', topicName: t?.title || s.topicId, helpTotal: (s.helpClicks || 0) + (s.showAnswerClicks || 0) };
         });
-    }, [uploadedSets, done]);
+    }, [uploadedSets, done, tick]);
     const sessionsTable = useTableData(processedSessions, { initialSortKey: 'startedAt', initialSortDir: 'desc' });
 
     const processedHelp = useMemo(() => {
@@ -78,7 +78,7 @@ export function BackofficeScreen({
             const t = [...uploadedSets].find(t => t.id === h.topicId);
             return { ...h, userName: u?.name || '', topicName: t?.title || h.topicId };
         });
-    }, [uploadedSets]);
+    }, [uploadedSets, tick]);
     const helpTable = useTableData(processedHelp, { initialSortKey: 'time', initialSortDir: 'desc' });
 
     const localDownloadTemplate = () => {
