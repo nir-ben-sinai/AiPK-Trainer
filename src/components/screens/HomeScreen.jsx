@@ -1,8 +1,21 @@
-import { Settings, LogOut, BookOpen, ChevronRight, FileText } from "lucide-react";
+import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp } from "lucide-react";
 import { Logo } from "../Logo";
 import { DB, fmt, sc } from "../../lib/mockBackend";
 
 export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [] }) {
+    const myDone = done.filter(s => s.userId === user?.id);
+    const totalSessions = myDone.length;
+    const avgScore = totalSessions > 0 ? Math.round(myDone.reduce((a, s) => a + s.score, 0) / totalSessions) : 0;
+    const myHelps = DB.helpRequests.filter(h => h.userId === user?.id).length;
+
+    let rank = "מתלמד";
+    let rankColor = "#94a3b8";
+    if (totalSessions > 0) {
+        if (avgScore >= 90 && totalSessions >= 3) { rank = "אלוף המאגר"; rankColor = "#f59e0b"; }
+        else if (avgScore >= 75) { rank = "מתאמן מתקדם"; rankColor = "#3b82f6"; }
+        else { rank = "מתאמן פעיל"; rankColor = "#10b981"; }
+    }
+
     return (
         <>
             <div className="mock-badge">PROTOTYPE</div>
@@ -28,6 +41,82 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                 </div>
 
                 <div className="fade" style={{ flex: 1, padding: "24px 20px" }}>
+
+                    {/* ── דאשבורד משתמש מרהיב ── */}
+                    {uploadedSets.length > 0 && (
+                        <div style={{ marginBottom: 44 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                                <div>
+                                    <div style={{ fontSize: 24, fontWeight: 700, color: "var(--t0)", marginBottom: 4 }}>שלום, {user?.name.split(' ')[0]} 👋</div>
+                                    <div style={{ fontSize: 13, color: "var(--t2)" }}>הנה סיכום הפעילות וההתקדמות שלך במערכת</div>
+                                </div>
+                                <div style={{
+                                    padding: "8px 16px", borderRadius: 20, background: `color-mix(in srgb, ${rankColor} 15%, transparent)`,
+                                    border: `1px solid color-mix(in srgb, ${rankColor} 30%, transparent)`,
+                                    display: "flex", alignItems: "center", gap: 8, color: rankColor, fontWeight: 700, fontSize: 14,
+                                    boxShadow: `0 4px 12px color-mix(in srgb, ${rankColor} 20%, transparent)`
+                                }}>
+                                    <Award size={18} />
+                                    {rank}
+                                </div>
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+                                {/* ממוצע הצלחה */}
+                                <div className="card card-hover" style={{ padding: 20, position: "relative", overflow: "hidden", background: "linear-gradient(135deg, rgba(34,197,94,0.05), rgba(34,197,94,0.01))" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>ממוצע הצלחה</div>
+                                        <div style={{ padding: 8, borderRadius: 10, background: "rgba(34,197,94,0.1)", color: "#10b981" }}>
+                                            <Crosshair size={18} />
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 32, fontWeight: 800, color: "var(--t0)" }}>{avgScore}%</div>
+                                    <div style={{ fontSize: 11, color: "var(--t2)", marginTop: 6 }}>ציון ממוצע של כל האימונים</div>
+                                    <div style={{ position: "absolute", bottom: -20, right: -10, opacity: 0.05, transform: "rotate(-15deg)" }}><Crosshair size={100} /></div>
+                                </div>
+
+                                {/* השלמות */}
+                                <div className="card card-hover" style={{ padding: 20, position: "relative", overflow: "hidden", background: "linear-gradient(135deg, rgba(56,189,248,0.05), rgba(56,189,248,0.01))" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>השלמות אימון</div>
+                                        <div style={{ padding: 8, borderRadius: 10, background: "rgba(56,189,248,0.1)", color: "#38bdf8" }}>
+                                            <Activity size={18} />
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 32, fontWeight: 800, color: "var(--t0)" }}>{totalSessions}</div>
+                                    <div style={{ fontSize: 11, color: "var(--t2)", marginTop: 6 }}>מבדקים שסוימו במלואם</div>
+                                    <div style={{ position: "absolute", bottom: -20, right: -10, opacity: 0.05, transform: "rotate(-15deg)" }}><Activity size={100} /></div>
+                                </div>
+
+                                {/* מגמת פעילות */}
+                                <div className="card card-hover" style={{ padding: 20, position: "relative", overflow: "hidden", background: "linear-gradient(135deg, rgba(236,72,153,0.05), rgba(236,72,153,0.01))" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>מגמת ציונים</div>
+                                        <div style={{ padding: 8, borderRadius: 10, background: "rgba(236,72,153,0.1)", color: "#ec4899" }}>
+                                            <TrendingUp size={18} />
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 32, fontWeight: 800, color: "var(--t0)" }}>{myDone.length > 0 ? myDone[myDone.length - 1].score + "%" : "—"}</div>
+                                    <div style={{ fontSize: 11, color: "var(--t2)", marginTop: 6 }}>ציון בסשן האחרון ביותר</div>
+                                    <div style={{ position: "absolute", bottom: -20, right: -10, opacity: 0.04, transform: "rotate(-15deg)" }}><TrendingUp size={100} /></div>
+                                </div>
+
+                                {/* בקשות עזרה */}
+                                <div className="card card-hover" style={{ padding: 20, position: "relative", overflow: "hidden", background: "linear-gradient(135deg, rgba(245,158,11,0.05), rgba(245,158,11,0.01))" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>בקשות עזרה</div>
+                                        <div style={{ padding: 8, borderRadius: 10, background: "rgba(245,158,11,0.1)", color: "#f59e0b" }}>
+                                            <LifeBuoy size={18} />
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 32, fontWeight: 800, color: "var(--t0)" }}>{myHelps}</div>
+                                    <div style={{ fontSize: 11, color: "var(--t2)", marginTop: 6 }}>שימוש ברמזים ואימותים השבוע</div>
+                                    <div style={{ position: "absolute", bottom: -20, right: -10, opacity: 0.05, transform: "rotate(-15deg)" }}><LifeBuoy size={100} /></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {uploadedSets.length === 0 ? (
                         /* ── No files: show message ── */
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, minHeight: 340, textAlign: "center" }}>
