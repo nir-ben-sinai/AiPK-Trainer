@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2, Play, Eye } from "lucide-react";
+import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2, Play, Eye, Edit2, Save } from "lucide-react";
 import { DB, sc, fmt } from "../../lib/mockBackend";
 import { Logo } from "../Logo";
 
@@ -13,6 +13,7 @@ export function BackofficeScreen({
     done,
     avgSc,
     uploadedSets,
+    updateSet,
     libraryDocs,
     processAiFile,
     addLibraryDoc,
@@ -34,7 +35,8 @@ export function BackofficeScreen({
     const [genConfig, setGenConfig] = useState({ docId: "", name: "", count: "20", notes: "", qType: "raw" });
 
     // סטייט חדש להצגת השאלות של מבחן ספציפי (לאדמין)
-    const [testToView, setTestToView] = useState(null);
+    const [isExporting, setIsExporting] = useState(false);
+    const [testModal, setTestModal] = useState({ test: null, editMode: false });
 
     const [progress, setProgress] = useState(0);
 
@@ -55,7 +57,7 @@ export function BackofficeScreen({
             const timer = setTimeout(() => setProgress(0), 500);
             return () => clearTimeout(timer);
         }
-        return () => clearInterval(interval);
+        return () => clearTimeout(interval);
     }, [aiLoading]);
 
     const trainees = DB.users.filter(u => u.role === "trainee");
@@ -473,14 +475,24 @@ export function BackofficeScreen({
 
                                                     {/* כפתור "צפה בשאלות" לאדמין */}
                                                     {user?.role === 'admin' && (
-                                                        <button
-                                                            className="btn-icon"
-                                                            style={{ border: "1px solid rgba(56,189,248,0.3)", color: "var(--cy)", background: "rgba(56,189,248,0.1)", width: 34, height: 34 }}
-                                                            onClick={() => setTestToView(s)}
-                                                            title="צפה בשאלות ותשובות (Admin)"
-                                                        >
-                                                            <Eye size={14} />
-                                                        </button>
+                                                        <>
+                                                            <button
+                                                                className="btn-icon"
+                                                                style={{ border: "1px solid rgba(56,189,248,0.3)", color: "var(--cy)", background: "rgba(56,189,248,0.1)", width: 34, height: 34, marginRight: 8 }}
+                                                                onClick={() => setTestModal({ test: s, editMode: false })}
+                                                                title="צפה בשאלות (Admin)"
+                                                            >
+                                                                <Eye size={14} />
+                                                            </button>
+                                                            <button
+                                                                className="btn-icon"
+                                                                style={{ border: "1px solid rgba(56,189,248,0.3)", color: "var(--cy)", background: "rgba(56,189,248,0.1)", width: 34, height: 34 }}
+                                                                onClick={() => setTestModal({ test: JSON.parse(JSON.stringify(s)), editMode: true })}
+                                                                title="ערוך מבחן (Admin)"
+                                                            >
+                                                                <Edit2 size={14} />
+                                                            </button>
+                                                        </>
                                                     )}
 
                                                     <button
@@ -595,8 +607,8 @@ export function BackofficeScreen({
                 </div>
             )}
 
-            {/* Modal לתצוגת שאלות (זמין לאדמין בלבד) */}
-            {testToView && (
+            {/* Modal לתצוגת/עריכת שאלות */}
+            {testModal.test && (
                 <div style={{
                     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
                     backgroundColor: "rgba(0,0,0,0.7)", zIndex: 99999,
@@ -610,25 +622,82 @@ export function BackofficeScreen({
                         border: "1px solid var(--bdr)", overflow: "hidden"
                     }}>
                         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--bdr)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div style={{ fontSize: 18, fontWeight: 600, color: "var(--cy)", display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ fontSize: 18, fontWeight: 600, color: "var(--cy)", display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
                                 <BookOpen size={20} />
-                                תצוגת שאלות: {testToView.title}
+                                {testModal.editMode ? "עריכת מבחן:" : "תצוגת שאלות:"}
+                                {testModal.editMode ? (
+                                    <input
+                                        className="inp"
+                                        style={{ flex: 1, maxWidth: 300, background: "var(--s1)", color: "var(--t0)", padding: "6px 12px", border: "1px solid var(--cy)", borderRadius: 6, fontWeight: 600, marginRight: 10 }}
+                                        defaultValue={testModal.test.title}
+                                        onChange={e => {
+                                            const nt = { ...testModal.test, title: e.target.value };
+                                            setTestModal({ ...testModal, test: nt });
+                                        }}
+                                    />
+                                ) : (
+                                    <span style={{ marginRight: 10 }}>{testModal.test.title}</span>
+                                )}
                             </div>
-                            <button className="btn-icon" onClick={() => setTestToView(null)} style={{ border: "none", background: "transparent", color: "var(--t2)" }}>
+                            <button className="btn-icon" onClick={() => setTestModal({ test: null, editMode: false })} style={{ border: "none", background: "transparent", color: "var(--t2)" }}>
                                 <XCircle size={24} />
                             </button>
                         </div>
                         <div style={{ padding: 24, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
-                            {testToView.questions?.map((q, index) => (
+                            {testModal.test.questions?.map((q, index) => (
                                 <div key={index} style={{ padding: 16, background: "var(--s1)", borderRadius: 8, border: "1px solid var(--bdr)" }}>
-                                    <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 12, direction: "ltr", textAlign: "left" }}>
-                                        <span style={{ color: "var(--cy)", marginRight: 8, display: "inline-block" }}>{index + 1}.</span>
-                                        {q.question}
-                                    </div>
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 24, direction: "ltr", textAlign: "left" }}>
+
+                                    {testModal.editMode ? (
+                                        <div style={{ marginBottom: 12 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--cy)", marginBottom: 6 }}>שאלה {index + 1}:</div>
+                                            <textarea
+                                                className="inp"
+                                                style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--bdr)", borderRadius: 6, padding: "8px 12px", minHeight: 60, direction: "rtl", textAlign: "right", color: "var(--t0)" }}
+                                                defaultValue={q.question}
+                                                onChange={e => {
+                                                    const nt = { ...testModal.test };
+                                                    nt.questions[index].question = e.target.value;
+                                                    setTestModal({ ...testModal, test: nt });
+                                                }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 12, direction: "rtl", textAlign: "right" }}>
+                                            <span style={{ color: "var(--cy)", marginLeft: 8, display: "inline-block" }}>{index + 1}.</span>
+                                            {q.question}
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingRight: 24, direction: "rtl", textAlign: "right" }}>
                                         {q.options?.map((opt, i) => {
                                             const isCorrect = opt === q.correctAnswer;
-                                            return (
+                                            return testModal.editMode ? (
+                                                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                                    <input
+                                                        type="radio"
+                                                        name={`correct_${index}`}
+                                                        checked={isCorrect}
+                                                        onChange={() => {
+                                                            const nt = { ...testModal.test };
+                                                            nt.questions[index].correctAnswer = nt.questions[index].options[i];
+                                                            setTestModal({ ...testModal, test: nt });
+                                                        }}
+                                                        style={{ cursor: "pointer", width: 16, height: 16, accentColor: "#4ade80" }}
+                                                    />
+                                                    <input
+                                                        className="inp"
+                                                        style={{ flex: 1, padding: "8px 12px", borderRadius: 6, fontSize: 13, background: isCorrect ? "rgba(34,197,94,0.1)" : "var(--bg)", border: isCorrect ? "1px solid rgba(34,197,94,0.4)" : "1px solid var(--bdr)", color: "var(--t0)" }}
+                                                        value={opt}
+                                                        onChange={e => {
+                                                            const nt = { ...testModal.test };
+                                                            const newOpt = e.target.value;
+                                                            nt.questions[index].options[i] = newOpt;
+                                                            if (isCorrect) nt.questions[index].correctAnswer = newOpt;
+                                                            setTestModal({ ...testModal, test: nt });
+                                                        }}
+                                                    />
+                                                </div>
+                                            ) : (
                                                 <div key={i} style={{
                                                     padding: "8px 12px", borderRadius: 6, fontSize: 13,
                                                     background: isCorrect ? "rgba(34,197,94,0.15)" : "var(--s2)",
@@ -643,6 +712,17 @@ export function BackofficeScreen({
                                 </div>
                             ))}
                         </div>
+                        {testModal.editMode && (
+                            <div style={{ padding: "16px 24px", borderTop: "1px solid var(--bdr)", background: "var(--s1)", display: "flex", justifyContent: "flex-end", gap: 12 }}>
+                                <button className="btn btn-ghost" onClick={() => setTestModal({ test: null, editMode: false })}>ביטול עריכה</button>
+                                <button className="btn btn-primary" onClick={() => {
+                                    updateSet(testModal.test);
+                                    setTestModal({ test: null, editMode: false });
+                                }} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                    <Save size={16} /> שמור שינויים
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

@@ -129,6 +129,23 @@ export default function App() {
         } catch (e) { console.error(e); }
     };
 
+    const saveTestUpdate = async (updatedTest) => {
+        // update locally
+        const idx = DB.uploadedSets.findIndex(s => s.id === updatedTest.id);
+        if (idx !== -1) {
+            DB.uploadedSets[idx] = updatedTest;
+        }
+        setUploadedSets(prev => prev.map(s => s.id === updatedTest.id ? updatedTest : s));
+
+        // update db
+        await supabase.from('exams').update({
+            title: updatedTest.title,
+            questions: updatedTest.questions
+        }).eq('id', updatedTest.id).catch(console.error);
+
+        setTick(t => t + 1);
+    };
+
     const doLogin = () => {
         const cleanEmail = form.email.trim().toLowerCase();
         const u = DB.users.find(x => x.email.toLowerCase() === cleanEmail);
@@ -399,7 +416,7 @@ export default function App() {
             {screen === "backoffice" && (() => {
                 const completedSessions = DB.sessions.filter(s => s.status === 'completed');
                 const calculatedAvgSc = completedSessions.length ? Math.round(completedSessions.reduce((acc, s) => acc + s.score, 0) / completedSessions.length) : 0;
-                return <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={completedSessions} avgSc={calculatedAvgSc} uploadedSets={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} tick={tick} />;
+                return <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={completedSessions} avgSc={calculatedAvgSc} uploadedSets={uploadedSets} updateSet={saveTestUpdate} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} tick={tick} />;
             })()}
         </>
     );
