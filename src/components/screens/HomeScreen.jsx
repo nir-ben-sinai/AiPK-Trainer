@@ -45,7 +45,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                     {/* ── דאשבורד משתמש מרהיב ── */}
                     {uploadedSets.length > 0 && (
                         <div style={{ marginBottom: 44 }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                            <div className="flex-resp">
                                 <div>
                                     <div style={{ fontSize: 24, fontWeight: 700, color: "var(--t0)", marginBottom: 4 }}>שלום, {user?.name.split(' ')[0]} 👋</div>
                                     <div style={{ fontSize: 13, color: "var(--t2)" }}>הנה סיכום הפעילות וההתקדמות שלך במערכת</div>
@@ -181,7 +181,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                                 </div>
                                                 <div className="rb" style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)", marginBottom: 6, lineHeight: 1.3 }}>{t.title}</div>
                                                 <div className="rb" style={{ fontSize: 12, color: "var(--t2)", lineHeight: 1.55, marginBottom: 14 }}>{t.description}</div>
-                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                <div className="flex-resp">
                                                     <span style={{ fontSize: 11, color: "var(--t3)" }}>{t.questions.length} שאלות</span>
                                                     <ChevronRight size={14} color="var(--t3)" />
                                                 </div>
@@ -199,22 +199,24 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                         <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>יומן אימונים היסטורי</div>
                                     </div>
                                     <div className="card" style={{ overflow: "hidden" }}>
-                                        <table>
-                                            <thead><tr><th>נושא</th><th>ציון</th><th>ניסיונות</th><th>תאריך</th></tr></thead>
-                                            <tbody>
-                                                {done.filter(s => s.userId === user?.id).slice(-5).reverse().map(s => {
-                                                    const t = allTopics.find(t => t.id === s.topicId);
-                                                    return (
-                                                        <tr key={s.id}>
-                                                            <td className="rb">{t?.title || s.topicId}</td>
-                                                            <td><span style={{ fontWeight: 600, color: sc(s.score) }}>{s.score}%</span></td>
-                                                            <td style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
-                                                            <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
+                                        <div className="table-wrap">
+                                            <table>
+                                                <thead><tr><th>נושא</th><th>ציון</th><th>ניסיונות</th><th>תאריך</th></tr></thead>
+                                                <tbody>
+                                                    {done.filter(s => s.userId === user?.id).slice(-5).reverse().map(s => {
+                                                        const t = allTopics.find(t => t.id === s.topicId);
+                                                        return (
+                                                            <tr key={s.id}>
+                                                                <td className="rb">{t?.title || s.topicId}</td>
+                                                                <td><span style={{ fontWeight: 600, color: sc(s.score) }}>{s.score}%</span></td>
+                                                                <td style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
+                                                                <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             )}

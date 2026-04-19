@@ -95,11 +95,11 @@ export function BackofficeScreen({
     return (
         <>
             <div className="mock-badge">PROTOTYPE</div>
-            <div className="screen" style={{ flexDirection: "row" }}>
+            <div className="bo-layout">
 
                 {/* Sidebar */}
-                <div style={{ width: 195, background: "var(--s1)", borderLeft: "1px solid var(--bdr)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-                    <div style={{ padding: "8px 6px", borderBottom: "1px solid var(--bdr)" }}>
+                <div className="sidebar">
+                    <div className="sidebar-hdr">
                         <div className="nav-it" onClick={() => setScreen("home")} style={{ gap: 8 }}>
                             <ArrowLeft size={14} /><span>בית</span>
                         </div>
@@ -109,7 +109,7 @@ export function BackofficeScreen({
                         <div style={{ fontSize: 11, fontWeight: 600, color: "var(--cy)", marginTop: 10, letterSpacing: "0.04em" }}>Back Office</div>
                         <div style={{ fontSize: 11, color: "var(--t2)", marginTop: 2 }}>{user?.name}</div>
                     </div>
-                    <div style={{ flex: 1, padding: "8px 6px", overflowY: "auto" }}>
+                    <div className="nav-tabs">
                         {tabs.map(({ id, label, Icon: I }) => (
                             <div key={id} className={`nav-it ${boTab === id ? "on" : ""}`} onClick={() => setBoTab(id)}>
                                 <I size={14} /><span>{label}</span>
@@ -120,7 +120,7 @@ export function BackofficeScreen({
                 </div>
 
                 {/* Content */}
-                <div style={{ flex: 1, overflowY: "auto", padding: "24px 22px" }}>
+                <div className="main-content">
 
                     {/* OVERVIEW */}
                     {boTab === "overview" && (
@@ -196,34 +196,36 @@ export function BackofficeScreen({
                         <div className="fade">
                             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 18 }}>משתמשים במערכת</div>
                             <div className="card" style={{ overflow: "hidden" }}>
-                                <table>
-                                    <thead><tr><th>שם מלא</th><th>אימייל</th><th>סיסמה</th><th>תפקיד</th><th>דרגה</th><th>סשנים</th><th>ממוצע</th><th>הצטרף</th><th>פעולות</th></tr></thead>
-                                    <tbody>
-                                        {DB.users.map(u => {
-                                            const us = done.filter(s => s.userId === u.id);
-                                            const ua = us.length ? Math.round(us.reduce((a, s) => a + s.score, 0) / us.length) : null;
-                                            return (
-                                                <tr key={u.id}>
-                                                    <td style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u.name}</td>
-                                                    <td style={{ color: "var(--t2)", fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{u.email}</td>
-                                                    <td style={{ color: "var(--t1)", fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{u.password}</td>
-                                                    <td className="rb" style={{ color: "var(--t2)" }}>{u.profession}</td>
-                                                    <td><span className={`tag ${u.role === "admin" ? "tag-cyan" : "tag-ok"}`}>{u.role}</span></td>
-                                                    <td style={{ color: "var(--t2)" }}>{us.length}</td>
-                                                    <td>{ua !== null ? <span style={{ fontWeight: 600, color: sc(ua), fontFamily: "'IBM Plex Mono',monospace" }}>{ua}%</span> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
-                                                    <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(u.joinedAt)}</td>
-                                                    <td>
-                                                        {u.id !== "u_admin" && (
-                                                            <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteUserRecord(u.id)} title="מחק משתמש ונתונים">
-                                                                <Trash2 size={13} />
-                                                            </button>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                <div className="table-wrap">
+                                    <table>
+                                        <thead><tr><th>שם מלא</th><th>אימייל</th><th>סיסמה</th><th>תפקיד</th><th>דרגה</th><th>סשנים</th><th>ממוצע</th><th>הצטרף</th><th>פעולות</th></tr></thead>
+                                        <tbody>
+                                            {DB.users.map(u => {
+                                                const us = done.filter(s => s.userId === u.id);
+                                                const ua = us.length ? Math.round(us.reduce((a, s) => a + s.score, 0) / us.length) : null;
+                                                return (
+                                                    <tr key={u.id}>
+                                                        <td style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u.name}</td>
+                                                        <td style={{ color: "var(--t2)", fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{u.email}</td>
+                                                        <td style={{ color: "var(--t1)", fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{u.password}</td>
+                                                        <td className="rb" style={{ color: "var(--t2)" }}>{u.profession}</td>
+                                                        <td><span className={`tag ${u.role === "admin" ? "tag-cyan" : "tag-ok"}`}>{u.role}</span></td>
+                                                        <td style={{ color: "var(--t2)" }}>{us.length}</td>
+                                                        <td>{ua !== null ? <span style={{ fontWeight: 600, color: sc(ua), fontFamily: "'IBM Plex Mono',monospace" }}>{ua}%</span> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
+                                                        <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(u.joinedAt)}</td>
+                                                        <td>
+                                                            {u.id !== "u_admin" && (
+                                                                <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteUserRecord(u.id)} title="מחק משתמש ונתונים">
+                                                                    <Trash2 size={13} />
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -233,33 +235,35 @@ export function BackofficeScreen({
                         <div className="fade">
                             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 18 }}>יומן סשנים</div>
                             <div className="card" style={{ overflow: "hidden" }}>
-                                <table>
-                                    <thead><tr><th>ID</th><th>משתמש</th><th>נושא</th><th>סטטוס</th><th>ציון</th><th>ניסיונות</th><th>עזרה</th><th>דגל</th><th>תאריך</th></tr></thead>
-                                    <tbody>
-                                        {[...DB.sessions].reverse().map(s => {
-                                            const u = DB.users.find(u => u.id === s.userId);
-                                            const t = [...uploadedSets].find(t => t.id === s.topicId);
-                                            const hlp = s.helpClicks || 0;
-                                            const ansShow = s.showAnswerClicks || 0;
-                                            return (
-                                                <tr key={s.id}>
-                                                    <td style={{ fontSize: 11, color: "var(--t3)", fontFamily: "'IBM Plex Mono',monospace" }}>{s.id.slice(-6)}</td>
-                                                    <td style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u?.name}</td>
-                                                    <td className="rb" style={{ color: "var(--t2)" }}>{t?.title || s.topicId}</td>
-                                                    <td><span className={`tag ${s.status === "completed" ? "tag-ok" : "tag-warn"}`}>{s.status}</span></td>
-                                                    <td><span style={{ fontWeight: 600, color: sc(s.score), fontFamily: "'IBM Plex Mono',monospace" }}>{s.score}%</span></td>
-                                                    <td style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
-                                                    <td>{hlp > 0 || ansShow > 0 ? <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                                                        {hlp > 0 && <span className="tag tag-warn" style={{ gap: 4, padding: "1px 6px", fontSize: 9 }}>עזרה: {hlp}</span>}
-                                                        {ansShow > 0 && <span className="tag tag-err" style={{ gap: 4, padding: "1px 6px", fontSize: 9 }}>תשובות: {ansShow}</span>}
-                                                    </div> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
-                                                    <td>{s.isCopied ? <span className="tag tag-err">Flag</span> : "—"}</td>
-                                                    <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                <div className="table-wrap">
+                                    <table>
+                                        <thead><tr><th>ID</th><th>משתמש</th><th>נושא</th><th>סטטוס</th><th>ציון</th><th>ניסיונות</th><th>עזרה</th><th>דגל</th><th>תאריך</th></tr></thead>
+                                        <tbody>
+                                            {[...DB.sessions].reverse().map(s => {
+                                                const u = DB.users.find(u => u.id === s.userId);
+                                                const t = [...uploadedSets].find(t => t.id === s.topicId);
+                                                const hlp = s.helpClicks || 0;
+                                                const ansShow = s.showAnswerClicks || 0;
+                                                return (
+                                                    <tr key={s.id}>
+                                                        <td style={{ fontSize: 11, color: "var(--t3)", fontFamily: "'IBM Plex Mono',monospace" }}>{s.id.slice(-6)}</td>
+                                                        <td style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u?.name}</td>
+                                                        <td className="rb" style={{ color: "var(--t2)" }}>{t?.title || s.topicId}</td>
+                                                        <td><span className={`tag ${s.status === "completed" ? "tag-ok" : "tag-warn"}`}>{s.status}</span></td>
+                                                        <td><span style={{ fontWeight: 600, color: sc(s.score), fontFamily: "'IBM Plex Mono',monospace" }}>{s.score}%</span></td>
+                                                        <td style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
+                                                        <td>{hlp > 0 || ansShow > 0 ? <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                                                            {hlp > 0 && <span className="tag tag-warn" style={{ gap: 4, padding: "1px 6px", fontSize: 9 }}>עזרה: {hlp}</span>}
+                                                            {ansShow > 0 && <span className="tag tag-err" style={{ gap: 4, padding: "1px 6px", fontSize: 9 }}>תשובות: {ansShow}</span>}
+                                                        </div> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
+                                                        <td>{s.isCopied ? <span className="tag tag-err">Flag</span> : "—"}</td>
+                                                        <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     )}
