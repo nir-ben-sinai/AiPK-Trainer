@@ -377,6 +377,17 @@ export default function App() {
 
         setLoading(false);
     };
+    const toggleUserAi = async (userId) => {
+        const u = DB.users.find(x => x.id === userId);
+        if (u) {
+            u.canGenerateTests = !u.canGenerateTests;
+            // update db
+            await supabase.from('app_users').update({
+                can_generate_tests: u.canGenerateTests
+            }).eq('id', userId).catch(console.error);
+            setTick(t => t + 1);
+        }
+    };
 
     return (
         <>
@@ -385,7 +396,7 @@ export default function App() {
             {screen === "onboarding" && <OnboardingScreen user={user} setScreen={setScreen} />}
             {screen === "disclaimer" && <DisclaimerScreen agreed={agreed} setAgreed={setAgreed} setScreen={setScreen} />}
             {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
-            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s => s.status === 'completed')} allTopics={uploadedSets} libraryDocs={libraryDocs} />}
+            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s => s.status === 'completed')} allTopics={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} aiLoading={aiLoading} />}
 
             {screen === "training" && (
                 <TrainingScreen
@@ -416,7 +427,7 @@ export default function App() {
             {screen === "backoffice" && (() => {
                 const completedSessions = DB.sessions.filter(s => s.status === 'completed');
                 const calculatedAvgSc = completedSessions.length ? Math.round(completedSessions.reduce((acc, s) => acc + s.score, 0) / completedSessions.length) : 0;
-                return <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={completedSessions} avgSc={calculatedAvgSc} uploadedSets={uploadedSets} updateSet={saveTestUpdate} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} tick={tick} />;
+                return <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={completedSessions} avgSc={calculatedAvgSc} uploadedSets={uploadedSets} updateSet={saveTestUpdate} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} toggleUserAi={toggleUserAi} tick={tick} />;
             })()}
         </>
     );

@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target, Search, Wand2, Lock, XCircle, Loader2 } from "lucide-react";
 import { Logo } from "../Logo";
 import { DB, fmt, sc } from "../../lib/mockBackend";
 import { useTableData } from "../../hooks/useTableData";
@@ -21,6 +21,9 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
     const totalSessions = myDone.length;
     const avgScore = totalSessions > 0 ? Math.round(myDone.reduce((a, s) => a + s.score, 0) / totalSessions) : 0;
     const myHelps = DB.helpRequests.filter(h => h.userId === user?.id).length;
+
+    const [diyModalOpen, setDiyModalOpen] = useState(false);
+    const [selectedDoc, setSelectedDoc] = useState(null);
 
     const processedHistory = useMemo(() => {
         return myDone.map(s => {
@@ -159,12 +162,17 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                         <>
                             {libraryDocs?.length > 0 && (
                                 <div className="panel" style={{ marginBottom: 36, background: "var(--s2)", border: "1px solid var(--s3)" }}>
-                                    <div style={{ marginBottom: 20 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                                            <BookOpen size={20} color="var(--t1)" />
-                                            <div style={{ fontSize: 18, fontWeight: 600, color: "var(--t0)" }}>ספריית עזר לחזרה ועיון</div>
+                                    <div className="flex-resp" style={{ marginBottom: 20 }}>
+                                        <div>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                                                <BookOpen size={20} color="var(--t1)" />
+                                                <div style={{ fontSize: 18, fontWeight: 600, color: "var(--t0)" }}>ספריית עזר לחזרה ועיון</div>
+                                            </div>
+                                            <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>חומרי קריאה מקצועיים (PDF)</div>
                                         </div>
-                                        <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>חומרי קריאה מקצועיים (PDF)</div>
+                                        <button className="btn btn-primary" onClick={() => { if (user?.canGenerateTests) { setDiyModalOpen(true); } else { alert("יצירת מבדקים אישיים דורשת מנוי או אישור מנהל."); } }} style={{ display: "flex", gap: 8, alignItems: "center", ...(!user?.canGenerateTests && { opacity: 0.8, filter: "grayscale(0.5)" }) }}>
+                                            {user?.canGenerateTests ? <Wand2 size={15} /> : <Lock size={15} />} צור לעצמך מבחן
+                                        </button>
                                     </div>
                                     <div className="topics-grid">
                                         {libraryDocs.map(d => (
@@ -258,6 +266,51 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                     )}
                 </div>
             </div>
+            {diyModalOpen && (
+                <div className="modal-bg">
+                    <div className="modal-box" style={{ maxWidth: 500 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <Wand2 size={24} color="var(--cy)" />
+                                <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t0)" }}>מחולל מבדק מהיר מתוך ספר</div>
+                            </div>
+                            <button className="btn-icon" onClick={() => setDiyModalOpen(false)}>
+                                <XCircle size={22} color="var(--t2)" />
+                            </button>
+                        </div>
+                        <div className="rb" style={{ fontSize: 14, color: "var(--t1)", marginBottom: 24, lineHeight: 1.5 }}>
+                            בחר ספר או מסמך מתוך מאגר הספרייה, והמערכת תייצר עבורך 5 שאלות ממוקדות באמצעות מודל השפה.
+                        </div>
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24, maxHeight: 300, overflowY: "auto" }}>
+                            {libraryDocs.map(doc => (
+                                <div key={doc.id} onClick={() => setSelectedDoc(doc.id)} style={{ padding: "12px 14px", border: `1.5px solid ${selectedDoc === doc.id ? "var(--cy)" : "var(--bdr)"}`, background: selectedDoc === doc.id ? "rgba(56,189,248,0.1)" : "var(--s2)", borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, transition: "0.2s" }} >
+                                    <FileText size={18} color={selectedDoc === doc.id ? "var(--cy)" : "var(--t2)"} />
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)" }}>{doc.filename}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {aiLoading ? (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 0" }}>
+                                <Loader2 size={32} className="spin" color="var(--cy)" style={{ marginBottom: 16 }} />
+                                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 6 }}>ה-AI לומד את הספר ובונה שאלות...</div>
+                                <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>זה ייקח כ-20 שניות</div>
+                            </div>
+                        ) : (
+                            <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", padding: "12px", background: "var(--cy)", color: "#000", fontWeight: 700 }} disabled={!selectedDoc} onClick={async () => {
+                                const doc = libraryDocs.find(d => d.id === selectedDoc);
+                                if (doc && processAiFile) {
+                                    await processAiFile(doc, { count: 5 });
+                                    setDiyModalOpen(false);
+                                }
+                            }}>
+                                <Wand2 size={16} /> מחולל מבדק קפסולה עכשיו
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
         </>
     );
 }

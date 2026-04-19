@@ -17,28 +17,7 @@ const SortableTH = ({ label, sortKey, config, requestSort, style }) => {
 };
 
 export function BackofficeScreen({
-    user,
-    setScreen,
-    boTab,
-    setBoTab,
-    dbTable,
-    setDbTable,
-    done,
-    avgSc,
-    uploadedSets,
-    updateSet,
-    libraryDocs,
-    processAiFile,
-    addLibraryDoc,
-    deleteLibraryDoc,
-    aiLoading,
-    handleFileInput,
-    uploadError,
-    deleteSet,
-    isUploadingDoc,
-    deleteUserRecord,
-    tick,
-    setSelectedTest
+    user, setScreen, boTab, setBoTab, dbTable, setDbTable, done, avgSc, uploadedSets, updateSet, libraryDocs, processAiFile, addLibraryDoc, deleteLibraryDoc, aiLoading, handleFileInput, uploadError, deleteSet, isUploadingDoc, deleteUserRecord, tick, setSelectedTest, toggleUserAi
 }) {
     const fileInputRef = useRef(null);
     const aiFileInputRef = useRef(null);
@@ -269,11 +248,16 @@ export function BackofficeScreen({
                                                         <td data-label="סשנים" style={{ color: "var(--t2)" }}>{usLength}</td>
                                                         <td data-label="ממוצע">{ua !== null ? <span style={{ fontWeight: 600, color: sc(ua), fontFamily: "'IBM Plex Mono',monospace" }}>{ua}%</span> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
                                                         <td data-label="הצטרף" style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(u.joinedAt)}</td>
-                                                        <td data-label="פעולות">
+                                                        <td data-label="פעולות" style={{ display: "flex", gap: 8 }}>
                                                             {u.id !== "u_admin" && (
-                                                                <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteUserRecord(u.id)} title="מחק משתמש ונתונים">
-                                                                    <Trash2 size={13} />
-                                                                </button>
+                                                                <>
+                                                                    <button className="btn-icon" style={{ border: "none", color: u.canGenerateTests ? "var(--cy)" : "var(--t3)", background: u.canGenerateTests ? "rgba(56,189,248,0.15)" : "var(--bg)", opacity: u.canGenerateTests ? 1 : 0.5 }} onClick={() => toggleUserAi(u.id)} title={u.canGenerateTests ? "חסום מחולל AI למשתמש" : "אפשר מחולל AI למשתמש"}>
+                                                                        <Wand2 size={13} />
+                                                                    </button>
+                                                                    <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteUserRecord(u.id)} title="מחק משתמש ונתונים">
+                                                                        <Trash2 size={13} />
+                                                                    </button>
+                                                                </>
                                                             )}
                                                         </td>
                                                     </tr>

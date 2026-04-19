@@ -5,9 +5,9 @@ import * as Papa from "papaparse";
 // ═══════════════════════════════════════════
 export const DB = {
     users: [
-        { id: "u_admin", name: "מנהל מערכת", email: "admin@system.com", password: "admin123", role: "admin", profession: "מנהל", joinedAt: new Date(Date.now() - 86400000 * 30).toISOString() },
-        { id: "u_1", name: "יוסי כהן", email: "yossi@test.com", password: "1234", role: "trainee", profession: "טייס בכיר", joinedAt: new Date(Date.now() - 86400000 * 14).toISOString() },
-        { id: "u_2", name: "מיכל לוי", email: "michal@test.com", password: "1234", role: "trainee", profession: "טייס", joinedAt: new Date(Date.now() - 86400000 * 7).toISOString() },
+        { id: "u_admin", name: "מנהל מערכת", email: "admin@system.com", password: "admin123", role: "admin", profession: "מנהל", joinedAt: new Date(Date.now() - 86400000 * 30).toISOString(), canGenerateTests: true },
+        { id: "u_1", name: "יוסי כהן", email: "yossi@test.com", password: "1234", role: "trainee", profession: "טייס בכיר", joinedAt: new Date(Date.now() - 86400000 * 14).toISOString(), canGenerateTests: false },
+        { id: "u_2", name: "מיכל לוי", email: "michal@test.com", password: "1234", role: "trainee", profession: "טייס", joinedAt: new Date(Date.now() - 86400000 * 7).toISOString(), canGenerateTests: false },
     ],
     sessions: [],
     logs: [
