@@ -430,6 +430,14 @@ export function BackofficeScreen({
                                                     <button
                                                         className="btn btn-ghost"
                                                         style={{ fontSize: 12, gap: 6, color: "var(--cy)", padding: "6px 12px", border: "1px solid rgba(56,189,248,0.2)" }}
+                                                        onClick={() => window.open(d.fileUrl, '_blank')}
+                                                        title="פתח מסמך מקור לקריאה"
+                                                    >
+                                                        <Eye size={14} /> קרא מסמך
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-ghost"
+                                                        style={{ fontSize: 12, gap: 6, color: "var(--cy)", padding: "6px 12px", border: "1px solid rgba(56,189,248,0.2)" }}
                                                         onClick={() => {
                                                             setGenConfig({ ...genConfig, docId: d.id, name: d.filename.replace(/\.(pdf|txt|md)$/i, "") + " - מבחן חדש" });
                                                             setIsGenPopupOpen(true);

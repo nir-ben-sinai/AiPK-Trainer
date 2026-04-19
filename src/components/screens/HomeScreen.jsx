@@ -1,8 +1,8 @@
-import { Settings, LogOut, BookOpen, ChevronRight } from "lucide-react";
+import { Settings, LogOut, BookOpen, ChevronRight, FileText } from "lucide-react";
 import { Logo } from "../Logo";
 import { DB, fmt, sc } from "../../lib/mockBackend";
 
-export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics }) {
+export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [] }) {
     return (
         <>
             <div className="mock-badge">PROTOTYPE</div>
@@ -43,6 +43,29 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                     ) : (
                         /* ── Files exist: show topics ── */
                         <>
+                            {libraryDocs?.length > 0 && (
+                                <div style={{ marginBottom: 32 }}>
+                                    <div style={{ marginBottom: 16 }}>
+                                        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--t0)", marginBottom: 4 }}>ספריית עזר לחזרה ועיון</div>
+                                        <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>חומרי קריאה מקצועיים (PDF)</div>
+                                    </div>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, maxWidth: 820 }}>
+                                        {libraryDocs.map(d => (
+                                            <div key={d.id} className="card card-hover" style={{ padding: "16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }} onClick={() => window.open(d.fileUrl, '_blank')}>
+                                                <div style={{ padding: 10, background: "rgba(56,189,248,0.1)", borderRadius: 8, color: "var(--cy)", flexShrink: 0 }}>
+                                                    <FileText size={20} />
+                                                </div>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div className="rb" style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)", marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.filename}</div>
+                                                    <div style={{ fontSize: 11, color: "var(--t2)" }}>מסמך קריאה</div>
+                                                </div>
+                                                <ChevronRight size={14} color="var(--t3)" style={{ flexShrink: 0 }} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div style={{ marginBottom: 16 }}>
                                 <div style={{ fontSize: 16, fontWeight: 600, color: "var(--t0)", marginBottom: 4 }}>בחר נושא לאימון</div>
                                 <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>שאלות אקראיות ממאגר הנושא הנבחר</div>
