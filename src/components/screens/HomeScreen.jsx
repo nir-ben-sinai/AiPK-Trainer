@@ -136,7 +136,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                         /* ── Files exist: show topics ── */
                         <>
                             {libraryDocs?.length > 0 && (
-                                <div style={{ marginBottom: 36, padding: "24px", background: "var(--s2)", borderRadius: "16px", border: "1px solid var(--s3)" }}>
+                                <div className="panel" style={{ marginBottom: 36, background: "var(--s2)", border: "1px solid var(--s3)" }}>
                                     <div style={{ marginBottom: 20 }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
                                             <BookOpen size={20} color="var(--t1)" />
@@ -161,7 +161,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                 </div>
                             )}
 
-                            <div style={{ padding: "24px", background: "linear-gradient(180deg, rgba(56,189,248,0.03), var(--bg))", border: "1px solid var(--bdr)", borderRadius: "16px", marginBottom: 28 }}>
+                            <div className="panel" style={{ background: "linear-gradient(180deg, rgba(56,189,248,0.03), var(--bg))", border: "1px solid var(--bdr)", marginBottom: 28 }}>
                                 <div style={{ marginBottom: 24 }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
                                         <Target size={24} color="var(--cy)" />
@@ -207,10 +207,10 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                                         const t = allTopics.find(t => t.id === s.topicId);
                                                         return (
                                                             <tr key={s.id}>
-                                                                <td className="rb">{t?.title || s.topicId}</td>
-                                                                <td><span style={{ fontWeight: 600, color: sc(s.score) }}>{s.score}%</span></td>
-                                                                <td style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
-                                                                <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
+                                                                <td data-label="נושא" className="rb">{t?.title || s.topicId}</td>
+                                                                <td data-label="ציון"><span style={{ fontWeight: 600, color: sc(s.score) }}>{s.score}%</span></td>
+                                                                <td data-label="ניסיונות" style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
+                                                                <td data-label="תאריך" style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
                                                             </tr>
                                                         );
                                                     })}

@@ -205,15 +205,15 @@ export function BackofficeScreen({
                                                 const ua = us.length ? Math.round(us.reduce((a, s) => a + s.score, 0) / us.length) : null;
                                                 return (
                                                     <tr key={u.id}>
-                                                        <td style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u.name}</td>
-                                                        <td style={{ color: "var(--t2)", fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{u.email}</td>
-                                                        <td style={{ color: "var(--t1)", fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{u.password}</td>
-                                                        <td className="rb" style={{ color: "var(--t2)" }}>{u.profession}</td>
-                                                        <td><span className={`tag ${u.role === "admin" ? "tag-cyan" : "tag-ok"}`}>{u.role}</span></td>
-                                                        <td style={{ color: "var(--t2)" }}>{us.length}</td>
-                                                        <td>{ua !== null ? <span style={{ fontWeight: 600, color: sc(ua), fontFamily: "'IBM Plex Mono',monospace" }}>{ua}%</span> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
-                                                        <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(u.joinedAt)}</td>
-                                                        <td>
+                                                        <td data-label="שם מלא" style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u.name}</td>
+                                                        <td data-label="אימייל" style={{ color: "var(--t2)", fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{u.email}</td>
+                                                        <td data-label="סיסמה" style={{ color: "var(--t1)", fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{u.password}</td>
+                                                        <td data-label="תפקיד" className="rb" style={{ color: "var(--t2)" }}>{u.profession}</td>
+                                                        <td data-label="דרגה"><span className={`tag ${u.role === "admin" ? "tag-cyan" : "tag-ok"}`}>{u.role}</span></td>
+                                                        <td data-label="סשנים" style={{ color: "var(--t2)" }}>{us.length}</td>
+                                                        <td data-label="ממוצע">{ua !== null ? <span style={{ fontWeight: 600, color: sc(ua), fontFamily: "'IBM Plex Mono',monospace" }}>{ua}%</span> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
+                                                        <td data-label="הצטרף" style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(u.joinedAt)}</td>
+                                                        <td data-label="פעולות">
                                                             {u.id !== "u_admin" && (
                                                                 <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteUserRecord(u.id)} title="מחק משתמש ונתונים">
                                                                     <Trash2 size={13} />
@@ -246,18 +246,18 @@ export function BackofficeScreen({
                                                 const ansShow = s.showAnswerClicks || 0;
                                                 return (
                                                     <tr key={s.id}>
-                                                        <td style={{ fontSize: 11, color: "var(--t3)", fontFamily: "'IBM Plex Mono',monospace" }}>{s.id.slice(-6)}</td>
-                                                        <td style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u?.name}</td>
-                                                        <td className="rb" style={{ color: "var(--t2)" }}>{t?.title || s.topicId}</td>
-                                                        <td><span className={`tag ${s.status === "completed" ? "tag-ok" : "tag-warn"}`}>{s.status}</span></td>
-                                                        <td><span style={{ fontWeight: 600, color: sc(s.score), fontFamily: "'IBM Plex Mono',monospace" }}>{s.score}%</span></td>
-                                                        <td style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
-                                                        <td>{hlp > 0 || ansShow > 0 ? <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                                                        <td data-label="ID" style={{ fontSize: 11, color: "var(--t3)", fontFamily: "'IBM Plex Mono',monospace" }}>{s.id.slice(-6)}</td>
+                                                        <td data-label="משתמש" style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u?.name}</td>
+                                                        <td data-label="נושא" className="rb" style={{ color: "var(--t2)" }}>{t?.title || s.topicId}</td>
+                                                        <td data-label="סטטוס"><span className={`tag ${s.status === "completed" ? "tag-ok" : "tag-warn"}`}>{s.status}</span></td>
+                                                        <td data-label="ציון"><span style={{ fontWeight: 600, color: sc(s.score), fontFamily: "'IBM Plex Mono',monospace" }}>{s.score}%</span></td>
+                                                        <td data-label="ניסיונות" style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
+                                                        <td data-label="עזרה">{hlp > 0 || ansShow > 0 ? <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                                                             {hlp > 0 && <span className="tag tag-warn" style={{ gap: 4, padding: "1px 6px", fontSize: 9 }}>עזרה: {hlp}</span>}
                                                             {ansShow > 0 && <span className="tag tag-err" style={{ gap: 4, padding: "1px 6px", fontSize: 9 }}>תשובות: {ansShow}</span>}
                                                         </div> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
-                                                        <td>{s.isCopied ? <span className="tag tag-err">Flag</span> : "—"}</td>
-                                                        <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
+                                                        <td data-label="דגל">{s.isCopied ? <span className="tag tag-err">Flag</span> : "—"}</td>
+                                                        <td data-label="תאריך" style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
                                                     </tr>
                                                 );
                                             })}
