@@ -182,27 +182,29 @@ export function TrainingScreen({
 
             {/* Input Area */}
             <div style={{ padding: "20px", background: "#0b1120", borderTop: "1px solid #1e293b", display: "flex", justifyContent: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "15px", width: "100%", maxWidth: "800px" }}>
+                <div className="ti-box">
 
-                    <button
-                        onClick={sendAnswer}
-                        disabled={loading || !input.trim() || inlineTimer !== null}
-                        style={{ background: "transparent", color: (loading || !input.trim() || inlineTimer !== null) ? "#334155" : "#4ade80", border: "none", cursor: (loading || !input.trim() || inlineTimer !== null) ? "not-allowed" : "pointer", padding: "10px" }}
-                    >
-                        <Send size={24} style={{ transform: "scaleX(-1)" }} />
-                    </button>
+                    <div className="ti-wrap">
+                        <button
+                            onClick={sendAnswer}
+                            disabled={loading || !input.trim() || inlineTimer !== null}
+                            style={{ background: "transparent", color: (loading || !input.trim() || inlineTimer !== null) ? "#334155" : "#4ade80", border: "none", cursor: (loading || !input.trim() || inlineTimer !== null) ? "not-allowed" : "pointer", padding: "10px" }}
+                        >
+                            <Send size={24} style={{ transform: "scaleX(-1)" }} />
+                        </button>
 
-                    <input
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && !loading && input.trim() && inlineTimer === null && sendAnswer()}
-                        placeholder={inlineTimer !== null ? "המתן לשאלה הבאה..." : "הקלד את תשובתך ..."}
-                        disabled={inlineTimer !== null}
-                        style={{ flex: 1, padding: "16px", borderRadius: "10px", border: "1px solid #1e293b", background: "#0f172a", color: "#fff", fontSize: "16px", outline: "none", opacity: inlineTimer !== null ? 0.5 : 1 }}
-                    />
+                        <input
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && !loading && input.trim() && inlineTimer === null && sendAnswer()}
+                            placeholder={inlineTimer !== null ? "המתן לשאלה הבאה..." : "הקלד את תשובתך ..."}
+                            disabled={inlineTimer !== null}
+                            style={{ flex: 1, padding: "16px", borderRadius: "10px", border: "1px solid #1e293b", background: "#0f172a", color: "#fff", fontSize: "16px", outline: "none", opacity: inlineTimer !== null ? 0.5 : 1, minWidth: 0 }}
+                        />
+                    </div>
 
                     {/* קבוצת כפתורי עזרה - מופרדים */}
-                    <div style={{ display: "flex", gap: "10px" }}>
+                    <div className="ti-helpers">
                         {/* כפתור גלה תשובה - מופיע ליד כפתור העזרה, פעיל רק אחרי 3 טעויות */}
                         <button
                             disabled={!isRevealActive || inlineTimer !== null}
