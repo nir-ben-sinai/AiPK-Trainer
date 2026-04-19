@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2, Play, Eye, Edit2, Save } from "lucide-react";
+import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2, Play, Eye, Edit2, Save, Target } from "lucide-react";
 import { DB, sc, fmt } from "../../lib/mockBackend";
 import { Logo } from "../Logo";
 
@@ -413,8 +413,11 @@ export function BackofficeScreen({
 
                             <div style={{ display: "flex", gap: 20, flexDirection: "column" }}>
 
-                                <div>
-                                    <div className="lbl" style={{ marginBottom: 12, fontSize: 14 }}>ספריית הדרכה - מסמכי מקור ({libraryDocs.length})</div>
+                                <div style={{ padding: "24px", background: "var(--s2)", borderRadius: "16px", border: "1px solid var(--bdr)" }}>
+                                    <div className="lbl" style={{ marginBottom: 16, fontSize: 16, fontWeight: 600, color: "var(--t0)", display: "flex", alignItems: "center", gap: 8 }}>
+                                        <BookOpen size={20} color="var(--cy)" />
+                                        ספריית הדרכה - מסמכי מקור ({libraryDocs.length})
+                                    </div>
                                     {libraryDocs.length === 0 ? (
                                         <div style={{ padding: "20px", background: "var(--s2)", borderRadius: 6, color: "var(--t2)", fontSize: 13, border: "1px dashed var(--bdr)", textAlign: "center" }}>
                                             אין מסמכים בספרייה. העלה קובץ PDF כדי שה-AI יוכל לייצר שאלות.
@@ -456,8 +459,11 @@ export function BackofficeScreen({
                                     )}
                                 </div>
 
-                                <div style={{ marginTop: 10 }}>
-                                    <div className="lbl" style={{ marginBottom: 12, fontSize: 14 }}>מבחנים שזמינים לאימון במערכת ({uploadedSets.length})</div>
+                                <div style={{ padding: "24px", background: "linear-gradient(180deg, rgba(56,189,248,0.03), var(--bg))", borderRadius: "16px", border: "1px solid var(--bdr)", marginBottom: "20px" }}>
+                                    <div className="lbl" style={{ marginBottom: 16, fontSize: 16, fontWeight: 600, color: "var(--t0)", display: "flex", alignItems: "center", gap: 8 }}>
+                                        <Target size={20} color="var(--cy)" />
+                                        מבחנים שזמינים לאימון במערכת ({uploadedSets.length})
+                                    </div>
                                     {uploadedSets.length === 0 ? (
                                         <div style={{ padding: "20px", background: "var(--s2)", borderRadius: 6, color: "var(--t2)", fontSize: 13, border: "1px dashed var(--bdr)", textAlign: "center" }}>
                                             אין מבחנים במערכת. חולל מבחן מתוך מסמך או העלה בנק שאלות מוכן (CSV).
@@ -518,7 +524,6 @@ export function BackofficeScreen({
                                         </div>
                                     )}
                                 </div>
-
                             </div>
                         </div>
                     )}

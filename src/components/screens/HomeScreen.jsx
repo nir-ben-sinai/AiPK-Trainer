@@ -136,9 +136,12 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                         /* ── Files exist: show topics ── */
                         <>
                             {libraryDocs?.length > 0 && (
-                                <div style={{ marginBottom: 36 }}>
-                                    <div style={{ marginBottom: 16 }}>
-                                        <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t1)", marginBottom: 4 }}>ספריית עזר לחזרה ועיון</div>
+                                <div style={{ marginBottom: 36, padding: "24px", background: "var(--s2)", borderRadius: "16px", border: "1px solid var(--s3)" }}>
+                                    <div style={{ marginBottom: 20 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                                            <BookOpen size={20} color="var(--t1)" />
+                                            <div style={{ fontSize: 18, fontWeight: 600, color: "var(--t0)" }}>ספריית עזר לחזרה ועיון</div>
+                                        </div>
                                         <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>חומרי קריאה מקצועיים (PDF)</div>
                                     </div>
                                     <div className="topics-grid">
@@ -158,32 +161,34 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                 </div>
                             )}
 
-                            <div style={{ marginBottom: 18 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                                    <Target size={20} color="var(--cy)" />
-                                    <div style={{ fontSize: 20, fontWeight: 700, color: "var(--t0)", letterSpacing: "-0.01em" }}>מוכנים לאימון? בחר מאגר שאלות</div>
+                            <div style={{ padding: "24px", background: "linear-gradient(180deg, rgba(56,189,248,0.03), var(--bg))", border: "1px solid var(--bdr)", borderRadius: "16px", marginBottom: 28 }}>
+                                <div style={{ marginBottom: 24 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                                        <Target size={24} color="var(--cy)" />
+                                        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--t0)", letterSpacing: "-0.01em" }}>מוכנים לאימון? בחר מאגר שאלות</div>
+                                    </div>
+                                    <div className="rb" style={{ fontSize: 13, color: "var(--t2)", paddingRight: 34 }}>מעבר למבדק אקראי מתוך בחירת הנושא.</div>
                                 </div>
-                                <div className="rb" style={{ fontSize: 13, color: "var(--t2)", paddingRight: 28 }}>מעבר למבדק אקראי מתוך בחירת הנושא.</div>
-                            </div>
-                            <div className="topics-grid" style={{ marginBottom: 28 }}>
-                                {uploadedSets.map(t => {
-                                    const mySess = DB.sessions.filter(s => s.userId === user?.id && s.topicId === t.id && s.status === "completed");
-                                    const best = mySess.length ? Math.max(...mySess.map(s => s.score)) : null;
-                                    return (
-                                        <div key={t.id} className="card card-hover" style={{ padding: "18px", cursor: "pointer" }} onClick={() => startSession(t)}>
-                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                                                <span className="tag tag-cyan" style={{ fontSize: 9 }}>{t.filename}</span>
-                                                {best !== null && <span className="tag tag-cyan" style={{ fontSize: 11, fontWeight: 700 }}>{best}%</span>}
+                                <div className="topics-grid">
+                                    {uploadedSets.map(t => {
+                                        const mySess = DB.sessions.filter(s => s.userId === user?.id && s.topicId === t.id && s.status === "completed");
+                                        const best = mySess.length ? Math.max(...mySess.map(s => s.score)) : null;
+                                        return (
+                                            <div key={t.id} className="card card-hover" style={{ padding: "18px", cursor: "pointer" }} onClick={() => startSession(t)}>
+                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                                                    <span className="tag tag-cyan" style={{ fontSize: 9 }}>{t.filename}</span>
+                                                    {best !== null && <span className="tag tag-cyan" style={{ fontSize: 11, fontWeight: 700 }}>{best}%</span>}
+                                                </div>
+                                                <div className="rb" style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)", marginBottom: 6, lineHeight: 1.3 }}>{t.title}</div>
+                                                <div className="rb" style={{ fontSize: 12, color: "var(--t2)", lineHeight: 1.55, marginBottom: 14 }}>{t.description}</div>
+                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                    <span style={{ fontSize: 11, color: "var(--t3)" }}>{t.questions.length} שאלות</span>
+                                                    <ChevronRight size={14} color="var(--t3)" />
+                                                </div>
                                             </div>
-                                            <div className="rb" style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)", marginBottom: 6, lineHeight: 1.3 }}>{t.title}</div>
-                                            <div className="rb" style={{ fontSize: 12, color: "var(--t2)", lineHeight: 1.55, marginBottom: 14 }}>{t.description}</div>
-                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                                <span style={{ fontSize: 11, color: "var(--t3)" }}>{t.questions.length} שאלות</span>
-                                                <ChevronRight size={14} color="var(--t3)" />
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
                             </div>
 
                             {done.filter(s => s.userId === user?.id).length > 0 && (
