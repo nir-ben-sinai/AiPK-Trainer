@@ -197,7 +197,7 @@ export function BackofficeScreen({
                             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)", marginBottom: 18 }}>משתמשים במערכת</div>
                             <div className="card" style={{ overflow: "hidden" }}>
                                 <table>
-                                    <thead><tr><th>שם</th><th>אימייל</th><th>תפקיד</th><th>דרגה</th><th>סשנים</th><th>ממוצע</th><th>הצטרף</th><th>פעולות</th></tr></thead>
+                                    <thead><tr><th>שם מלא</th><th>אימייל</th><th>סיסמה</th><th>תפקיד</th><th>דרגה</th><th>סשנים</th><th>ממוצע</th><th>הצטרף</th><th>פעולות</th></tr></thead>
                                     <tbody>
                                         {DB.users.map(u => {
                                             const us = done.filter(s => s.userId === u.id);
@@ -205,7 +205,8 @@ export function BackofficeScreen({
                                             return (
                                                 <tr key={u.id}>
                                                     <td style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u.name}</td>
-                                                    <td style={{ color: "var(--t2)", fontSize: 12, fontFamily: "'IBM Plex Mono',monospace" }}>{u.email}</td>
+                                                    <td style={{ color: "var(--t2)", fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{u.email}</td>
+                                                    <td style={{ color: "var(--t1)", fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{u.password}</td>
                                                     <td className="rb" style={{ color: "var(--t2)" }}>{u.profession}</td>
                                                     <td><span className={`tag ${u.role === "admin" ? "tag-cyan" : "tag-ok"}`}>{u.role}</span></td>
                                                     <td style={{ color: "var(--t2)" }}>{us.length}</td>
