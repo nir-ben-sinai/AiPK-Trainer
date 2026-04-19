@@ -252,7 +252,7 @@ export function BackofficeScreen({
                                                             {u.id !== "u_admin" && (
                                                                 <>
                                                                     <button className="btn-icon" style={{ border: "none", color: u.canGenerateTests ? "var(--cy)" : "var(--t3)", background: u.canGenerateTests ? "rgba(56,189,248,0.15)" : "var(--bg)", opacity: u.canGenerateTests ? 1 : 0.5 }} onClick={() => toggleUserAi(u.id)} title={u.canGenerateTests ? "חסום מחולל AI למשתמש" : "אפשר מחולל AI למשתמש"}>
-                                                                        <Wand2 size={13} />
+                                                                        <Wand2 size={13} color={u.canGenerateTests ? "var(--cy)" : "var(--t3)"} />
                                                                     </button>
                                                                     <button className="btn-icon" style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)" }} onClick={() => deleteUserRecord(u.id)} title="מחק משתמש ונתונים">
                                                                         <Trash2 size={13} />

@@ -1,8 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "dummy_key_to_prevent_init_crash";
 
-if (!apiKey) {
+if (apiKey === "dummy_key_to_prevent_init_crash") {
   console.error("שגיאה קריטית: מפתח ה-API חסר בהגדרות!");
 }
 

@@ -16,7 +16,7 @@ const SortableTH = ({ label, sortKey, config, requestSort, style }) => {
     );
 };
 
-export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [] }) {
+export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [], processAiFile, aiLoading }) {
     const myDone = done.filter(s => s.userId === user?.id);
     const totalSessions = myDone.length;
     const avgScore = totalSessions > 0 ? Math.round(myDone.reduce((a, s) => a + s.score, 0) / totalSessions) : 0;
@@ -29,7 +29,6 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
 
     useEffect(() => {
         let interval;
-        if (diyModalOpen && !selectedDoc) setGenConfig({ name: "", count: "20", notes: "", qType: "raw" });
         if (aiLoading) {
             setProgress(Math.random() * 10 + 5);
             interval = setInterval(() => {
@@ -41,7 +40,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
             return () => clearTimeout(timer);
         }
         return () => clearTimeout(interval);
-    }, [aiLoading, diyModalOpen, selectedDoc]);
+    }, [aiLoading]);
 
     const processedHistory = useMemo(() => {
         return myDone.map(s => {
@@ -90,7 +89,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                         <div style={{ marginBottom: 44 }}>
                             <div className="flex-resp">
                                 <div>
-                                    <div style={{ fontSize: 24, fontWeight: 700, color: "var(--t0)", marginBottom: 4 }}>שלום, {user?.name.split(' ')[0]} 👋</div>
+                                    <div style={{ fontSize: 24, fontWeight: 700, color: "var(--t0)", marginBottom: 4 }}>שלום, {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || "טייס"} 👋</div>
                                     <div style={{ fontSize: 13, color: "var(--t2)" }}>הנה סיכום הפעילות וההתקדמות שלך במערכת</div>
                                 </div>
                                 <div style={{

@@ -381,11 +381,10 @@ export default function App() {
         const u = DB.users.find(x => x.id === userId);
         if (u) {
             u.canGenerateTests = !u.canGenerateTests;
-            // update db
+            setTick(t => t + 1); // Optimistic UI update
             await supabase.from('app_users').update({
                 can_generate_tests: u.canGenerateTests
             }).eq('id', userId).catch(console.error);
-            setTick(t => t + 1);
         }
     };
 
