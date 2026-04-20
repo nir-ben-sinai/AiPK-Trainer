@@ -217,7 +217,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                     <div className="rb" style={{ fontSize: 13, color: "var(--t2)", paddingRight: 34 }}>מעבר למבדק אקראי מתוך בחירת הנושא.</div>
                                 </div>
                                 <div className="topics-grid">
-                                    {uploadedSets.map(t => {
+                                    {uploadedSets.filter(t => !t.createdBy || t.createdBy === user?.id).map(t => {
                                         const mySess = DB.sessions.filter(s => s.userId === user?.id && s.topicId === t.id && s.status === "completed");
                                         const best = mySess.length ? Math.max(...mySess.map(s => s.score)) : null;
                                         return (
@@ -356,7 +356,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                             <button className="btn btn-subtle" style={{ flex: 1 }} onClick={() => setDiyModalOpen(false)} disabled={aiLoading}>ביטול</button>
                             <button className="btn btn-primary" style={{ flex: 2, height: 40 }} onClick={async () => {
                                 if (!selectedDoc) { alert("יש לבחור עזר מהספרייה"); return; }
-                                const success = await processAiFile(selectedDoc, { count: genConfig.count, notes: genConfig.notes, customTitle: genConfig.name || "תרגול אישי עצמאי", qType: genConfig.qType });
+                                const success = await processAiFile(selectedDoc, { count: genConfig.count, notes: genConfig.notes, customTitle: genConfig.name || "תרגול אישי עצמאי", qType: genConfig.qType, createdBy: user?.id, creatorName: user?.name || user?.email });
                                 if (success) { setDiyModalOpen(false); setGenConfig({ name: "", count: "20", notes: "", qType: "raw" }); setSelectedDoc(null); }
                             }} disabled={aiLoading || !selectedDoc}>
                                 {aiLoading ? <><Loader2 className="spin" size={15} /> ממתין לשרת...</> : <><Sparkles size={15} /> חולל מבדק עכשיו</>}

@@ -276,8 +276,10 @@ export default function App() {
                 return false;
             }
 
-            const set = { id: genId("us"), title: options.customTitle || doc.filename, questions: qs, chapters: [] };
+            const set = { id: genId("us"), title: options.customTitle || doc.filename, questions: qs, chapters: [], createdBy: options.createdBy, creatorName: options.creatorName };
             await supabase.from('exams').insert([{ title: set.title, questions: qs, pdf_url: doc.filename }]);
+            // Optional: Also save the creator into the persistent mock supabase table if column is configured, 
+            // but for frontend reactivity adding it to `set` is what matters.
             setUploadedSets(prev => [set, ...prev]);
 
             setAiLoading(false);

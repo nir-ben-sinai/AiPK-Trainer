@@ -212,6 +212,9 @@ tr:hover td{background:rgba(56,189,248,0.02);}
 .topics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 820px; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
 
+.modal-bg { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.6); z-index: 99999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 20px; box-sizing: border-box; }
+.modal-box { width: 100%; max-width: 480px; padding: 24px; background-color: var(--bg); border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); border: 1px solid var(--bdr); animation: fadeUp 0.2s ease forwards; max-height: calc(100vh - 40px); overflow-y: auto; }
+
 .ti-box { display: flex; align-items: center; gap: 15px; width: 100%; max-width: 800px; }
 .ti-wrap { display: flex; flex: 1; gap: 10px; align-items: center; }
 .ti-helpers { display: flex; gap: 10px; }

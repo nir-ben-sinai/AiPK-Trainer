@@ -550,8 +550,11 @@ export function BackofficeScreen({
                                                 <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "var(--s2)", border: "1px solid var(--bdr)", borderRadius: 6 }}>
                                                     <CheckCircle size={18} color="var(--ok)" style={{ flexShrink: 0 }} />
                                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <div style={{ fontSize: 14, fontWeight: 500, color: "var(--t0)", marginBottom: 2 }}>{s.title}</div>
-                                                        <div style={{ fontSize: 12, color: "var(--t2)" }}>{s.description || "מבחן פעיל"} · בוצעו {done.filter(se => se.topicId === s.id).length} אימונים · נוצר בתאריך {fmt(s.uploadedAt)}</div>
+                                                        <div style={{ fontSize: 14, fontWeight: 500, color: "var(--t0)", marginBottom: 2 }}>
+                                                            {s.title}
+                                                            {s.creatorName && <span className="tag tag-warn" style={{ marginLeft: 8, marginRight: 6 }}>נוצר ע"י: {s.creatorName}</span>}
+                                                        </div>
+                                                        <div style={{ fontSize: 12, color: "var(--t2)" }}>{s.description || "מבחן פעיל"} · בוצעו {done.filter(se => se.topicId === s.id).length} אימונים · נוצר בתאריך {fmt(s.uploadedAt || new Date())}</div>
                                                     </div>
 
                                                     {/* כפתור "התחל אימון" */}
