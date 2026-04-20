@@ -97,7 +97,25 @@ export default function App() {
                     return merged;
                 };
 
-                DB.users = mergeData(DB.users, usersRes.data);
+                const mergedUsers = [...DB.users];
+                if (usersRes.data) {
+                    usersRes.data.forEach(dbU => {
+                        const uMap = {
+                            id: dbU.id,
+                            email: dbU.email,
+                            password: dbU.password,
+                            name: dbU.full_name,
+                            profession: dbU.profession,
+                            role: dbU.role,
+                            joinedAt: dbU.created_at,
+                            canGenerateTests: dbU.can_generate_tests
+                        };
+                        const idx = mergedUsers.findIndex(u => u.id === dbU.id);
+                        if (idx === -1) mergedUsers.push(uMap); else mergedUsers[idx] = { ...mergedUsers[idx], ...uMap };
+                    });
+                }
+                DB.users = mergedUsers;
+
                 DB.sessions = mergeData(DB.sessions, sessRes.data);
                 DB.logs = mergeData(DB.logs, logsRes.data);
                 DB.debriefs = mergeData(DB.debriefs, debRes.data);
@@ -111,7 +129,16 @@ export default function App() {
                 if (!hasAdmin) {
                     const admin = { id: "u_admin", name: "Admin", email: adminEmail, password: adminPassword, profession: "System Admin", role: "admin", joinedAt: new Date().toISOString() };
                     DB.users.push(admin);
-                    await supabase.from('app_users').insert([{ id: admin.id, data: admin }]);
+                    await supabase.from('app_users').insert([{
+                        id: admin.id,
+                        email: admin.email,
+                        password: admin.password,
+                        full_name: admin.name,
+                        profession: admin.profession,
+                        role: admin.role,
+                        can_generate_tests: true,
+                        created_at: admin.joinedAt
+                    }]);
                 }
 
                 setTick(t => t + 1);
@@ -203,7 +230,16 @@ export default function App() {
         setScreen("home");
 
         // ממתינים לשמירה כדי להבטיח שהיא תושלם גם אם המשתמש ירפרש את העמוד
-        await supabase.from('app_users').insert([{ id: u.id, data: u }]).catch(console.error);
+        await supabase.from('app_users').insert([{
+            id: u.id,
+            email: u.email,
+            password: u.password,
+            full_name: u.name,
+            profession: u.profession,
+            role: u.role,
+            can_generate_tests: false,
+            created_at: u.joinedAt
+        }]).catch(console.error);
         setTick(t => t + 1);
     };
 
