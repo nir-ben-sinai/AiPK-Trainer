@@ -20,8 +20,10 @@ export default function App() {
     const [screen, setScreen] = useState("auth");
     const [user, setUser] = useState(null);
     const [authMode, setAuthMode] = useState("login");
-    const [form, setForm] = useState({ name: "", email: "", password: "", profession: "" });
+    const [form, setForm] = useState({ name: "", email: "", password: "", profession: "", otp: "" });
     const [authErr, setAuthErr] = useState("");
+    const [pendingUser, setPendingUser] = useState(null);
+    const [verificationCode, setVerificationCode] = useState("");
     const [agreed, setAgreed] = useState(false);
     const [tick, _setTick] = useState(0);
     const setTick = (val) => { saveDbLocal(); _setTick(val); };
@@ -223,24 +225,42 @@ export default function App() {
             joinedAt: new Date().toISOString()
         };
 
-        DB.users.push(u);
-        setUser(u);
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        setVerificationCode(code);
+        setPendingUser(u);
         setAuthErr("");
+        setAuthMode("verify");
 
+        setTimeout(() => alert(`מייל נשלח!\nקוד האימות שלך הוא: ${code}\n(הודעה זו מדמה שליחת דוא"ל במערכת הפיתוח)`), 500);
+    };
+
+    const doVerify = async () => {
+        if (!pendingUser) return;
+        if (form.otp !== verificationCode) {
+            setAuthErr("קוד האימות שגוי. אנא נסה שוב.");
+            return;
+        }
+
+        DB.users.push(pendingUser);
+        setUser(pendingUser);
+        setAuthErr("");
         setScreen("home");
 
-        // ממתינים לשמירה כדי להבטיח שהיא תושלם גם אם המשתמש ירפרש את העמוד
         await supabase.from('app_users').insert([{
-            id: u.id,
-            email: u.email,
-            password: u.password,
-            full_name: u.name,
-            profession: u.profession,
-            role: u.role,
+            id: pendingUser.id,
+            email: pendingUser.email,
+            password: pendingUser.password,
+            full_name: pendingUser.name,
+            profession: pendingUser.profession,
+            role: pendingUser.role,
             can_generate_tests: false,
-            created_at: u.joinedAt
+            created_at: pendingUser.joinedAt
         }]).catch(console.error);
         setTick(t => t + 1);
+
+        setPendingUser(null);
+        setVerificationCode("");
+        setForm({ ...form, otp: "" });
     };
 
     const deleteSet = async id => {
