@@ -62,8 +62,8 @@ export default function App() {
         const fetchSupabaseData = async () => {
             try {
                 const [docsRes, examsRes, usersRes, sessRes, logsRes, debRes, helpRes] = await Promise.all([
-                    supabase.from('library_docs').select('*').order('created_at', { ascending: false }),
-                    supabase.from('exams').select('*').order('created_at', { ascending: false }),
+                    supabase.from('library_docs').select('*'),
+                    supabase.from('exams').select('*'),
                     supabase.from('app_users').select('*'),
                     supabase.from('app_sessions').select('*'),
                     supabase.from('app_logs').select('*'),
@@ -87,7 +87,8 @@ export default function App() {
                 }
 
                 loadDbLocal();
-
+                if (!docsRes.data && DB.libraryDocs.length > 0) setLibraryDocs([...DB.libraryDocs]);
+                if (!examsRes.data && DB.uploadedSets.length > 0) setUploadedSets([...DB.uploadedSets]);
                 const mergeData = (localArr, supData) => {
                     if (!supData) return localArr;
                     const sb = supData.map(r => r.data);
