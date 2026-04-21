@@ -124,7 +124,8 @@ export default function App() {
                 if (!hasAdmin) {
                     const admin = { id: "u_admin", name: "Admin", email: adminEmail, password: adminPassword, profession: "System Admin", role: "admin", joinedAt: new Date().toISOString() };
                     DB.users.push(admin);
-                    await supabase.from('app_users').insert([{ id: admin.id, data: admin }]);
+                    const { error } = await supabase.from('app_users').insert([{ id: admin.id, data: admin }]);
+                    if (error) console.error("Admin creation error:", error);
                 }
 
                 setTick(t => t + 1);
@@ -230,7 +231,13 @@ export default function App() {
         setAuthErr("");
         setScreen("home");
 
-        await supabase.from('app_users').insert([{ id: pendingUser.id, data: pendingUser }]).catch(console.error);
+        const { error } = await supabase.from('app_users').insert([{ id: pendingUser.id, data: pendingUser }]);
+        if (error) {
+            setAuthErr("שגיאת שמירה במסד הנתונים: " + error.message);
+            setScreen("auth");
+            return;
+        }
+
         setTick(t => t + 1);
 
         setPendingUser(null);
@@ -424,6 +431,15 @@ export default function App() {
     return (
         <>
             <style>{CSS}</style>
+
+            {/* DEBUG OVERLAY - REMOVE AFTER DIAGNOSING */}
+            {window.location.hash.includes('debug') && (
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 99999, background: 'rgba(0,0,0,0.8)', color: 'lime', padding: 20, maxHeight: '50vh', overflow: 'auto', textAlign: 'left', direction: 'ltr' }}>
+                    DEBUG DB.users:
+                    <pre>{JSON.stringify(DB.users, null, 2)}</pre>
+                </div>
+            )}
+
             {screen === "auth" && <AuthScreen authMode={authMode} setAuthMode={setAuthMode} authErr={authErr} setAuthErr={setAuthErr} form={form} setForm={setForm} doLogin={doLogin} doRegister={doRegister} doVerify={doVerify} />}
             {screen === "onboarding" && <OnboardingScreen user={user} setScreen={setScreen} />}
             {screen === "disclaimer" && <DisclaimerScreen agreed={agreed} setAgreed={setAgreed} setScreen={setScreen} />}
