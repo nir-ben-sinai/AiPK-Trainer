@@ -422,9 +422,12 @@ export default function App() {
         if (u) {
             u.canGenerateTests = !u.canGenerateTests;
             setTick(t => t + 1); // Optimistic UI update
-            await supabase.from('app_users').update({
-                can_generate_tests: u.canGenerateTests
-            }).eq('id', userId).catch(console.error);
+
+            const { error } = await supabase.from('app_users').update({
+                data: u
+            }).eq('id', userId);
+
+            if (error) console.error("Error updating admin wand status:", error);
         }
     };
 
