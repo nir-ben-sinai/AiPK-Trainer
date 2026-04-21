@@ -102,19 +102,11 @@ export default function App() {
                 const mergedUsers = [...DB.users];
                 if (usersRes.data) {
                     usersRes.data.forEach(dbU => {
-                        const uMap = {
-                            id: dbU.id,
-                            email: dbU.email,
-                            password: dbU.password,
-                            name: dbU.full_name,
-                            profession: dbU.profession,
-                            role: dbU.role,
-                            joinedAt: dbU.created_at,
-                            canGenerateTests: dbU.can_generate_tests
-                        };
-                        Object.keys(uMap).forEach(key => uMap[key] === undefined && delete uMap[key]);
-                        const idx = mergedUsers.findIndex(u => u.id === dbU.id);
-                        if (idx === -1) mergedUsers.push(uMap); else mergedUsers[idx] = { ...mergedUsers[idx], ...uMap };
+                        const uMap = dbU.data;
+                        if (uMap) {
+                            const idx = mergedUsers.findIndex(u => u.id === uMap.id);
+                            if (idx === -1) mergedUsers.push(uMap); else mergedUsers[idx] = { ...mergedUsers[idx], ...uMap };
+                        }
                     });
                 }
                 DB.users = mergedUsers;
@@ -132,16 +124,7 @@ export default function App() {
                 if (!hasAdmin) {
                     const admin = { id: "u_admin", name: "Admin", email: adminEmail, password: adminPassword, profession: "System Admin", role: "admin", joinedAt: new Date().toISOString() };
                     DB.users.push(admin);
-                    await supabase.from('app_users').insert([{
-                        id: admin.id,
-                        email: admin.email,
-                        password: admin.password,
-                        full_name: admin.name,
-                        profession: admin.profession,
-                        role: admin.role,
-                        can_generate_tests: true,
-                        created_at: admin.joinedAt
-                    }]);
+                    await supabase.from('app_users').insert([{ id: admin.id, data: admin }]);
                 }
 
                 setTick(t => t + 1);
@@ -247,16 +230,7 @@ export default function App() {
         setAuthErr("");
         setScreen("home");
 
-        await supabase.from('app_users').insert([{
-            id: pendingUser.id,
-            email: pendingUser.email,
-            password: pendingUser.password,
-            full_name: pendingUser.name,
-            profession: pendingUser.profession,
-            role: pendingUser.role,
-            can_generate_tests: false,
-            created_at: pendingUser.joinedAt
-        }]).catch(console.error);
+        await supabase.from('app_users').insert([{ id: pendingUser.id, data: pendingUser }]).catch(console.error);
         setTick(t => t + 1);
 
         setPendingUser(null);
