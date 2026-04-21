@@ -112,6 +112,7 @@ export default function App() {
                             joinedAt: dbU.created_at,
                             canGenerateTests: dbU.can_generate_tests
                         };
+                        Object.keys(uMap).forEach(key => uMap[key] === undefined && delete uMap[key]);
                         const idx = mergedUsers.findIndex(u => u.id === dbU.id);
                         if (idx === -1) mergedUsers.push(uMap); else mergedUsers[idx] = { ...mergedUsers[idx], ...uMap };
                     });
@@ -176,14 +177,14 @@ export default function App() {
     };
 
     const doLogin = () => {
-        const cleanEmail = form.email.trim().toLowerCase();
-        const u = DB.users.find(x => x.email.toLowerCase() === cleanEmail);
+        const cleanEmail = (form?.email || "").trim().toLowerCase();
+        const u = DB.users.find(x => x?.email?.toLowerCase() === cleanEmail);
 
         if (!u) {
             setAuthErr("משתמש לא קיים במערכת. אנא הירשם תחילה.");
             return;
         }
-        if (u.password !== form.password.trim()) {
+        if (u.password !== (form?.password || "").trim()) {
             setAuthErr("סיסמה שגויה. אנא נסה שוב.");
             return;
         }
@@ -204,13 +205,13 @@ export default function App() {
     };
 
     const doRegister = async () => {
-        if (!form.name || !form.email || !form.password) {
+        if (!form?.name || !form?.email || !form?.password) {
             setAuthErr("יש למלא לפחות שם מלא, אימייל וסיסמה כדי להירשם.");
             return;
         }
 
-        const cleanEmail = form.email.trim().toLowerCase();
-        if (DB.users.find(x => x.email.toLowerCase() === cleanEmail)) {
+        const cleanEmail = (form?.email || "").trim().toLowerCase();
+        if (DB.users.find(x => x?.email?.toLowerCase() === cleanEmail)) {
             setAuthErr("אימייל זה כבר קיים במערכת. אנא עבור למסך ההתחברות.");
             return;
         }
@@ -449,7 +450,7 @@ export default function App() {
     return (
         <>
             <style>{CSS}</style>
-            {screen === "auth" && <AuthScreen authMode={authMode} setAuthMode={setAuthMode} authErr={authErr} setAuthErr={setAuthErr} form={form} setForm={setForm} doLogin={doLogin} doRegister={doRegister} />}
+            {screen === "auth" && <AuthScreen authMode={authMode} setAuthMode={setAuthMode} authErr={authErr} setAuthErr={setAuthErr} form={form} setForm={setForm} doLogin={doLogin} doRegister={doRegister} doVerify={doVerify} />}
             {screen === "onboarding" && <OnboardingScreen user={user} setScreen={setScreen} />}
             {screen === "disclaimer" && <DisclaimerScreen agreed={agreed} setAgreed={setAgreed} setScreen={setScreen} />}
             {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
