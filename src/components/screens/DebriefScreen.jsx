@@ -31,21 +31,30 @@ export function DebriefScreen({ user, setScreen }) {
         }
     }, [msgs, step, loading]);
 
-    const handleStartDebrief = async () => {
-        if (!isFormValid) return;
+    const handleStartDebrief = async (skip = false) => {
+        if (!skip && !isFormValid) return;
         setStep("chat");
         setLoading(true);
 
-        // מדפיסים את התחקיר העצמי בצ'אט שיהיה מול העיניים
-        const userRefMsg = `התחקיר העצמי שלי:\n\nלשימור: ${reflections.good}\n\nלשיפור: ${reflections.bad}\n\nמסקנות: ${reflections.takeaways}`;
+        const reflectionsPayload = skip
+            ? { skipped: true }
+            : { good: reflections.good, bad: reflections.bad, takeaways: reflections.takeaways };
+
+        const userRefMsg = skip
+            ? "ביקשתי ממשק המערכת לדלג על מילוי תחקיר עצמי. אנא ספק לי סיכום ומשוב אוטומטי לביצועים שלי."
+            : `התחקיר העצמי שלי:\n\nלשימור: ${reflections.good}\n\nלשיפור: ${reflections.bad}\n\nמסקנות: ${reflections.takeaways}`;
         setMsgs([{ role: "user", text: userRefMsg }]);
 
-        // שליחת הנתונים למוח של ג'מיני
-        const aiResponse = await startInteractiveDebrief(logsSummary, reflections);
+        const userContext = {
+            name: user?.name,
+            profession: user?.profession,
+            topic: latestSession?.topic || "כללי"
+        };
+
+        const aiResponse = await startInteractiveDebrief(logsSummary, reflectionsPayload, userContext);
         setMsgs(prev => [...prev, { role: "ai", text: aiResponse }]);
         setLoading(false);
 
-        // שמירת התחקיר לאדמין ב-DB
         if (latestSession) {
             const debriefObj = {
                 id: `deb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -53,13 +62,10 @@ export function DebriefScreen({ user, setScreen }) {
                 sessionId: latestSession.id,
                 score: latestSession.score,
                 aiSummary: aiResponse.slice(0, 200) + '...',
-                insights: [reflections.takeaways, reflections.bad].filter(Boolean),
+                insights: skip ? ["משוב אוטומטי - ללא תחקיר עצמי"] : [reflections.takeaways, reflections.bad].filter(Boolean),
                 timestamp: new Date().toISOString()
             };
             DB.debriefs.push(debriefObj);
-
-            // To ensure it syncs across reloads (optional but nice, using Supabase natively if available)
-            // But just pushing to DB.debriefs will immediately fix the prototype view for the session
         }
     };
 
@@ -70,7 +76,6 @@ export function DebriefScreen({ user, setScreen }) {
         setMsgs(prev => [...prev, { role: "user", text: newMsg }]);
         setLoading(true);
 
-        // שליחת המשך השיחה
         const aiResponse = await continueInteractiveDebrief(msgs, newMsg);
         setMsgs(prev => [...prev, { role: "ai", text: aiResponse }]);
         setLoading(false);
@@ -80,19 +85,7 @@ export function DebriefScreen({ user, setScreen }) {
         <div style={{ background: "#0b1120", minHeight: "100vh", display: "flex", flexDirection: "column", direction: "rtl", fontFamily: "sans-serif" }}>
 
             {/* Header */}
-            <div style={{ padding: "15px 30px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a" }}>
-                <div>
-                    {step === "chat" ? (
-                        <button
-                            onClick={() => setScreen("home")}
-                            style={{ padding: "8px 20px", borderRadius: "6px", background: "#f97316", color: "#fff", border: "none", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 6px -1px rgba(249, 115, 22, 0.2)" }}
-                        >
-                            סיום תחקיר
-                        </button>
-                    ) : (
-                        <div style={{ width: "100px" }}></div> // שומר על המרווח בטופס
-                    )}
-                </div>
+            <div style={{ padding: "15px 30px", display: "flex", justifyContent: "center", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#f8fafc", fontSize: "18px", fontWeight: "bold" }}>
                     <Target size={20} color="#38bdf8" />
                     תחקיר ביצועים מסכם
@@ -144,9 +137,9 @@ export function DebriefScreen({ user, setScreen }) {
                             </div>
                         </div>
 
-                        <div style={{ marginTop: "40px", display: "flex", justifyContent: "center" }}>
+                        <div style={{ marginTop: "40px", display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: "center" }}>
                             <button
-                                onClick={handleStartDebrief}
+                                onClick={() => handleStartDebrief(false)}
                                 disabled={!isFormValid || loading}
                                 style={{
                                     display: "flex", alignItems: "center", gap: "10px",
@@ -158,7 +151,21 @@ export function DebriefScreen({ user, setScreen }) {
                                 }}
                             >
                                 {loading ? <Loader2 className="spin" size={20} /> : <MessageSquare size={20} />}
-                                שלח נתונים והתחל תחקיר
+                                התחל תחקיר
+                            </button>
+                            <button
+                                onClick={() => handleStartDebrief(true)}
+                                disabled={loading}
+                                style={{
+                                    display: "flex", alignItems: "center", gap: "10px",
+                                    padding: "15px 40px", fontSize: "18px", borderRadius: "10px", fontWeight: "bold",
+                                    background: "rgba(255,255,255,0.05)", color: "#cbd5e1",
+                                    border: "1px solid #1e293b", cursor: loading ? "not-allowed" : "pointer",
+                                    transition: "all 0.3s"
+                                }}
+                            >
+                                <Target size={20} />
+                                קבל משוב אוטומטי
                             </button>
                         </div>
                     </div>
@@ -206,7 +213,7 @@ export function DebriefScreen({ user, setScreen }) {
                         <div ref={chatRef} />
                     </div>
 
-                    <div style={{ padding: "20px", background: "#0b1120", borderTop: "1px solid #1e293b", display: "flex", justifyContent: "center" }}>
+                    <div style={{ padding: "20px", background: "#0b1120", borderTop: "1px solid #1e293b", display: "flex", flexDirection: "column", alignItems: "center", gap: "15px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "15px", width: "100%", maxWidth: "800px" }}>
                             <button
                                 onClick={handleSendChat}
@@ -224,6 +231,18 @@ export function DebriefScreen({ user, setScreen }) {
                                 style={{ flex: 1, padding: "16px", borderRadius: "10px", border: "1px solid #1e293b", background: "#0f172a", color: "#fff", fontSize: "16px", outline: "none" }}
                             />
                         </div>
+
+                        <button
+                            onClick={() => setScreen("home")}
+                            style={{
+                                padding: "12px 30px", borderRadius: "8px",
+                                background: "#f97316", color: "#fff", border: "none",
+                                cursor: "pointer", fontWeight: "bold", width: "100%", maxWidth: "300px",
+                                boxShadow: "0 4px 6px -1px rgba(249, 115, 22, 0.2)"
+                            }}
+                        >
+                            סיום תחקיר וחזרה הביתה
+                        </button>
                     </div>
                 </>
             )}
