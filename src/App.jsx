@@ -17,8 +17,19 @@ import { BackofficeScreen } from "./components/screens/BackofficeScreen";
 const isUuid = (str) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
 
 export default function App() {
-    const [screen, setScreen] = useState("auth");
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const saved = localStorage.getItem('aipk_user');
+        return saved ? JSON.parse(saved) : null;
+    });
+
+    const [screen, setScreen] = useState(() => {
+        const saved = localStorage.getItem('aipk_user');
+        if (saved) {
+            const u = JSON.parse(saved);
+            return u.role === "admin" ? "backoffice" : "home";
+        }
+        return "auth";
+    });
     const [authMode, setAuthMode] = useState("login");
     const [form, setForm] = useState({ name: "", email: "", password: "", profession: "", otp: "" });
     const [authErr, setAuthErr] = useState("");
@@ -176,6 +187,7 @@ export default function App() {
 
         setUser(u);
         setAuthErr("");
+        localStorage.setItem("aipk_user", JSON.stringify(u));
 
         if (u.role === "admin") {
             if (uploadedSets.length === 0 && libraryDocs.length === 0) {
@@ -229,6 +241,7 @@ export default function App() {
 
         DB.users.push(pendingUser);
         setUser(pendingUser);
+        localStorage.setItem("aipk_user", JSON.stringify(pendingUser));
         setAuthErr("");
         setScreen("home");
 
@@ -479,7 +492,7 @@ export default function App() {
             {screen === "backoffice" && (() => {
                 const completedSessions = DB.sessions.filter(s => s.status === 'completed');
                 const calculatedAvgSc = completedSessions.length ? Math.round(completedSessions.reduce((acc, s) => acc + s.score, 0) / completedSessions.length) : 0;
-                return <BackofficeScreen user={user} setScreen={setScreen} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={completedSessions} avgSc={calculatedAvgSc} uploadedSets={uploadedSets} updateSet={saveTestUpdate} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} toggleUserAi={toggleUserAi} tick={tick} />;
+                return <BackofficeScreen user={user} setScreen={setScreen} setUser={setUser} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={completedSessions} avgSc={calculatedAvgSc} uploadedSets={uploadedSets} updateSet={saveTestUpdate} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} toggleUserAi={toggleUserAi} tick={tick} />;
             })()}
         </>
     );

@@ -76,7 +76,11 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                 <Settings size={13} /> Back Office
                             </button>
                         )}
-                        <button className="btn btn-ghost" style={{ gap: 6 }} onClick={() => { setUser(null); setScreen("auth"); }}>
+                        <button className="btn btn-ghost" style={{ gap: 6 }} onClick={() => {
+                            setUser(null);
+                            localStorage.removeItem("aipk_user");
+                            setScreen("auth");
+                        }}>
                             <LogOut size={13} /> יציאה
                         </button>
                     </div>

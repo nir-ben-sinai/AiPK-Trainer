@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2, Play, Eye, Edit2, Save, Target, Search } from "lucide-react";
+import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, LogOut, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2, Play, Eye, Edit2, Save, Target, Search } from "lucide-react";
 import { DB, sc, fmt } from "../../lib/mockBackend";
 import { Logo } from "../Logo";
 import { useTableData } from "../../hooks/useTableData";
@@ -118,9 +118,16 @@ export function BackofficeScreen({
 
                 {/* Sidebar */}
                 <div className="sidebar">
-                    <div className="sidebar-hdr">
+                    <div className="sidebar-hdr" style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <div className="nav-it" onClick={() => setScreen("home")} style={{ gap: 8 }}>
                             <ArrowLeft size={14} /><span>בית</span>
+                        </div>
+                        <div className="nav-it" onClick={() => {
+                            setUser(null);
+                            localStorage.removeItem("aipk_user");
+                            setScreen("auth");
+                        }} style={{ gap: 8, color: '#ef4444' }}>
+                            <LogOut size={14} /><span>יציאה</span>
                         </div>
                     </div>
                     <div style={{ padding: "14px 14px 10px", borderBottom: "1px solid var(--bdr)" }}>
