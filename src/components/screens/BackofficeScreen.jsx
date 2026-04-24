@@ -508,11 +508,20 @@ export function BackofficeScreen({
                                     ) : (
                                         <div style={{ display: "grid", gap: 8 }}>
                                             {libraryDocs.map(d => (
-                                                <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "var(--s2)", border: "1px solid var(--bdr)", borderRadius: 6 }}>
-                                                    <BookOpen size={18} color="var(--cy)" style={{ flexShrink: 0 }} />
+                                                <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: d.uploadedById ? "rgba(249,115,22,0.06)" : "var(--s2)", border: `1px solid ${d.uploadedById ? "rgba(249,115,22,0.35)" : "var(--bdr)"}`, borderRadius: 6 }}>
+                                                    <BookOpen size={18} color={d.uploadedById ? "#f97316" : "var(--cy)"} style={{ flexShrink: 0 }} />
                                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <div style={{ fontSize: 14, fontWeight: 500, color: "var(--t0)", marginBottom: 2 }}>{d.filename}</div>
-                                                        <div style={{ fontSize: 12, color: "var(--t2)" }}>הועלה בתאריך {fmt(d.uploadedAt)}{d.uploadedByName && ` ע"י ${d.uploadedByName}`}</div>
+                                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                                                            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)" }}>{d.filename}</div>
+                                                            {d.uploadedById && (
+                                                                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: "rgba(249,115,22,0.15)", color: "#f97316", fontWeight: 700, border: "1px solid rgba(249,115,22,0.3)", whiteSpace: "nowrap" }}>
+                                                                    👤 {d.uploadedByName || "משתמש"}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div style={{ fontSize: 11, color: d.uploadedById ? "#f97316" : "var(--t2)", opacity: d.uploadedById ? 0.8 : 1 }}>
+                                                            {d.uploadedById ? `הועלה ע"י ${d.uploadedByName} — ` : "מסמך מערכת — "}{fmt(d.uploadedAt)}
+                                                        </div>
                                                     </div>
                                                     <button
                                                         className="btn btn-ghost"
