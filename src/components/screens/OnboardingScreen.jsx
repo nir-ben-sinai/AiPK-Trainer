@@ -4,7 +4,7 @@ import { Logo } from "../Logo";
 export function OnboardingScreen({ user, setScreen }) {
     return (
         <>
-            <div className="mock-badge">PROTOTYPE</div>
+            
             <div className="screen fade" style={{ alignItems: "center", justifyContent: "center", background: "radial-gradient(ellipse at 50% 35%, #0a1a30 0%, var(--bg) 65%)" }}>
                 <div style={{ width: "100%", maxWidth: 440, padding: "0 20px" }}>
                     <div style={{ textAlign: "center", marginBottom: 24 }}>

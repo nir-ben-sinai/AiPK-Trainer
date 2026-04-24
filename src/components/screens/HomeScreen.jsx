@@ -71,7 +71,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
 
     return (
         <>
-            <div className="mock-badge">PROTOTYPE</div>
+            
             <div className="screen">
                 <div className="hdr">
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

@@ -3,7 +3,7 @@ import { AlertTriangle, Shield, FileText, CheckCircle, Database } from "lucide-r
 export function DisclaimerScreen({ agreed, setAgreed, setScreen }) {
     return (
         <>
-            <div className="mock-badge">PROTOTYPE</div>
+            
             <div className="screen fade" style={{ alignItems: "center", justifyContent: "center" }}>
                 <div style={{ width: "100%", maxWidth: 440, padding: "0 20px" }}>
                     <div className="card" style={{ borderColor: "rgba(251,191,36,0.25)" }}>

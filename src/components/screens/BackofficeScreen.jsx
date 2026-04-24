@@ -113,7 +113,7 @@ export function BackofficeScreen({
 
     return (
         <>
-            <div className="mock-badge">PROTOTYPE</div>
+            
             <div className="bo-layout">
 
                 {/* Sidebar */}
