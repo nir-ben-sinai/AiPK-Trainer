@@ -503,7 +503,7 @@ export default function App() {
             {screen === "onboarding" && <OnboardingScreen user={user} setScreen={setScreen} />}
             {screen === "disclaimer" && <DisclaimerScreen agreed={agreed} setAgreed={setAgreed} setScreen={setScreen} />}
             {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
-            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s => s.status === 'completed')} allTopics={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} aiLoading={aiLoading} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
+            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s => s.status === 'completed' || s.status === 'incomplete')} allTopics={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} aiLoading={aiLoading} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
 
             {screen === "training" && (
                 <TrainingScreen
