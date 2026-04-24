@@ -17,7 +17,7 @@ const SortableTH = ({ label, sortKey, config, requestSort, style }) => {
 };
 
 export function BackofficeScreen({
-    user, setScreen, boTab, setBoTab, dbTable, setDbTable, done, avgSc, uploadedSets, updateSet, libraryDocs, processAiFile, addLibraryDoc, deleteLibraryDoc, aiLoading, handleFileInput, uploadError, deleteSet, isUploadingDoc, deleteUserRecord, tick, setSelectedTest, toggleUserAi
+    user, setUser, setScreen, boTab, setBoTab, dbTable, setDbTable, done, avgSc, uploadedSets, updateSet, libraryDocs, processAiFile, addLibraryDoc, deleteLibraryDoc, aiLoading, handleFileInput, uploadError, deleteSet, isUploadingDoc, deleteUserRecord, tick, setSelectedTest, toggleUserAi
 }) {
     const fileInputRef = useRef(null);
     const aiFileInputRef = useRef(null);
