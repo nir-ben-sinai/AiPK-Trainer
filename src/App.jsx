@@ -100,7 +100,7 @@ export default function App() {
                         const qs = e.questions || [];
                         const uniqueTopics = [...new Set(qs.map(q => q.topic || "כללי"))];
                         const chapters = uniqueTopics.map((t, idx) => ({ id: `ch_${idx}`, title: t }));
-                        return { id: e.id, title: e.title, description: `${qs.length} שאלות (AI)`, isUploaded: true, filename: e.pdf_url, uploadedAt: e.created_at, chapters, questions: qs };
+                        return { id: e.id, title: e.title, description: `${qs.length} שאלות (AI)`, isUploaded: true, filename: e.pdf_url, uploadedAt: e.created_at, chapters, questions: qs, createdBy: e.created_by, creatorName: e.creator_name };
                     });
                     setUploadedSets(formattedExams);
                     DB.uploadedSets = formattedExams;
