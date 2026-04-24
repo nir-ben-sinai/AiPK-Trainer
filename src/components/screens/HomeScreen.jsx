@@ -195,11 +195,11 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                 />
                                 <button 
                                     className="btn btn-subtle" 
-                                    onClick={() => fileInputRef.current?.click()} 
+                                    onClick={() => { if (user?.canGenerateTests) { fileInputRef.current?.click(); } else { alert("העלאת חומרים אישיים דורשת מנוי או אישור מנהל."); } }} 
                                     disabled={isUploadingDoc}
-                                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                                    style={{ display: "flex", gap: 8, alignItems: "center", ...(!user?.canGenerateTests && { opacity: 0.8, filter: "grayscale(0.5)" }) }}
                                 >
-                                    {isUploadingDoc ? <Loader2 size={15} className="spin" /> : <Upload size={15} />}
+                                    {isUploadingDoc ? <Loader2 size={15} className="spin" /> : (user?.canGenerateTests ? <Upload size={15} /> : <Lock size={15} />)}
                                     העלאת ספר
                                 </button>
                                 <button className="btn btn-primary" onClick={() => { if (user?.canGenerateTests) { setDiyModalOpen(true); } else { alert("יצירת מבדקים אישיים דורשת מנוי או אישור מנהל."); } }} style={{ display: "flex", gap: 8, alignItems: "center", ...(!user?.canGenerateTests && { opacity: 0.8, filter: "grayscale(0.5)" }) }}>
