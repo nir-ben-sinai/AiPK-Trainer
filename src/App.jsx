@@ -314,20 +314,26 @@ export default function App() {
 
             // אם אין לנו את התוכן בזיכרון (קורה אחרי רענון עמוד), נוריד אותו עכשיו מהלינק
             if (!fileContent && doc.fileUrl) {
-                console.log("מוריד קובץ מהענן לצורך ניתוח AI...");
-                const response = await fetch(doc.fileUrl);
-                const blob = await response.blob();
-
-                // ממירים את הקובץ שירד ל-Base64
-                fileContent = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                    reader.readAsDataURL(blob);
-                });
+                console.log("מוריד קובץ מהענן לצורך ניתוח AI...", doc.fileUrl);
+                try {
+                    const response = await fetch(doc.fileUrl);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const blob = await response.blob();
+                    fileContent = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                        reader.readAsDataURL(blob);
+                    });
+                } catch (e) {
+                    console.error("Fetch error:", e);
+                    alert("שגיאה בהורדת הקובץ מהענן. ייתכן שיש בעיית הרשאות או חיבור.");
+                    setAiLoading(false);
+                    return false;
+                }
             }
 
             if (!fileContent) {
-                alert("שגיאה: לא הצלחנו לקרוא את תוכן הקובץ.");
+                alert("שגיאה: לא נמצא תוכן לקריאה במסמך זה.");
                 setAiLoading(false);
                 return false;
             }
@@ -342,7 +348,13 @@ export default function App() {
             }
 
             const set = { id: genId("us"), title: options.customTitle || doc.filename, questions: qs, chapters: [], createdBy: options.createdBy, creatorName: options.creatorName };
-            await supabase.from('exams').insert([{ title: set.title, questions: qs, pdf_url: doc.filename }]);
+            await supabase.from('exams').insert([{ 
+                title: set.title, 
+                questions: qs, 
+                pdf_url: doc.filename,
+                created_by: options.createdBy,
+                creator_name: options.creatorName
+            }]);
             // Optional: Also save the creator into the persistent mock supabase table if column is configured, 
             // but for frontend reactivity adding it to `set` is what matters.
             setUploadedSets(prev => [set, ...prev]);

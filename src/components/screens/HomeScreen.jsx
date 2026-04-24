@@ -218,8 +218,8 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                         <FileText size={20} />
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                                            <div className="rb" style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.filename}</div>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                                            <div className="rb" style={{ fontSize: 14, fontWeight: 700, color: "var(--t0)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.filename}</div>
                                             {d.uploadedById === user?.id && (
                                                 <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: "rgba(34, 197, 94, 0.15)", color: "#10b981", fontWeight: 700, whiteSpace: "nowrap" }}>
                                                     העלאה שלי
@@ -227,19 +227,25 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                             )}
                                         </div>
                                         {d.uploadedById ? (
-                                            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                                <div style={{ fontSize: 10, color: "var(--t2)", display: "flex", alignItems: "center", gap: 4 }}>
-                                                    <User size={10} /> {d.uploadedByName || "משתמש"}
+                                            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 12px" }}>
+                                                <div style={{ fontSize: 11, color: "#f97316", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                                                    <User size={11} /> {d.uploadedByName || "משתמש"}
                                                 </div>
                                                 <div style={{ fontSize: 10, color: "var(--t3)", display: "flex", alignItems: "center", gap: 4 }}>
-                                                    <Clock size={10} /> {new Date(d.uploadedAt).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}
+                                                    <Clock size={11} /> {new Date(d.uploadedAt).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}
                                                 </div>
                                             </div>
                                         ) : (
                                             <div style={{ fontSize: 11, color: "var(--t2)" }}>מסמך מערכת</div>
                                         )}
                                     </div>
-                                    <ChevronRight size={14} color="var(--t3)" style={{ flexShrink: 0 }} />
+                                    <button 
+                                        className="btn-icon" 
+                                        style={{ background: "rgba(56, 189, 248, 0.1)", borderRadius: 8, width: 32, height: 32 }}
+                                        onClick={(e) => { e.stopPropagation(); window.open(d.fileUrl, '_blank'); }}
+                                    >
+                                        <ChevronRight size={16} color="var(--cy)" />
+                                    </button>
                                 </div>
                             ))}
                         </div>
