@@ -71,6 +71,7 @@ export default function App() {
 
     useEffect(() => {
         const fetchSupabaseData = async () => {
+            console.log("App Version: 1.0.2 - 14:56");
             try {
                 const [docsRes, examsRes, usersRes, sessRes, logsRes, debRes, helpRes] = await Promise.all([
                     supabase.from('library_docs').select('*'),
