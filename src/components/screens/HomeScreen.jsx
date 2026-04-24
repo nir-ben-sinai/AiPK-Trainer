@@ -278,17 +278,25 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                     {uploadedSets.filter(t => !t.createdBy || t.createdBy === user?.id).map(t => {
                                         const mySess = DB.sessions.filter(s => s.userId === user?.id && s.topicId === t.id && s.status === "completed");
                                         const best = mySess.length ? Math.max(...mySess.map(s => s.score)) : null;
+                                        const isMyTest = t.createdBy === user?.id;
                                         return (
-                                            <div key={t.id} className="card card-hover" style={{ padding: "18px", cursor: "pointer" }} onClick={() => startSession(t)}>
+                                            <div key={t.id} className="card card-hover" style={{ padding: "18px", cursor: "pointer", border: isMyTest ? "1px solid rgba(249,115,22,0.35)" : undefined, background: isMyTest ? "linear-gradient(135deg, rgba(249,115,22,0.06), rgba(249,115,22,0.02))" : undefined }} onClick={() => startSession(t)}>
                                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                                                    <span className="tag tag-cyan" style={{ fontSize: 9 }}>{t.filename}</span>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                        <span className="tag tag-cyan" style={{ fontSize: 9 }}>{t.filename}</span>
+                                                        {isMyTest && (
+                                                            <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 20, background: "rgba(249,115,22,0.15)", color: "#f97316", fontWeight: 700, border: "1px solid rgba(249,115,22,0.3)", whiteSpace: "nowrap" }}>
+                                                                ✏️ יצרתי אני
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     {best !== null && <span className="tag tag-cyan" style={{ fontSize: 11, fontWeight: 700 }}>{best}%</span>}
                                                 </div>
                                                 <div className="rb" style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)", marginBottom: 6, lineHeight: 1.3 }}>{t.title}</div>
                                                 <div className="rb" style={{ fontSize: 12, color: "var(--t2)", lineHeight: 1.55, marginBottom: 14 }}>{t.description}</div>
                                                 <div className="flex-resp">
                                                     <span style={{ fontSize: 11, color: "var(--t3)" }}>{t.questions.length} שאלות</span>
-                                                    <ChevronRight size={14} color="var(--t3)" />
+                                                    <ChevronRight size={14} color={isMyTest ? "#f97316" : "var(--t3)"} />
                                                 </div>
                                             </div>
                                         );
