@@ -196,6 +196,7 @@ export default function App() {
 
         setUser(u);
         setAuthErr("");
+        setAgreed(false); // איפוס ההצהרה בכל כניסה
         localStorage.setItem("aipk_user", JSON.stringify(u));
 
         if (u.role === "admin") {
@@ -206,7 +207,7 @@ export default function App() {
                 setScreen("backoffice");
             }
         } else {
-            setScreen("home");
+            setScreen("disclaimer"); // כל משתמש חייב לאשר את ההצהרה בכל כניסה
         }
     };
 
