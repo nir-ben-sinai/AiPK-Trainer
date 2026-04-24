@@ -381,12 +381,26 @@ export default function App() {
     const finishSession = async () => {
         const sess = DB.sessions.find(s => s.id === sessionId);
         if (sess) {
+            // מחשבים ציון אמיתי: כמה שאלות נענו נכון מתוך סך השאלות
             const sessionLogs = DB.logs.filter(l => l.sessionId === sessionId);
-            const correctLogs = sessionLogs.filter(l => l.status === "correct").length;
+            const correctCount = sessionLogs.filter(l => l.status === "correct").length;
             const total = questions.length || 1;
-            sess.score = Math.round((correctLogs / total) * 100);
+            const score = Math.round((correctCount / total) * 100);
+
+            sess.score = score;
             sess.status = "completed";
-            supabase.from('app_sessions').update({ data: sess }).eq('id', sessionId);
+            sess.completedAt = new Date().toISOString();
+            sess.attemptCount = sessionLogs.length; // כולל טעויות
+            sess.correctCount = correctCount;
+            sess.totalQuestions = total;
+
+            // שמירה ב-Supabase: גם בעמודת data וגם בעמודת score נפרדת
+            await supabase
+                .from('app_sessions')
+                .update({ data: sess, score: score })
+                .eq('id', sessionId);
+
+            console.log(`Session finished. Score: ${score}% (${correctCount}/${total})`);
             setTick(t => t + 1);
         }
     };
