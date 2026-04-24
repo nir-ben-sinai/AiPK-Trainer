@@ -512,7 +512,7 @@ export function BackofficeScreen({
                                                     <BookOpen size={18} color="var(--cy)" style={{ flexShrink: 0 }} />
                                                     <div style={{ flex: 1, minWidth: 0 }}>
                                                         <div style={{ fontSize: 14, fontWeight: 500, color: "var(--t0)", marginBottom: 2 }}>{d.filename}</div>
-                                                        <div style={{ fontSize: 12, color: "var(--t2)" }}>הועלה בתאריך {fmt(d.uploadedAt)}</div>
+                                                        <div style={{ fontSize: 12, color: "var(--t2)" }}>הועלה בתאריך {fmt(d.uploadedAt)}{d.uploadedByName && ` ע"י ${d.uploadedByName}`}</div>
                                                     </div>
                                                     <button
                                                         className="btn btn-ghost"
@@ -696,8 +696,7 @@ export function BackofficeScreen({
                             <button className="btn btn-subtle" style={{ flex: 1 }} onClick={() => setIsGenPopupOpen(false)} disabled={aiLoading}>ביטול</button>
                             <button className="btn btn-primary" style={{ flex: 2, height: 40 }} onClick={async () => {
                                 if (!genConfig.docId) { alert("יש לבחור מסמך מהספרייה"); return; }
-                                // הוספת genConfig.qType לקריאה לפונקציה הוכנסה לכאן
-                                const success = await processAiFile(genConfig.docId, { count: genConfig.count, notes: genConfig.notes, customTitle: genConfig.name, qType: genConfig.qType });
+                                const success = await processAiFile(genConfig.docId, { count: genConfig.count, notes: genConfig.notes, customTitle: genConfig.name, qType: genConfig.qType, createdBy: user?.id, creatorName: user?.name || user?.email });
                                 if (success) { setIsGenPopupOpen(false); setGenConfig({ docId: "", name: "", count: "20", notes: "", qType: "raw" }); }
                             }} disabled={aiLoading || !genConfig.docId}>
                                 {aiLoading ? <><Loader2 className="spin" size={15} /> ממתין לשרת...</> : <><Sparkles size={15} /> חולל מבחן</>}

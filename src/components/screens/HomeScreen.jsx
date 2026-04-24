@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from "react";
-import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target, Search, Wand2, Lock, XCircle, Loader2, Sparkles } from "lucide-react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target, Search, Wand2, Lock, XCircle, Loader2, Sparkles, Upload, Clock, User } from "lucide-react";
 import { Logo } from "../Logo";
 import { DB, fmt, sc } from "../../lib/mockBackend";
 import { useTableData } from "../../hooks/useTableData";
@@ -16,8 +16,9 @@ const SortableTH = ({ label, sortKey, config, requestSort, style }) => {
     );
 };
 
-export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [], processAiFile, aiLoading }) {
-    const myDone = done.filter(s => s.userId === user?.id);
+export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [], processAiFile, aiLoading, addLibraryDoc, isUploadingDoc }) {
+    const fileInputRef = useRef(null);
+    const myDone = done.filter(s => s?.userId === user?.id);
     const totalSessions = myDone.length;
     const avgScore = totalSessions > 0 ? Math.round(myDone.reduce((a, s) => a + s.score, 0) / totalSessions) : 0;
     const myHelps = DB.helpRequests.filter(h => h.userId === user?.id).length;
@@ -50,6 +51,12 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
     }, [myDone, allTopics]);
     const historyTable = useTableData(processedHistory, { initialSortKey: 'startedAt', initialSortDir: 'desc' });
 
+    const visibleDocs = useMemo(() => {
+        const docs = libraryDocs || [];
+        if (user?.role === "admin") return docs;
+        return docs.filter(d => !d.uploadedById || d.uploadedById === user?.id);
+    }, [libraryDocs, user]);
+
     let rank = "מתלמד";
     let rankColor = "#94a3b8";
     if (totalSessions > 0) {
@@ -57,6 +64,8 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
         else if (avgScore >= 75) { rank = "מתאמן מתקדם"; rankColor = "#3b82f6"; }
         else { rank = "מתאמן פעיל"; rankColor = "#10b981"; }
     }
+
+    if (!user) return <div style={{ color: "white", padding: 20 }}>טוען נתוני משתמש...</div>;
 
     return (
         <>
@@ -86,7 +95,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                     </div>
                 </div>
 
-                <div className="fade" style={{ flex: 1, padding: "24px 20px" }}>
+                <div style={{ flex: 1, padding: "24px 20px" }}>
 
                     {/* ── דאשבורד משתמש מרהיב ── */}
                     {uploadedSets.length > 0 && (
@@ -166,51 +175,90 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                         </div>
                     )}
 
+                    {/* ── ספרייה וניהול קבצים (תמיד מוצג) ── */}
+                    <div className="panel" style={{ marginBottom: 36, background: "var(--s2)", border: "1px solid var(--s3)" }}>
+                        <div className="flex-resp" style={{ marginBottom: 20 }}>
+                            <div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                                    <BookOpen size={20} color="var(--t1)" />
+                                    <div style={{ fontSize: 18, fontWeight: 600, color: "var(--t0)" }}>ספריית עזר לחזרה ועיון</div>
+                                </div>
+                                <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>חומרי קריאה מקצועיים (PDF)</div>
+                            </div>
+                            <div style={{ display: "flex", gap: 10 }}>
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    style={{ display: "none" }} 
+                                    accept=".pdf,.txt" 
+                                    onChange={(e) => addLibraryDoc(e.target.files)} 
+                                />
+                                <button 
+                                    className="btn btn-subtle" 
+                                    onClick={() => fileInputRef.current?.click()} 
+                                    disabled={isUploadingDoc}
+                                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                                >
+                                    {isUploadingDoc ? <Loader2 size={15} className="spin" /> : <Upload size={15} />}
+                                    העלאת ספר
+                                </button>
+                                <button className="btn btn-primary" onClick={() => { if (user?.canGenerateTests) { setDiyModalOpen(true); } else { alert("יצירת מבדקים אישיים דורשת מנוי או אישור מנהל."); } }} style={{ display: "flex", gap: 8, alignItems: "center", ...(!user?.canGenerateTests && { opacity: 0.8, filter: "grayscale(0.5)" }) }}>
+                                    {user?.canGenerateTests ? <Wand2 size={15} /> : <Lock size={15} />} צור לעצמך מבחן
+                                </button>
+                            </div>
+                        </div>
+                        <div className="topics-grid">
+                            {visibleDocs.length === 0 ? (
+                                <div style={{ gridColumn: "1/-1", padding: "20px", textAlign: "center", color: "var(--t3)", fontSize: 13, border: "1px dashed var(--bdr)", borderRadius: 8 }}>
+                                    אין עדיין ספרים בספרייה האישית שלך. העלה קובץ PDF כדי להתחיל.
+                                </div>
+                            ) : visibleDocs.map(d => (
+                                <div key={d.id} className="card card-hover" style={{ padding: "16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, position: "relative" }} onClick={() => window.open(d.fileUrl, '_blank')}>
+                                    <div style={{ padding: 10, background: d.uploadedById ? "rgba(34, 197, 94, 0.1)" : "rgba(56, 189, 248, 0.1)", borderRadius: 8, color: d.uploadedById ? "#10b981" : "var(--cy)", flexShrink: 0 }}>
+                                        <FileText size={20} />
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                                            <div className="rb" style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.filename}</div>
+                                            {d.uploadedById === user?.id && (
+                                                <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: "rgba(34, 197, 94, 0.15)", color: "#10b981", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                                    העלאה שלי
+                                                </span>
+                                            )}
+                                        </div>
+                                        {d.uploadedById ? (
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                                <div style={{ fontSize: 10, color: "var(--t2)", display: "flex", alignItems: "center", gap: 4 }}>
+                                                    <User size={10} /> {d.uploadedByName || "משתמש"}
+                                                </div>
+                                                <div style={{ fontSize: 10, color: "var(--t3)", display: "flex", alignItems: "center", gap: 4 }}>
+                                                    <Clock size={10} /> {new Date(d.uploadedAt).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div style={{ fontSize: 11, color: "var(--t2)" }}>מסמך מערכת</div>
+                                        )}
+                                    </div>
+                                    <ChevronRight size={14} color="var(--t3)" style={{ flexShrink: 0 }} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     {uploadedSets.length === 0 ? (
                         /* ── No files: show message ── */
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, minHeight: 340, textAlign: "center" }}>
-                            <div style={{ width: 52, height: 52, borderRadius: 12, background: "var(--s2)", border: "1px solid var(--bdr)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
-                                <BookOpen size={22} color="var(--t3)" />
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, minHeight: 240, textAlign: "center", background: "rgba(245,158,11,0.03)", borderRadius: 12, border: "1px dashed rgba(245,158,11,0.2)" }}>
+                            <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                                <Target size={20} color="#f59e0b" />
                             </div>
-                            <div className="rb" style={{ fontSize: 16, fontWeight: 600, color: "var(--t1)", marginBottom: 8 }}>אין מאגר שאלות פעיל</div>
-                            <div className="rb" style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.7, maxWidth: 320 }}>
-                                טרם הועלו שאלות לאימון.<br />
-                                אנא פנה למנהל המערכת על מנת להפעיל את המאגר.
+                            <div className="rb" style={{ fontSize: 15, fontWeight: 600, color: "var(--t1)", marginBottom: 6 }}>אין מבדקים פעילים במאגר</div>
+                            <div className="rb" style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.6, maxWidth: 300 }}>
+                                העלה ספר למערכת ולאחר מכן לחץ על <b>"צור לעצמך מבחן"</b> כדי להתחיל להתאמן.
                             </div>
                         </div>
                     ) : (
                         /* ── Files exist: show topics ── */
                         <>
-                            {libraryDocs?.length > 0 && (
-                                <div className="panel" style={{ marginBottom: 36, background: "var(--s2)", border: "1px solid var(--s3)" }}>
-                                    <div className="flex-resp" style={{ marginBottom: 20 }}>
-                                        <div>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                                                <BookOpen size={20} color="var(--t1)" />
-                                                <div style={{ fontSize: 18, fontWeight: 600, color: "var(--t0)" }}>ספריית עזר לחזרה ועיון</div>
-                                            </div>
-                                            <div className="rb" style={{ fontSize: 13, color: "var(--t2)" }}>חומרי קריאה מקצועיים (PDF)</div>
-                                        </div>
-                                        <button className="btn btn-primary" onClick={() => { if (user?.canGenerateTests) { setDiyModalOpen(true); } else { alert("יצירת מבדקים אישיים דורשת מנוי או אישור מנהל."); } }} style={{ display: "flex", gap: 8, alignItems: "center", ...(!user?.canGenerateTests && { opacity: 0.8, filter: "grayscale(0.5)" }) }}>
-                                            {user?.canGenerateTests ? <Wand2 size={15} /> : <Lock size={15} />} צור לעצמך מבחן
-                                        </button>
-                                    </div>
-                                    <div className="topics-grid">
-                                        {libraryDocs.map(d => (
-                                            <div key={d.id} className="card card-hover" style={{ padding: "16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }} onClick={() => window.open(d.fileUrl, '_blank')}>
-                                                <div style={{ padding: 10, background: "rgba(56,189,248,0.1)", borderRadius: 8, color: "var(--cy)", flexShrink: 0 }}>
-                                                    <FileText size={20} />
-                                                </div>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div className="rb" style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)", marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.filename}</div>
-                                                    <div style={{ fontSize: 11, color: "var(--t2)" }}>מסמך קריאה</div>
-                                                </div>
-                                                <ChevronRight size={14} color="var(--t3)" style={{ flexShrink: 0 }} />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
 
                             <div className="panel" style={{ background: "linear-gradient(180deg, rgba(56,189,248,0.03), var(--bg))", border: "1px solid var(--bdr)", marginBottom: 28 }}>
                                 <div style={{ marginBottom: 24 }}>

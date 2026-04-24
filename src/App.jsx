@@ -83,7 +83,15 @@ export default function App() {
                 ]);
 
                 if (docsRes.data) {
-                    setLibraryDocs(docsRes.data.map(d => ({ id: d.id, filename: d.filename, fileUrl: d.file_url, uploadedAt: d.created_at, mimeType: "application/pdf" })));
+                    setLibraryDocs(docsRes.data.map(d => ({ 
+                        id: d.id, 
+                        filename: d.filename, 
+                        fileUrl: d.file_url, 
+                        uploadedAt: d.created_at, 
+                        mimeType: "application/pdf",
+                        uploadedById: d.uploaded_by_id,
+                        uploadedByName: d.uploaded_by_name
+                    })));
                 }
 
                 if (examsRes.data) {
@@ -279,7 +287,12 @@ export default function App() {
             const uniqueName = `${Date.now()}_${file.name}`;
             await supabase.storage.from('pdfs').upload(uniqueName, file);
             const { data: urlData } = supabase.storage.from('pdfs').getPublicUrl(uniqueName);
-            const dbEntry = { filename: file.name, file_url: urlData.publicUrl };
+            const dbEntry = { 
+                filename: file.name, 
+                file_url: urlData.publicUrl,
+                uploaded_by_id: user?.id,
+                uploaded_by_name: user?.name
+            };
             const { data } = await supabase.from('library_docs').insert([dbEntry]).select().single();
 
             const reader = new FileReader();
@@ -449,19 +462,11 @@ export default function App() {
         <>
             <style>{CSS}</style>
 
-            {/* DEBUG OVERLAY - REMOVE AFTER DIAGNOSING */}
-            {window.location.hash.includes('debug') && (
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 99999, background: 'rgba(0,0,0,0.8)', color: 'lime', padding: 20, maxHeight: '50vh', overflow: 'auto', textAlign: 'left', direction: 'ltr' }}>
-                    DEBUG DB.users:
-                    <pre>{JSON.stringify(DB.users, null, 2)}</pre>
-                </div>
-            )}
-
             {screen === "auth" && <AuthScreen authMode={authMode} setAuthMode={setAuthMode} authErr={authErr} setAuthErr={setAuthErr} form={form} setForm={setForm} doLogin={doLogin} doRegister={doRegister} doVerify={doVerify} />}
             {screen === "onboarding" && <OnboardingScreen user={user} setScreen={setScreen} />}
             {screen === "disclaimer" && <DisclaimerScreen agreed={agreed} setAgreed={setAgreed} setScreen={setScreen} />}
             {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
-            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s => s.status === 'completed')} allTopics={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} aiLoading={aiLoading} />}
+            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s => s.status === 'completed')} allTopics={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} aiLoading={aiLoading} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
 
             {screen === "training" && (
                 <TrainingScreen
