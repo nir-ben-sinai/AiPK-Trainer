@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { HelpCircle, Send, Loader2, Eye } from "lucide-react";
 
 export function TrainingScreen({
-    user, setScreen, topic, questions = [], qIdx = 0, baseAnsweredCount = 0,
+    user, setScreen, topic, questions = [], qIdx = 0, baseAnsweredCount = 0, currentAnsweredCount = 0,
     msgs = [], setMsgs, input, setInput,
     sendAnswer, loading, chatRef,
     qAttempts = 0, pops, finishSession, logHelpRequest
@@ -253,7 +253,7 @@ export function TrainingScreen({
             {/* Popup End Session */}
             {showFinishModal && (() => {
                 const isIncomplete = qIdx < questions.length - 1;
-                const totalAnsweredSoFar = qIdx; // כולל את הסשנים הקודמים (qIdx כבר מאותחל ל-baseAnsweredCount)
+                // currentAnsweredCount = ספירת לוגים נכונים מכל הסשנים (ישן + נוכחי)
                 return (
                     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(2,6,23,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
                         <div style={{ background: "#0f172a", padding: "40px", borderRadius: "20px", textAlign: "center", border: `1px solid ${isIncomplete ? "#ca8a04" : "#334155"}`, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)", maxWidth: "480px" }}>
@@ -262,7 +262,7 @@ export function TrainingScreen({
                                     <div style={{ fontSize: 40, marginBottom: 16 }}>⏸️</div>
                                     <h2 style={{ color: "#fbbf24", fontSize: "22px", marginBottom: "12px" }}>עצירת מבחן באמצע</h2>
                                     <p style={{ color: "#94a3b8", marginBottom: "10px", lineHeight: "1.6" }}>
-                                        ענית על <strong style={{ color: "#f8fafc" }}>{totalAnsweredSoFar}</strong> שאלות מתוך <strong style={{ color: "#f8fafc" }}>{questions.length}</strong>.
+                                        ענית על <strong style={{ color: "#f8fafc" }}>{currentAnsweredCount}</strong> שאלות מתוך <strong style={{ color: "#f8fafc" }}>{questions.length}</strong>.
                                     </p>
                                     <p style={{ color: "#64748b", fontSize: "13px", marginBottom: "30px", lineHeight: "1.6" }}>
                                         המבחן יישמר במערכת עם סטטוס "לא הושלם" ותוכל לעקוב אחריו בדאשבורד שלך.

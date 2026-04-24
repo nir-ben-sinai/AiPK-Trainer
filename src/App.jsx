@@ -395,7 +395,7 @@ export default function App() {
             sess.attemptCount = sessionLogs.length; // כולל טעויות
             sess.correctCount = correctCount;
             sess.totalQuestions = total;
-            sess.answeredCount = qIdx; // כמה שאלות נענו בפועל
+            sess.answeredCount = correctCount; // לוגים נכונים מכל הסשנים (DB.logs מצטבר)
 
             // שמירה ב-Supabase: גם בעמודת data וגם בעמודת score נפרדת
             await supabase
@@ -576,6 +576,7 @@ export default function App() {
                     input={input} setInput={setInput}
                     sendAnswer={sendAnswer} loading={loading} chatRef={chatRef}
                     qAttempts={qAttempts} finishSession={finishSession} logHelpRequest={logHelpRequest}
+                    currentAnsweredCount={DB.logs.filter(l => l.sessionId === sessionId).length}
                     pops={{
                         popup,
                         onNext: () => {
