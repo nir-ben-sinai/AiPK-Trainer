@@ -189,7 +189,7 @@ export function BackofficeScreen({
                             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", marginBottom: 12 }}>סשנים אחרונים</div>
                             <div className="card" style={{ overflow: "hidden" }}>
                                 <table>
-                                    <thead><tr><th>משתמש</th><th>נושא</th><th>ציון</th><th>ניסיונות</th><th>עזרה</th><th>דגל</th><th>תאריך</th></tr></thead>
+                                    <thead><tr><th>משתמש</th><th>נושא</th><th>סטטוס</th><th>ציון</th><th>ניסיונות</th><th>עזרה</th><th>דגל</th><th>תאריך</th></tr></thead>
                                     <tbody>
                                         {[...DB.sessions].reverse().slice(0, 8).map(s => {
                                             const u = DB.users.find(u => u.id === s.userId);
@@ -198,17 +198,26 @@ export function BackofficeScreen({
                                             const ansShow = s.showAnswerClicks || 0;
                                             return (
                                                 <tr key={s.id}>
-                                                    <td style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u?.name}</td>
-                                                    <td className="rb" style={{ color: "var(--t2)" }}>{t?.title || s.topicId}</td>
-                                                    <td><span style={{ fontWeight: 600, color: sc(s.score), fontFamily: "'IBM Plex Mono',monospace" }}>{s.score}%</span></td>
-                                                    <td style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
-                                                    <td>{hlp > 0 || ansShow > 0 ? <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                                                        {hlp > 0 && <span className="tag tag-warn" style={{ gap: 4, padding: "1px 6px", fontSize: 9 }}>עזרה: {hlp}</span>}
-                                                        {ansShow > 0 && <span className="tag tag-err" style={{ gap: 4, padding: "1px 6px", fontSize: 9 }}>תשובות: {ansShow}</span>}
-                                                    </div> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
-                                                    <td>{s.isCopied ? <span className="tag tag-err">Flag</span> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
-                                                    <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
-                                                </tr>
+                                                <td style={{ fontWeight: 500, color: "var(--t0)" }} className="rb">{u?.name}</td>
+                                                <td className="rb" style={{ color: "var(--t2)" }}>{t?.title || s.topicId}</td>
+                                                <td>
+                                                    <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 700, whiteSpace: "nowrap",
+                                                        background: s.status === "completed" ? "rgba(34,197,94,0.12)" : s.status === "incomplete" ? "rgba(234,179,8,0.15)" : "rgba(100,116,139,0.12)",
+                                                        color: s.status === "completed" ? "#22c55e" : s.status === "incomplete" ? "#eab308" : "#64748b",
+                                                        border: `1px solid ${s.status === "completed" ? "rgba(34,197,94,0.3)" : s.status === "incomplete" ? "rgba(234,179,8,0.3)" : "rgba(100,116,139,0.2)"}`
+                                                    }}>
+                                                        {s.status === "completed" ? "✅ Completed" : s.status === "incomplete" ? "⏸ Incomplete" : s.status || "—"}
+                                                    </span>
+                                                </td>
+                                                <td><span style={{ fontWeight: 600, color: sc(s.score), fontFamily: "'IBM Plex Mono',monospace" }}>{s.status === "incomplete" ? <span style={{ color: "#eab308" }}>{s.answeredCount || 0}/{s.totalQuestions || "?"}</span> : `${s.score ?? 0}%`}</span></td>
+                                                <td style={{ color: "var(--t2)" }}>{s.attemptCount}</td>
+                                                <td>{hlp > 0 || ansShow > 0 ? <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                                                    {hlp > 0 && <span className="tag tag-warn" style={{ gap: 4, padding: "1px 6px", fontSize: 9 }}>עזרה: {hlp}</span>}
+                                                    {ansShow > 0 && <span className="tag tag-err" style={{ gap: 4, padding: "1px 6px", fontSize: 9 }}>תשובות: {ansShow}</span>}
+                                                </div> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
+                                                <td>{s.isCopied ? <span className="tag tag-err">Flag</span> : <span style={{ color: "var(--t3)" }}>—</span>}</td>
+                                                <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(s.startedAt)}</td>
+                                            </tr>
                                             );
                                         })}
                                     </tbody>
