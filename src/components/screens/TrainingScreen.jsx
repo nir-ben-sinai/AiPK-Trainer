@@ -251,34 +251,70 @@ export function TrainingScreen({
 
 
             {/* Popup End Session */}
-            {showFinishModal && (
-                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(2,6,23,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-                    <div style={{ background: "#0f172a", padding: "40px", borderRadius: "20px", textAlign: "center", border: "1px solid #334155", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)", maxWidth: "450px" }}>
-                        <h2 style={{ color: "#f8fafc", fontSize: "24px", marginBottom: "15px" }}>סיום אימון</h2>
-                        <p style={{ color: "#94a3b8", marginBottom: "30px", lineHeight: "1.5" }}>
-                            האם אתה בטוח שברצונך לסיים את האימון כעת?
-                        </p>
-                        <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
-                            <button
-                                onClick={() => {
-                                    setShowFinishModal(false);
-                                    if (finishSession) finishSession();
-                                    setScreen("debrief");
-                                }}
-                                style={{ padding: "10px 24px", fontSize: "16px", borderRadius: "8px", background: "#3b82f6", color: "#fff", border: "none", cursor: "pointer", fontWeight: "bold" }}
-                            >
-                                כן, עבור לתחקיר
-                            </button>
-                            <button
-                                onClick={() => setShowFinishModal(false)}
-                                style={{ padding: "10px 24px", fontSize: "16px", borderRadius: "8px", background: "transparent", color: "#94a3b8", border: "1px solid #334155", cursor: "pointer" }}
-                            >
-                                ביטול
-                            </button>
+            {showFinishModal && (() => {
+                const isIncomplete = qIdx < questions.length - 1;
+                return (
+                    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(2,6,23,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+                        <div style={{ background: "#0f172a", padding: "40px", borderRadius: "20px", textAlign: "center", border: `1px solid ${isIncomplete ? "#ca8a04" : "#334155"}`, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)", maxWidth: "480px" }}>
+                            {isIncomplete ? (
+                                <>
+                                    <div style={{ fontSize: 40, marginBottom: 16 }}>⏸️</div>
+                                    <h2 style={{ color: "#fbbf24", fontSize: "22px", marginBottom: "12px" }}>עצירת מבחן באמצע</h2>
+                                    <p style={{ color: "#94a3b8", marginBottom: "10px", lineHeight: "1.6" }}>
+                                        ענית על <strong style={{ color: "#f8fafc" }}>{qIdx}</strong> שאלות מתוך <strong style={{ color: "#f8fafc" }}>{questions.length}</strong>.
+                                    </p>
+                                    <p style={{ color: "#64748b", fontSize: "13px", marginBottom: "30px", lineHeight: "1.6" }}>
+                                        המבחן יישמר במערכת עם סטטוס "לא הושלם" ותוכל לעקוב אחריו בדאשבורד שלך.
+                                    </p>
+                                    <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
+                                        <button
+                                            onClick={() => {
+                                                setShowFinishModal(false);
+                                                if (finishSession) finishSession(true); // true = incomplete
+                                                setScreen("home");
+                                            }}
+                                            style={{ padding: "12px 28px", fontSize: "15px", borderRadius: "8px", background: "#ca8a04", color: "#fff", border: "none", cursor: "pointer", fontWeight: "bold" }}
+                                        >
+                                            אישור — שמור ויצא
+                                        </button>
+                                        <button
+                                            onClick={() => setShowFinishModal(false)}
+                                            style={{ padding: "12px 24px", fontSize: "15px", borderRadius: "8px", background: "transparent", color: "#94a3b8", border: "1px solid #334155", cursor: "pointer" }}
+                                        >
+                                            חזרה למבחן
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <h2 style={{ color: "#f8fafc", fontSize: "24px", marginBottom: "15px" }}>סיום אימון</h2>
+                                    <p style={{ color: "#94a3b8", marginBottom: "30px", lineHeight: "1.5" }}>
+                                        ענית על כל השאלות! האם לעבור לתחקיר מסכם?
+                                    </p>
+                                    <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
+                                        <button
+                                            onClick={() => {
+                                                setShowFinishModal(false);
+                                                if (finishSession) finishSession(false);
+                                                setScreen("debrief");
+                                            }}
+                                            style={{ padding: "10px 24px", fontSize: "16px", borderRadius: "8px", background: "#3b82f6", color: "#fff", border: "none", cursor: "pointer", fontWeight: "bold" }}
+                                        >
+                                            כן, עבור לתחקיר
+                                        </button>
+                                        <button
+                                            onClick={() => setShowFinishModal(false)}
+                                            style={{ padding: "10px 24px", fontSize: "16px", borderRadius: "8px", background: "transparent", color: "#94a3b8", border: "1px solid #334155", cursor: "pointer" }}
+                                        >
+                                            ביטול
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

@@ -18,7 +18,9 @@ const SortableTH = ({ label, sortKey, config, requestSort, style }) => {
 
 export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [], processAiFile, aiLoading, addLibraryDoc, isUploadingDoc }) {
     const fileInputRef = useRef(null);
-    const myDone = done.filter(s => s?.userId === user?.id);
+    const myAllSessions = done.filter(s => s?.userId === user?.id);
+    const myDone = myAllSessions.filter(s => s.status === "completed");
+    const myIncomplete = myAllSessions.filter(s => s.status === "incomplete");
     const totalSessions = myDone.length;
     const avgScore = totalSessions > 0 ? Math.round(myDone.reduce((a, s) => a + s.score, 0) / totalSessions) : 0;
     const myHelps = DB.helpRequests.filter(h => h.userId === user?.id).length;
@@ -277,14 +279,20 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                 <div className="topics-grid">
                                     {uploadedSets.filter(t => !t.createdBy || t.createdBy === user?.id).map(t => {
                                         const mySess = DB.sessions.filter(s => s.userId === user?.id && s.topicId === t.id && s.status === "completed");
+                                        const incSess = myIncomplete.find(s => s.topicId === t.id);
                                         const best = mySess.length ? Math.max(...mySess.map(s => s.score)) : null;
                                         const isMyTest = t.createdBy === user?.id;
                                         return (
-                                            <div key={t.id} className="card card-hover" style={{ padding: "18px", cursor: "pointer", border: isMyTest ? "1px solid rgba(249,115,22,0.35)" : undefined, background: isMyTest ? "linear-gradient(135deg, rgba(249,115,22,0.06), rgba(249,115,22,0.02))" : undefined }} onClick={() => startSession(t)}>
+                                            <div key={t.id} className="card card-hover" style={{ padding: "18px", cursor: "pointer", border: incSess ? "1px solid rgba(234,179,8,0.4)" : (isMyTest ? "1px solid rgba(249,115,22,0.35)" : undefined), background: incSess ? "linear-gradient(135deg, rgba(234,179,8,0.07), rgba(234,179,8,0.02))" : (isMyTest ? "linear-gradient(135deg, rgba(249,115,22,0.06), rgba(249,115,22,0.02))" : undefined) }} onClick={() => startSession(t)}>
                                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                                                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                                         <span className="tag tag-cyan" style={{ fontSize: 9 }}>{t.filename}</span>
-                                                        {isMyTest && (
+                                                        {incSess && (
+                                                            <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 20, background: "rgba(234,179,8,0.15)", color: "#eab308", fontWeight: 700, border: "1px solid rgba(234,179,8,0.35)", whiteSpace: "nowrap" }}>
+                                                                ⏸ לא הושלם · {incSess.answeredCount || 0}/{incSess.totalQuestions || t.questions.length}
+                                                            </span>
+                                                        )}
+                                                        {!incSess && isMyTest && (
                                                             <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 20, background: "rgba(249,115,22,0.15)", color: "#f97316", fontWeight: 700, border: "1px solid rgba(249,115,22,0.3)", whiteSpace: "nowrap" }}>
                                                                 ✏️ יצרתי אני
                                                             </span>
@@ -296,7 +304,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                                 <div className="rb" style={{ fontSize: 12, color: "var(--t2)", lineHeight: 1.55, marginBottom: 14 }}>{t.description}</div>
                                                 <div className="flex-resp">
                                                     <span style={{ fontSize: 11, color: "var(--t3)" }}>{t.questions.length} שאלות</span>
-                                                    <ChevronRight size={14} color={isMyTest ? "#f97316" : "var(--t3)"} />
+                                                    <ChevronRight size={14} color={incSess ? "#eab308" : (isMyTest ? "#f97316" : "var(--t3)")} />
                                                 </div>
                                             </div>
                                         );

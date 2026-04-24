@@ -378,7 +378,7 @@ export default function App() {
         }
     };
 
-    const finishSession = async () => {
+    const finishSession = async (incomplete = false) => {
         const sess = DB.sessions.find(s => s.id === sessionId);
         if (sess) {
             // מחשבים ציון אמיתי: כמה שאלות נענו נכון מתוך סך השאלות
@@ -388,11 +388,12 @@ export default function App() {
             const score = Math.round((correctCount / total) * 100);
 
             sess.score = score;
-            sess.status = "completed";
+            sess.status = incomplete ? "incomplete" : "completed";
             sess.completedAt = new Date().toISOString();
             sess.attemptCount = sessionLogs.length; // כולל טעויות
             sess.correctCount = correctCount;
             sess.totalQuestions = total;
+            sess.answeredCount = qIdx; // כמה שאלות נענו בפועל
 
             // שמירה ב-Supabase: גם בעמודת data וגם בעמודת score נפרדת
             await supabase
