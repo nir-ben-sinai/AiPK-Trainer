@@ -424,21 +424,71 @@ export default function App() {
     };
 
     const startSession = async (t) => {
+        // --- בדיקה: האם קיים סשן לא-מושלם לאותו מבחן? ---
+        const existingIncomplete = DB.sessions.find(
+            s => s.userId === user.id && s.topicId === t.id && s.status === "incomplete"
+        );
+
+        if (existingIncomplete) {
+            // === מצב המשך מבחן ===
+            // שחזור השאלות באותו סדר שהמשתמש ראה (לא ניתן לשחזר את הסדר המקורי, אז נשתמש בסדר הנוכחי ב-logs)
+            const sessionLogs = DB.logs.filter(l => l.sessionId === existingIncomplete.id);
+            const answeredCount = existingIncomplete.answeredCount || sessionLogs.length;
+
+            // שחזור היסטוריית שיחה מהלוגים
+            const restoredMsgs = [];
+            for (const log of sessionLogs) {
+                restoredMsgs.push({ role: "ai", text: log.question });
+                restoredMsgs.push({ role: "user", text: log.answer });
+                restoredMsgs.push({
+                    role: "ai",
+                    text: log.status === "correct"
+                        ? "✅ תשובה נכונה!"
+                        : `תשובה נכונה: ${log.correctAnswer || ""}`
+                });
+            }
+
+            // עדכון סטטוס ל-active מחדש
+            existingIncomplete.status = "active";
+            await supabase.from('app_sessions').update({ data: existingIncomplete }).eq('id', existingIncomplete.id);
+
+            // שימוש בשאלות בסדר ה-shuffle המקורי ככל הניתן
+            // נוציא את השאלות שנענו על בסיס שם השאלה מהלוגים
+            const answeredQuestions = new Set(sessionLogs.map(l => l.question));
+            const remaining = t.questions.filter(q => !answeredQuestions.has(q.question));
+            // אם כבר ענה על כולן — מתחיל מחדש
+            const allQuestions = remaining.length > 0
+                ? [...sessionLogs.map(l => t.questions.find(q => q.question === l.question) || l), ...remaining]
+                : [...t.questions].sort(() => Math.random() - 0.5);
+
+            const resumeIdx = sessionLogs.length;
+
+            setTopic(t);
+            setQuestions(allQuestions);
+            setQIdx(resumeIdx);
+            setSessionId(existingIncomplete.id);
+            setMsgs([
+                { role: "system", text: `▶️ ממשיך מבחן מהנקודה שעצרת — ענית על ${answeredCount} שאלות מתוך ${t.questions.length}` },
+                ...restoredMsgs,
+                { role: "ai", text: allQuestions[resumeIdx]?.question || "✅ סיימת את כל השאלות!" }
+            ]);
+            setQAttempts(0);
+            setScreen("training");
+            return;
+        }
+
+        // === מצב מבחן חדש ===
         const sid = genId("s");
         const sess = { id: sid, userId: user.id, topicId: t.id, startedAt: new Date().toISOString(), status: "active", score: 0 };
         DB.sessions.push(sess);
         await supabase.from('app_sessions').insert([{ id: sid, user_id: user.id, data: sess }]);
 
-        // --- הוספנו כאן ערבוב (Shuffle) אקראי של מערך השאלות ---
-        // אנחנו יוצרים עותק של השאלות ומערבבים אותו, כדי לא לשנות את קובץ המקור ב-DB
         const shuffledQuestions = [...t.questions].sort(() => Math.random() - 0.5);
 
         setTopic(t);
-        setQuestions(shuffledQuestions); // טוענים את המערך המעורבב לסטייט
+        setQuestions(shuffledQuestions);
         setQIdx(0);
         setSessionId(sid);
-
-        // השאלה הראשונה שמוצגת היא כעת השאלה הראשונה מהמערך המעורבב (שהיא אקראית)
         setMsgs([{ role: "ai", text: shuffledQuestions[0]?.question || "אין שאלות" }]);
         setQAttempts(0);
         setScreen("training");
@@ -466,8 +516,17 @@ export default function App() {
             setMsgs(prev => [...prev, { role: "ai", text: cleanReply }]);
 
             if (isCorrect) {
-                const log = { id: genId("log"), sessionId, userId: user.id, question: questions[qIdx].question, answer: ans, status: "correct" };
+                const log = { 
+                    id: genId("log"), 
+                    sessionId, 
+                    userId: user.id, 
+                    question: questions[qIdx].question, 
+                    answer: ans, 
+                    correctAnswer: questions[qIdx]?.correctAnswer || questions[qIdx]?.answer || "",
+                    status: "correct" 
+                };
                 await supabase.from('app_logs').insert([{ id: log.id, session_id: sessionId, user_id: user.id, data: log }]);
+                DB.logs.push(log);
 
                 setTimeout(() => setPopup("next"), 1500);
             } else {
