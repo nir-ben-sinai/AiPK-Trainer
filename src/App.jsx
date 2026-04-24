@@ -43,6 +43,7 @@ export default function App() {
     const [topic, setTopic] = useState(null);
     const [questions, setQuestions] = useState([]);
     const [qIdx, setQIdx] = useState(0);
+    const [baseAnsweredCount, setBaseAnsweredCount] = useState(0); // שאלות שנענו בסשנים קודמים
     const [msgs, setMsgs] = useState([]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -464,6 +465,7 @@ export default function App() {
 
             const resumeIdx = sessionLogs.length;
 
+            setBaseAnsweredCount(sessionLogs.length); // שמירת כמות השאלות מהסשנים הקודמים
             setTopic(t);
             setQuestions(allQuestions);
             setQIdx(resumeIdx);
@@ -479,6 +481,7 @@ export default function App() {
         }
 
         // === מצב מבחן חדש ===
+        setBaseAnsweredCount(0);
         const sid = genId("s");
         const sess = { id: sid, userId: user.id, topicId: t.id, startedAt: new Date().toISOString(), status: "active", score: 0 };
         DB.sessions.push(sess);
@@ -568,7 +571,7 @@ export default function App() {
             {screen === "training" && (
                 <TrainingScreen
                     user={user} setScreen={setScreen}
-                    topic={topic} questions={questions} qIdx={qIdx}
+                    topic={topic} questions={questions} qIdx={qIdx} baseAnsweredCount={baseAnsweredCount}
                     msgs={msgs} setMsgs={setMsgs}
                     input={input} setInput={setInput}
                     sendAnswer={sendAnswer} loading={loading} chatRef={chatRef}
