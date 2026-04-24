@@ -285,8 +285,12 @@ export default function App() {
         setIsUploadingDoc(true);
         try {
             const file = files[0];
-            const uniqueName = `${Date.now()}_${file.name}`;
-            await supabase.storage.from('pdfs').upload(uniqueName, file);
+            const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const uniqueName = `${Date.now()}_${cleanName}`;
+            
+            const uploadRes = await supabase.storage.from('pdfs').upload(uniqueName, file);
+            if (uploadRes.error) throw new Error(`Storage upload failed: ${uploadRes.error.message}`);
+
             const { data: urlData } = supabase.storage.from('pdfs').getPublicUrl(uniqueName);
             const dbEntry = { 
                 filename: file.name, 
@@ -294,7 +298,12 @@ export default function App() {
                 uploaded_by_id: user?.id,
                 uploaded_by_name: user?.name
             };
-            const { data } = await supabase.from('library_docs').insert([dbEntry]).select().single();
+            
+            const dbRes = await supabase.from('library_docs').insert([dbEntry]).select().single();
+            if (dbRes.error) {
+                console.error("DB Error:", dbRes.error);
+                throw new Error(`Database record creation failed: ${dbRes.error.message}`);
+            }
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
