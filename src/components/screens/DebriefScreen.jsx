@@ -3,7 +3,7 @@ import { Send, Loader2, CheckCircle, MessageSquare, Target, Lightbulb, AlertTria
 import { DB } from "../../lib/mockBackend";
 import { startInteractiveDebrief, continueInteractiveDebrief } from "../../lib/geminiApi";
 
-export function DebriefScreen({ user, setScreen }) {
+export function DebriefScreen({ user, setScreen, openFeedback }) {
     // משיכת נתוני האימון האחרון של המשתמש מה-DB
     const latestSession = [...DB.sessions].reverse().find(s => s.userId === user?.id);
     const sessionLogs = DB.logs.filter(l => l.sessionId === latestSession?.id);
@@ -85,11 +85,24 @@ export function DebriefScreen({ user, setScreen }) {
         <div style={{ background: "#0b1120", minHeight: "100vh", display: "flex", flexDirection: "column", direction: "rtl", fontFamily: "sans-serif" }}>
 
             {/* Header */}
-            <div style={{ padding: "15px 30px", display: "flex", justifyContent: "center", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a" }}>
+            <div style={{ padding: "15px 30px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b", background: "#0f172a" }}>
+                <div style={{ width: 100 }} /> {/* Spacer */}
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#f8fafc", fontSize: "18px", fontWeight: "bold" }}>
                     <Target size={20} color="#38bdf8" />
                     תחקיר ביצועים מסכם
                 </div>
+                <button 
+                    onClick={openFeedback}
+                    style={{ 
+                        display: "flex", alignItems: "center", gap: "8px", 
+                        padding: "8px 16px", borderRadius: "8px", 
+                        background: "rgba(56,189,248,0.1)", color: "#38bdf8", 
+                        border: "1px solid rgba(56,189,248,0.3)", cursor: "pointer",
+                        fontSize: "13px", fontWeight: "600"
+                    }}
+                >
+                    <MessageSquare size={14} /> משוב
+                </button>
             </div>
 
             {/* Step 1: Form */}

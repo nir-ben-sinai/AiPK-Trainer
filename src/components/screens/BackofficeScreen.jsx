@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, LogOut, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2, Play, Eye, Edit2, Save, Target, Search } from "lucide-react";
+import { BarChart2, Users, Clock, FileText, BookOpen, Database, ArrowLeft, LogOut, MapPin, Upload, Download, XCircle, CheckCircle, Trash2, Wand2, Sparkles, Loader2, Play, Eye, Edit2, Save, Target, Search, MessageSquare } from "lucide-react";
 import { DB, sc, fmt } from "../../lib/mockBackend";
 import { Logo } from "../Logo";
 import { useTableData } from "../../hooks/useTableData";
@@ -17,7 +17,7 @@ const SortableTH = ({ label, sortKey, config, requestSort, style }) => {
 };
 
 export function BackofficeScreen({
-    user, setUser, setScreen, boTab, setBoTab, dbTable, setDbTable, done, avgSc, uploadedSets, updateSet, libraryDocs, processAiFile, addLibraryDoc, deleteLibraryDoc, aiLoading, handleFileInput, uploadError, deleteSet, isUploadingDoc, deleteUserRecord, tick, setSelectedTest, toggleUserAi
+    user, setUser, setScreen, boTab, setBoTab, dbTable, setDbTable, done, avgSc, uploadedSets, updateSet, libraryDocs, processAiFile, addLibraryDoc, deleteLibraryDoc, aiLoading, handleFileInput, uploadError, deleteSet, isUploadingDoc, deleteUserRecord, tick, setSelectedTest, toggleUserAi, feedbackList
 }) {
     const fileInputRef = useRef(null);
     const aiFileInputRef = useRef(null);
@@ -80,6 +80,8 @@ export function BackofficeScreen({
         });
     }, [uploadedSets, tick]);
     const helpTable = useTableData(processedHelp, { initialSortKey: 'time', initialSortDir: 'desc' });
+    
+    const feedbackTable = useTableData(feedbackList || [], { initialSortKey: 'createdAt', initialSortDir: 'desc' });
 
     const localDownloadTemplate = () => {
         const csvContent = "data:text/csv;charset=utf-8,\uFEFFQuestion,Option 1,Option 2,Option 3,Option 4,Correct Answer\nדוגמה לשאלה,תשובה א,תשובה ב,תשובה ג,תשובה ד,תשובה א";
@@ -108,6 +110,7 @@ export function BackofficeScreen({
         { id: "sessions", label: "סשנים", Icon: Clock },
         { id: "logs", label: "לוגים", Icon: FileText },
         { id: "kb", label: "ידע", Icon: BookOpen },
+        { id: "feedback", label: "משובים", Icon: MessageSquare },
         { id: "database", label: "DB", Icon: Database },
     ];
 
@@ -646,6 +649,42 @@ export function BackofficeScreen({
                                             })}
                                         </div>
                                     )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* FEEDBACK */}
+                    {boTab === "feedback" && (
+                        <div className="fade">
+                            <div className="flex-resp" style={{ marginBottom: 16 }}>
+                                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t0)" }}>משובים מהמתאמנים ({feedbackTable.data.length})</div>
+                                <div style={{ position: "relative", width: 220, maxWidth: "100%" }}>
+                                    <Search size={14} style={{ position: "absolute", right: 10, top: 10, color: "var(--t2)" }} />
+                                    <input type="text" placeholder="חיפוש..." value={feedbackTable.searchQuery} onChange={e => feedbackTable.setSearchQuery(e.target.value)} style={{ background: "var(--bg)", border: "1px solid var(--bdr)", borderRadius: 6, padding: "7px 10px 7px 30px", fontSize: 13, color: "var(--t0)", width: "100%" }} />
+                                </div>
+                            </div>
+                            <div className="card" style={{ overflow: "hidden" }}>
+                                <div className="table-wrap">
+                                    <table>
+                                        <thead><tr>
+                                            <SortableTH label="שם המתאמן" sortKey="userName" config={feedbackTable.sortConfig} requestSort={feedbackTable.requestSort} />
+                                            <SortableTH label="תוכן המשוב" sortKey="text" config={feedbackTable.sortConfig} requestSort={feedbackTable.requestSort} />
+                                            <SortableTH label="תאריך ושעה" sortKey="createdAt" config={feedbackTable.sortConfig} requestSort={feedbackTable.requestSort} />
+                                        </tr></thead>
+                                        <tbody>
+                                            {feedbackTable.data.map(f => (
+                                                <tr key={f.id}>
+                                                    <td style={{ fontWeight: 600, color: "var(--t0)" }} className="rb">{f.userName}</td>
+                                                    <td style={{ color: "var(--t1)", maxWidth: 400, whiteSpace: "normal", lineHeight: 1.5 }}>{f.text}</td>
+                                                    <td style={{ color: "var(--t2)", fontSize: 12 }}>{fmt(f.createdAt)}</td>
+                                                </tr>
+                                            ))}
+                                            {feedbackTable.data.length === 0 && (
+                                                <tr><td colSpan="3" style={{ textAlign: "center", padding: 40, color: "var(--t3)" }}>אין משובים להצגה</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>

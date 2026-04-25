@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target, Search, Wand2, Lock, XCircle, Loader2, Sparkles, Upload, Clock, User, Trash2 } from "lucide-react";
+import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target, Search, Wand2, Lock, XCircle, Loader2, Sparkles, Upload, Clock, User, Trash2, MessageSquare } from "lucide-react";
 import { Logo } from "../Logo";
 import { DB, fmt, sc } from "../../lib/mockBackend";
 import { useTableData } from "../../hooks/useTableData";
@@ -16,7 +16,7 @@ const SortableTH = ({ label, sortKey, config, requestSort, style }) => {
     );
 };
 
-export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [], processAiFile, aiLoading, addLibraryDoc, isUploadingDoc, deleteLibraryDoc, deleteSet }) {
+export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [], processAiFile, aiLoading, addLibraryDoc, isUploadingDoc, deleteLibraryDoc, deleteSet, openFeedback }) {
     const fileInputRef = useRef(null);
     const myAllSessions = done.filter(s => s?.userId === user?.id);
     const myDone = myAllSessions.filter(s => s.status === "completed");
@@ -88,6 +88,9 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                 <Settings size={13} /> Back Office
                             </button>
                         )}
+                        <button className="btn btn-ghost" style={{ gap: 6, color: "var(--cy)" }} onClick={openFeedback}>
+                            <MessageSquare size={13} /> משוב
+                        </button>
                         <button className="btn btn-ghost" style={{ gap: 6 }} onClick={() => {
                             setUser(null);
                             localStorage.removeItem("aipk_user");

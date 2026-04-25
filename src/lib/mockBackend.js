@@ -20,6 +20,7 @@ export const DB = {
         { id: "deb_1", userId: "u_1", sessionId: "sess_x1", score: 85, aiSummary: "ביצועים טובים עם שליטה טובה בחומר. יש לחזק הבנה בנהלי התקרחות.", insights: ["הבנה טובה של נוהל חירום", "קצב מענה מהיר ויעיל"] },
         { id: "deb_2", userId: "u_2", sessionId: "sess_x2", score: 65, aiSummary: "רמה בינונית. ניכר קושי בתרחישי מהירות גישה.", insights: ["דרוש שיפור בחישובי VREF", "פירוט חסר בתשובות ארוכות"] },
     ],
+    feedback: [],
     // Uploaded question sets (Tests) — populated at runtime
     uploadedSets: [],
     // Uploaded source books (PDF/TXT) — populated at runtime

@@ -13,6 +13,7 @@ import { HomeScreen } from "./components/screens/HomeScreen";
 import { TrainingScreen } from "./components/screens/TrainingScreen";
 import { DebriefScreen } from "./components/screens/DebriefScreen";
 import { BackofficeScreen } from "./components/screens/BackofficeScreen";
+import { FeedbackModal } from "./components/modals/FeedbackModal";
 
 const isUuid = (str) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
 
@@ -58,6 +59,8 @@ export default function App() {
 
     const [uploadedSets, setUploadedSets] = useState([]);
     const [libraryDocs, setLibraryDocs] = useState([]);
+    const [feedbackList, setFeedbackList] = useState([]);
+    const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
 
 
@@ -74,14 +77,15 @@ export default function App() {
         const fetchSupabaseData = async () => {
             console.log("App Version: 1.0.2 - 14:56");
             try {
-                const [docsRes, examsRes, usersRes, sessRes, logsRes, debRes, helpRes] = await Promise.all([
+                const [docsRes, examsRes, usersRes, sessRes, logsRes, debRes, helpRes, feedRes] = await Promise.all([
                     supabase.from('library_docs').select('*'),
                     supabase.from('exams').select('*'),
                     supabase.from('app_users').select('*'),
                     supabase.from('app_sessions').select('*'),
                     supabase.from('app_logs').select('*'),
                     supabase.from('app_debriefs').select('*'),
-                    supabase.from('app_help').select('*')
+                    supabase.from('app_help').select('*'),
+                    supabase.from('app_feedback').select('*')
                 ]);
 
                 if (docsRes.data) {
@@ -115,6 +119,11 @@ export default function App() {
                     });
                     setUploadedSets(formattedExams);
                     DB.uploadedSets = formattedExams;
+                }
+
+                if (feedRes.data) {
+                    setFeedbackList(feedRes.data);
+                    DB.feedback = feedRes.data;
                 }
 
                 loadDbLocal();
@@ -594,6 +603,28 @@ export default function App() {
         }
     };
 
+    const submitFeedback = async (text) => {
+        const item = {
+            id: genId("fb"),
+            userId: user?.id,
+            userName: user?.name,
+            text,
+            createdAt: new Date().toISOString()
+        };
+        
+        try {
+            const { error } = await supabase.from('app_feedback').insert([item]);
+            if (error) throw error;
+            setFeedbackList(prev => [item, ...prev]);
+            DB.feedback.unshift(item);
+        } catch (e) {
+            console.error("Feedback error:", e);
+            // Fallback for local
+            setFeedbackList(prev => [item, ...prev]);
+            DB.feedback.unshift(item);
+        }
+    };
+
     return (
         <>
             <style>{CSS}</style>
@@ -602,7 +633,7 @@ export default function App() {
             {screen === "onboarding" && <OnboardingScreen user={user} setScreen={setScreen} />}
             {screen === "disclaimer" && <DisclaimerScreen agreed={agreed} setAgreed={setAgreed} setScreen={setScreen} />}
             {screen === "admin_upload" && <AdminUploadScreen uploadedSets={uploadedSets} adminStep={adminStep} setAdminStep={setAdminStep} goBO={() => setScreen("backoffice")} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} />}
-            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s => s.status === 'completed' || s.status === 'incomplete')} allTopics={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} aiLoading={aiLoading} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} deleteLibraryDoc={deleteLibraryDoc} deleteSet={deleteSet} />}
+            {screen === "home" && <HomeScreen user={user} setScreen={setScreen} setUser={setUser} uploadedSets={uploadedSets} startSession={startSession} done={DB.sessions.filter(s => s.status === 'completed' || s.status === 'incomplete')} allTopics={uploadedSets} libraryDocs={libraryDocs} processAiFile={processAiFile} aiLoading={aiLoading} addLibraryDoc={addLibraryDoc} isUploadingDoc={isUploadingDoc} deleteLibraryDoc={deleteLibraryDoc} deleteSet={deleteSet} openFeedback={() => setIsFeedbackOpen(true)} />}
 
             {screen === "training" && (
                 <TrainingScreen
@@ -630,12 +661,19 @@ export default function App() {
                 />
             )}
 
-            {screen === "debrief" && <DebriefScreen user={user} setScreen={setScreen} />}
+            {screen === "debrief" && <DebriefScreen user={user} setScreen={setScreen} openFeedback={() => setIsFeedbackOpen(true)} />}
             {screen === "backoffice" && (() => {
                 const completedSessions = DB.sessions.filter(s => s.status === 'completed');
                 const calculatedAvgSc = completedSessions.length ? Math.round(completedSessions.reduce((acc, s) => acc + s.score, 0) / completedSessions.length) : 0;
-                return <BackofficeScreen user={user} setScreen={setScreen} setUser={setUser} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={completedSessions} avgSc={calculatedAvgSc} uploadedSets={uploadedSets} updateSet={saveTestUpdate} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} toggleUserAi={toggleUserAi} tick={tick} isUploadingDoc={isUploadingDoc} />;
+                return <BackofficeScreen user={user} setScreen={setScreen} setUser={setUser} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={completedSessions} avgSc={calculatedAvgSc} uploadedSets={uploadedSets} updateSet={saveTestUpdate} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} toggleUserAi={toggleUserAi} tick={tick} isUploadingDoc={isUploadingDoc} feedbackList={feedbackList} />;
             })()}
+
+            <FeedbackModal 
+                isOpen={isFeedbackOpen} 
+                onClose={() => setIsFeedbackOpen(false)} 
+                onSubmit={submitFeedback}
+                user={user}
+            />
         </>
     );
 }
