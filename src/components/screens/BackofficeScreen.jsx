@@ -522,20 +522,25 @@ export function BackofficeScreen({
                                                     <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>הספר בדרך...</div>
                                                 </div>
                                             )}
-                                            {libraryDocs.map(d => (
-                                                <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: d.uploadedById ? "rgba(249,115,22,0.06)" : "var(--s2)", border: `1px solid ${d.uploadedById ? "rgba(249,115,22,0.35)" : "var(--bdr)"}`, borderRadius: 6 }}>
-                                                    <BookOpen size={18} color={d.uploadedById ? "#f97316" : "var(--cy)"} style={{ flexShrink: 0 }} />
+                                            {libraryDocs.map(d => {
+                                                const isUserDoc = d.uploadedById && d.uploaderRole !== "admin";
+                                                const accentColor = isUserDoc ? "#f97316" : "var(--cy)";
+                                                const accentBg = isUserDoc ? "rgba(249,115,22,0.06)" : "var(--s2)";
+                                                const accentBdr = isUserDoc ? "rgba(249,115,22,0.35)" : "var(--bdr)";
+                                                return (
+                                                <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: accentBg, border: `1px solid ${accentBdr}`, borderRadius: 6 }}>
+                                                    <BookOpen size={18} color={accentColor} style={{ flexShrink: 0 }} />
                                                     <div style={{ flex: 1, minWidth: 0 }}>
                                                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                                                             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)" }}>{d.filename}</div>
-                                                            {d.uploadedById && (
+                                                            {isUserDoc && (
                                                                 <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: "rgba(249,115,22,0.15)", color: "#f97316", fontWeight: 700, border: "1px solid rgba(249,115,22,0.3)", whiteSpace: "nowrap" }}>
                                                                     👤 {d.uploadedByName || "משתמש"}
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <div style={{ fontSize: 11, color: d.uploadedById ? "#f97316" : "var(--t2)", opacity: d.uploadedById ? 0.8 : 1 }}>
-                                                            {d.uploadedById ? `הועלה ע"י ${d.uploadedByName} — ` : "מסמך מערכת — "}{fmt(d.uploadedAt)}
+                                                        <div style={{ fontSize: 11, color: isUserDoc ? "#f97316" : "var(--t2)", opacity: isUserDoc ? 0.8 : 1 }}>
+                                                            {isUserDoc ? `הועלה ע"י ${d.uploadedByName} — ` : "מסמך מערכת — "}{fmt(d.uploadedAt)}
                                                         </div>
                                                     </div>
                                                     <button
@@ -577,60 +582,66 @@ export function BackofficeScreen({
                                         </div>
                                     ) : (
                                         <div style={{ display: "grid", gap: 8 }}>
-                                            {uploadedSets.map(s => (
-                                                <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "var(--s2)", border: "1px solid var(--bdr)", borderRadius: 6 }}>
-                                                    <CheckCircle size={18} color="var(--ok)" style={{ flexShrink: 0 }} />
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <div style={{ fontSize: 14, fontWeight: 500, color: "var(--t0)", marginBottom: 2 }}>
-                                                            {s.title}
-                                                            {s.creatorName && <span className="tag tag-warn" style={{ marginLeft: 8, marginRight: 6 }}>נוצר ע"י: {s.creatorName}</span>}
+                                            {uploadedSets.map(s => {
+                                                const isUserTest = s.createdBy && s.creatorRole !== "admin";
+                                                const testAccent = isUserTest ? "#f97316" : "var(--ok)";
+                                                const testBg = isUserTest ? "rgba(249,115,22,0.06)" : "var(--s2)";
+                                                const testBdr = isUserTest ? "rgba(249,115,22,0.35)" : "var(--bdr)";
+                                                return (
+                                                    <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: testBg, border: `1px solid ${testBdr}`, borderRadius: 6 }}>
+                                                        <CheckCircle size={18} color={testAccent} style={{ flexShrink: 0 }} />
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ fontSize: 14, fontWeight: 500, color: "var(--t0)", marginBottom: 2 }}>
+                                                                {s.title}
+                                                                {s.creatorName && <span className="tag tag-warn" style={{ marginLeft: 8, marginRight: 6 }}>נוצר ע"י: {s.creatorName}</span>}
+                                                            </div>
+                                                            <div style={{ fontSize: 12, color: "var(--t2)" }}>{s.description || "מבחן פעיל"} · בוצעו {done.filter(se => se.topicId === s.id).length} אימונים · נוצר בתאריך {fmt(s.uploadedAt || new Date())}</div>
                                                         </div>
-                                                        <div style={{ fontSize: 12, color: "var(--t2)" }}>{s.description || "מבחן פעיל"} · בוצעו {done.filter(se => se.topicId === s.id).length} אימונים · נוצר בתאריך {fmt(s.uploadedAt || new Date())}</div>
+
+                                                        {/* כפתור "התחל אימון" */}
+                                                        <button
+                                                            className="btn-icon"
+                                                            style={{ border: "1px solid var(--bdr)", color: "var(--t0)", background: "var(--s1)", width: 34, height: 34 }}
+                                                            onClick={() => { setSelectedTest && setSelectedTest(s); setScreen('training'); }}
+                                                            title="התחל אימון במבחן זה"
+                                                        >
+                                                            <Play size={14} style={{ position: "relative", left: 1 }} />
+                                                        </button>
+
+                                                        {/* כפתור "צפה בשאלות" לאדמין */}
+                                                        {user?.role === 'admin' && (
+                                                            <>
+                                                                <button
+                                                                    className="btn-icon"
+                                                                    style={{ border: "1px solid rgba(56,189,248,0.3)", color: "var(--cy)", background: "rgba(56,189,248,0.1)", width: 34, height: 34, marginRight: 8 }}
+                                                                    onClick={() => setTestModal({ test: s, editMode: false })}
+                                                                    title="צפה בשאלות (Admin)"
+                                                                >
+                                                                    <Eye size={14} />
+                                                                </button>
+                                                                <button
+                                                                    className="btn-icon"
+                                                                    style={{ border: "1px solid rgba(56,189,248,0.3)", color: "var(--cy)", background: "rgba(56,189,248,0.1)", width: 34, height: 34 }}
+                                                                    onClick={() => setTestModal({ test: JSON.parse(JSON.stringify(s)), editMode: true })}
+                                                                    title="ערוך מבחן (Admin)"
+                                                                >
+                                                                    <Edit2 size={14} />
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                        <button
+                                                            className="btn-icon"
+                                                            style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)", width: 34, height: 34, marginLeft: 4 }}
+                                                            onClick={() => deleteSet(s.id)}
+                                                            disabled={aiLoading || isUploadingDoc}
+                                                            title="מחק מבחן"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
                                                     </div>
-
-                                                    {/* כפתור "התחל אימון" */}
-                                                    <button
-                                                        className="btn-icon"
-                                                        style={{ border: "1px solid var(--bdr)", color: "var(--t0)", background: "var(--s1)", width: 34, height: 34 }}
-                                                        onClick={() => { setSelectedTest && setSelectedTest(s); setScreen('training'); }}
-                                                        title="התחל אימון במבחן זה"
-                                                    >
-                                                        <Play size={14} style={{ position: "relative", left: 1 }} />
-                                                    </button>
-
-                                                    {/* כפתור "צפה בשאלות" לאדמין */}
-                                                    {user?.role === 'admin' && (
-                                                        <>
-                                                            <button
-                                                                className="btn-icon"
-                                                                style={{ border: "1px solid rgba(56,189,248,0.3)", color: "var(--cy)", background: "rgba(56,189,248,0.1)", width: 34, height: 34, marginRight: 8 }}
-                                                                onClick={() => setTestModal({ test: s, editMode: false })}
-                                                                title="צפה בשאלות (Admin)"
-                                                            >
-                                                                <Eye size={14} />
-                                                            </button>
-                                                            <button
-                                                                className="btn-icon"
-                                                                style={{ border: "1px solid rgba(56,189,248,0.3)", color: "var(--cy)", background: "rgba(56,189,248,0.1)", width: 34, height: 34 }}
-                                                                onClick={() => setTestModal({ test: JSON.parse(JSON.stringify(s)), editMode: true })}
-                                                                title="ערוך מבחן (Admin)"
-                                                            >
-                                                                <Edit2 size={14} />
-                                                            </button>
-                                                        </>
-                                                    )}
-
-                                                    <button
-                                                        className="btn-icon"
-                                                        style={{ border: "none", color: "var(--err)", background: "rgba(248,113,113,0.08)", width: 34, height: 34, marginLeft: 4 }}
-                                                        onClick={() => deleteSet(s.id)}
-                                                        disabled={aiLoading || isUploadingDoc}
-                                                        title="מחק מבחן"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
