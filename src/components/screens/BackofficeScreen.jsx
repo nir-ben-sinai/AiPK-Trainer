@@ -453,7 +453,7 @@ export function BackofficeScreen({
                                         disabled={aiLoading || isUploadingDoc}
                                     >
                                         {isUploadingDoc ? <Loader2 className="spin" size={16} /> : <Upload size={16} />}
-                                        {isUploadingDoc ? "מעלה מסמך לשרת..." : "העלה ספרייה חדשה"}
+                                        {isUploadingDoc ? "הספר בדרך..." : "העלה ספרייה חדשה"}
                                     </button>
                                     <input
                                         ref={aiFileInputRef}
@@ -516,6 +516,12 @@ export function BackofficeScreen({
                                         </div>
                                     ) : (
                                         <div style={{ display: "grid", gap: 8 }}>
+                                            {isUploadingDoc && (
+                                                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "rgba(56,189,248,0.03)", border: "1px dashed var(--cy)", borderRadius: 6, opacity: 0.8 }}>
+                                                    <Loader2 size={18} className="spin" color="var(--cy)" />
+                                                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>הספר בדרך...</div>
+                                                </div>
+                                            )}
                                             {libraryDocs.map(d => (
                                                 <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: d.uploadedById ? "rgba(249,115,22,0.06)" : "var(--s2)", border: `1px solid ${d.uploadedById ? "rgba(249,115,22,0.35)" : "var(--bdr)"}`, borderRadius: 6 }}>
                                                     <BookOpen size={18} color={d.uploadedById ? "#f97316" : "var(--cy)"} style={{ flexShrink: 0 }} />

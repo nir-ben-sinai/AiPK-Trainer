@@ -203,7 +203,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                     style={{ display: "flex", gap: 8, alignItems: "center", ...(!user?.canGenerateTests && { opacity: 0.8, filter: "grayscale(0.5)" }) }}
                                 >
                                     {isUploadingDoc ? <Loader2 size={15} className="spin" /> : (user?.canGenerateTests ? <Upload size={15} /> : <Lock size={15} />)}
-                                    העלאת ספר
+                                    {isUploadingDoc ? "הספר בדרך..." : "העלאת ספר"}
                                 </button>
                                 <button className="btn btn-primary" onClick={() => { if (user?.canGenerateTests) { setDiyModalOpen(true); } else { alert("יצירת מבדקים אישיים דורשת מנוי או אישור מנהל."); } }} style={{ display: "flex", gap: 8, alignItems: "center", ...(!user?.canGenerateTests && { opacity: 0.8, filter: "grayscale(0.5)" }) }}>
                                     {user?.canGenerateTests ? <Wand2 size={15} /> : <Lock size={15} />} צור לעצמך מבחן
@@ -211,22 +211,32 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                             </div>
                         </div>
                         <div className="topics-grid">
-                            {visibleDocs.length === 0 ? (
+                            {visibleDocs.length === 0 && !isUploadingDoc ? (
                                 <div style={{ gridColumn: "1/-1", padding: "20px", textAlign: "center", color: "var(--t3)", fontSize: 13, border: "1px dashed var(--bdr)", borderRadius: 8 }}>
                                     אין עדיין ספרים בספרייה האישית שלך. העלה קובץ PDF כדי להתחיל.
                                 </div>
-                            ) : visibleDocs.map(d => {
-                                // ספר של משתמש רגיל (לא אדמין) = כתום, אחרים = כחול
-                                const isUserDoc = d.uploadedById && d.uploaderRole !== "admin";
-                                const accentColor = isUserDoc ? "#f97316" : "var(--cy)";
-                                const accentBg = isUserDoc ? "rgba(249,115,22,0.1)" : "rgba(56,189,248,0.1)";
-                                return (
-                                <div key={d.id} className="card card-hover" style={{ padding: "16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, position: "relative", border: isUserDoc ? "1px solid rgba(249,115,22,0.25)" : undefined }} onClick={() => window.open(d.fileUrl, '_blank')}>
-                                    <div style={{ padding: 10, background: accentBg, borderRadius: 8, color: accentColor, flexShrink: 0 }}>
-                                        <FileText size={20} />
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                            ) : (
+                                <>
+                                    {isUploadingDoc && (
+                                        <div className="card" style={{ padding: "16px", display: "flex", alignItems: "center", gap: 14, background: "rgba(56,189,248,0.03)", border: "1px dashed var(--cy)", borderRadius: 12, opacity: 0.8 }}>
+                                            <div style={{ padding: 10, background: "rgba(56,189,248,0.1)", borderRadius: 8, color: "var(--cy)" }}>
+                                                <Loader2 size={20} className="spin" />
+                                            </div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)" }}>הספר בדרך...</div>
+                                        </div>
+                                    )}
+                                    {visibleDocs.map(d => {
+                                        // ספר של משתמש רגיל (לא אדמין) = כתום, אחרים = כחול
+                                        const isUserDoc = d.uploadedById && d.uploaderRole !== "admin";
+                                        const accentColor = isUserDoc ? "#f97316" : "var(--cy)";
+                                        const accentBg = isUserDoc ? "rgba(249,115,22,0.1)" : "rgba(56,189,248,0.1)";
+                                        return (
+                                            <div key={d.id} className="card card-hover" style={{ padding: "16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, position: "relative", border: isUserDoc ? "1px solid rgba(249,115,22,0.25)" : undefined }} onClick={() => window.open(d.fileUrl, '_blank')}>
+                                                <div style={{ padding: 10, background: accentBg, borderRadius: 8, color: accentColor, flexShrink: 0 }}>
+                                                    <FileText size={20} />
+                                                </div>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                                             <div className="rb" style={{ fontSize: 14, fontWeight: 700, color: "var(--t0)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.filename}</div>
                                             {isUserDoc && (
                                                 <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: "rgba(249,115,22,0.15)", color: "#f97316", fontWeight: 700, whiteSpace: "nowrap" }}>
@@ -267,6 +277,8 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                 </div>
                                 );
                             })}
+                                </>
+                            )}
                         </div>
                     </div>
 

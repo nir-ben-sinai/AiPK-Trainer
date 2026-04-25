@@ -295,6 +295,7 @@ export default function App() {
             if (uploadRes.error) throw new Error(`Storage upload failed: ${uploadRes.error.message}`);
 
             const { data: urlData } = supabase.storage.from('pdfs').getPublicUrl(uniqueName);
+            
             const dbEntry = { 
                 filename: file.name, 
                 file_url: urlData.publicUrl,
@@ -303,7 +304,15 @@ export default function App() {
                 uploader_role: user?.role || "user"
             };
             
-            const dbRes = await supabase.from('library_docs').insert([dbEntry]).select().single();
+            let dbRes = await supabase.from('library_docs').insert([dbEntry]).select().single();
+            
+            // פלבאק למקרה שהעמודה uploader_role עדיין לא קיימת ב-DB של המשתמש
+            if (dbRes.error && dbRes.error.message?.includes("uploader_role")) {
+                console.warn("uploader_role column missing, retrying without it...");
+                const { uploader_role, ...entryWithoutRole } = dbEntry;
+                dbRes = await supabase.from('library_docs').insert([entryWithoutRole]).select().single();
+            }
+
             if (dbRes.error) {
                 console.error("DB Error:", dbRes.error);
                 throw new Error(`Database record creation failed: ${dbRes.error.message}`);
@@ -319,14 +328,15 @@ export default function App() {
                 uploadedAt: dbRes.data.created_at || new Date().toISOString(),
             };
 
+            // עדכון הסטייט מיד כדי שהמשתמש יראה את הספר
+            setLibraryDocs(prev => [newDoc, ...prev]);
+
+            // קריאת תוכן הקובץ במידה ונרצה לעשות עליו AI מיד ללא הורדה מחדש
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = () => {
-                setLibraryDocs(prev => [{ ...newDoc, base64Data: reader.result.split(',')[1] }, ...prev]);
-            };
-            reader.onerror = () => {
-                // גם אם קריאת base64 נכשלת — הספר כבר הועלה, נוסיף ללא base64
-                setLibraryDocs(prev => [newDoc, ...prev]);
+                const base64 = reader.result.split(',')[1];
+                setLibraryDocs(prev => prev.map(d => d.id === newDoc.id ? { ...d, base64Data: base64 } : d));
             };
         } catch (e) { setUploadError("שגיאה בהעלאה"); }
         setIsUploadingDoc(false);
@@ -614,7 +624,7 @@ export default function App() {
             {screen === "backoffice" && (() => {
                 const completedSessions = DB.sessions.filter(s => s.status === 'completed');
                 const calculatedAvgSc = completedSessions.length ? Math.round(completedSessions.reduce((acc, s) => acc + s.score, 0) / completedSessions.length) : 0;
-                return <BackofficeScreen user={user} setScreen={setScreen} setUser={setUser} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={completedSessions} avgSc={calculatedAvgSc} uploadedSets={uploadedSets} updateSet={saveTestUpdate} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} toggleUserAi={toggleUserAi} tick={tick} />;
+                return <BackofficeScreen user={user} setScreen={setScreen} setUser={setUser} boTab={boTab} setBoTab={setBoTab} dbTable={dbTable} setDbTable={setDbTable} done={completedSessions} avgSc={calculatedAvgSc} uploadedSets={uploadedSets} updateSet={saveTestUpdate} libraryDocs={libraryDocs} processAiFile={processAiFile} addLibraryDoc={addLibraryDoc} deleteLibraryDoc={deleteLibraryDoc} aiLoading={aiLoading} deleteSet={deleteSet} deleteUserRecord={deleteUserRecord} toggleUserAi={toggleUserAi} tick={tick} isUploadingDoc={isUploadingDoc} />;
             })()}
         </>
     );
