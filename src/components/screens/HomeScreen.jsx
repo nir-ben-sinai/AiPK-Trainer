@@ -227,7 +227,10 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                     )}
                                     {visibleDocs.map(d => {
                                         // ספר של משתמש רגיל (לא אדמין) = כתום, אחרים = כחול
-                                        const isUserDoc = d.uploadedById && d.uploaderRole !== "admin";
+                                        const isUserDoc = d.uploadedById && 
+                                                        d.uploaderRole !== "admin" && 
+                                                        d.uploadedByName !== "Admin" && 
+                                                        d.uploadedByName !== "מנהל מערכת";
                                         const accentColor = isUserDoc ? "#f97316" : "var(--cy)";
                                         const accentBg = isUserDoc ? "rgba(249,115,22,0.1)" : "rgba(56,189,248,0.1)";
                                         return (
