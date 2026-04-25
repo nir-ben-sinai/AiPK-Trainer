@@ -307,10 +307,23 @@ export default function App() {
                 throw new Error(`Database record creation failed: ${dbRes.error.message}`);
             }
 
+            const newDoc = {
+                id: dbRes.data.id,
+                filename: dbRes.data.filename || file.name,
+                fileUrl: dbRes.data.file_url,
+                uploadedById: dbRes.data.uploaded_by_id,
+                uploadedByName: dbRes.data.uploaded_by_name,
+                uploadedAt: dbRes.data.created_at || new Date().toISOString(),
+            };
+
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = () => {
-                setLibraryDocs(prev => [{ ...data, base64Data: reader.result.split(',')[1] }, ...prev]);
+                setLibraryDocs(prev => [{ ...newDoc, base64Data: reader.result.split(',')[1] }, ...prev]);
+            };
+            reader.onerror = () => {
+                // גם אם קריאת base64 נכשלת — הספר כבר הועלה, נוסיף ללא base64
+                setLibraryDocs(prev => [newDoc, ...prev]);
             };
         } catch (e) { setUploadError("שגיאה בהעלאה"); }
         setIsUploadingDoc(false);

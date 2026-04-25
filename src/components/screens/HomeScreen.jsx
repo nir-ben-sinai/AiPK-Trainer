@@ -55,8 +55,8 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
 
     const visibleDocs = useMemo(() => {
         const docs = libraryDocs || [];
-        if (user?.role === "admin") return docs;
-        return docs.filter(d => !d.uploadedById || d.uploadedById === user?.id);
+        // כולם רואים את כל הספרים (ספרי אדמין + ספרים שהמשתמש עצמו העלה)
+        return docs;
     }, [libraryDocs, user]);
 
     let rank = "מתלמד";
@@ -287,11 +287,12 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                     <div className="rb" style={{ fontSize: 13, color: "var(--t2)", paddingRight: 34 }}>מעבר למבדק אקראי מתוך בחירת הנושא.</div>
                                 </div>
                                 <div className="topics-grid">
-                                    {uploadedSets.filter(t => !t.createdBy || t.createdBy === user?.id).map(t => {
+                                    {uploadedSets.map(t => {
                                         const mySess = DB.sessions.filter(s => s.userId === user?.id && s.topicId === t.id && s.status === "completed");
                                         const incSess = myIncomplete.find(s => s.topicId === t.id);
                                         const best = mySess.length ? Math.max(...mySess.map(s => s.score)) : null;
-                                        const isMyTest = t.createdBy === user?.id;
+                                        // סימון כתום רק למבחנים שיצר משתמש רגיל (לא אדמין)
+                                        const isMyTest = t.createdBy === user?.id && user?.role !== "admin";
                                         return (
                                             <div key={t.id} className="card card-hover" style={{ padding: "18px", cursor: "pointer", position: "relative", border: incSess ? "1px solid rgba(234,179,8,0.4)" : (isMyTest ? "1px solid rgba(249,115,22,0.35)" : undefined), background: incSess ? "linear-gradient(135deg, rgba(234,179,8,0.07), rgba(234,179,8,0.02))" : (isMyTest ? "linear-gradient(135deg, rgba(249,115,22,0.06), rgba(249,115,22,0.02))" : undefined) }} onClick={() => startSession(t)}>
                                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
