@@ -39,8 +39,8 @@ export function FeedbackModal({ isOpen, onClose, onSubmit, user }) {
     if (!isOpen) return null;
 
     return (
-        <div className="modal-overlay" style={{ zIndex: 3000 }}>
-            <div className="modal-card" style={{ maxWidth: 450, padding: 0, overflow: 'hidden' }}>
+        <div className="modal-bg" style={{ zIndex: 99999 }}>
+            <div className="modal-box" style={{ maxWidth: 450, padding: 0, overflow: 'hidden' }}>
                 <div style={{ padding: '20px 24px', background: 'var(--s2)', borderBottom: '1px solid var(--bdr)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(56,189,248,0.1)', color: 'var(--cy)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
