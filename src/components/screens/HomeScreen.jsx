@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target, Search, Wand2, Lock, XCircle, Loader2, Sparkles, Upload, Clock, User } from "lucide-react";
+import { Settings, LogOut, BookOpen, ChevronRight, FileText, Activity, Crosshair, Award, LifeBuoy, TrendingUp, Target, Search, Wand2, Lock, XCircle, Loader2, Sparkles, Upload, Clock, User, Trash2 } from "lucide-react";
 import { Logo } from "../Logo";
 import { DB, fmt, sc } from "../../lib/mockBackend";
 import { useTableData } from "../../hooks/useTableData";
@@ -16,7 +16,7 @@ const SortableTH = ({ label, sortKey, config, requestSort, style }) => {
     );
 };
 
-export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [], processAiFile, aiLoading, addLibraryDoc, isUploadingDoc }) {
+export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSession, done, allTopics, libraryDocs = [], processAiFile, aiLoading, addLibraryDoc, isUploadingDoc, deleteLibraryDoc, deleteSet }) {
     const fileInputRef = useRef(null);
     const myAllSessions = done.filter(s => s?.userId === user?.id);
     const myDone = myAllSessions.filter(s => s.status === "completed");
@@ -248,6 +248,16 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                     >
                                         <ChevronRight size={16} color="var(--cy)" />
                                     </button>
+                                    {d.uploadedById === user?.id && deleteLibraryDoc && (
+                                        <button
+                                            className="btn-icon"
+                                            style={{ background: "rgba(248,113,113,0.08)", borderRadius: 8, width: 32, height: 32, border: "1px solid rgba(248,113,113,0.2)" }}
+                                            onClick={(e) => { e.stopPropagation(); deleteLibraryDoc(d.id); }}
+                                            title="מחק ספר"
+                                        >
+                                            <Trash2 size={14} color="#f87171" />
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -283,7 +293,7 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                         const best = mySess.length ? Math.max(...mySess.map(s => s.score)) : null;
                                         const isMyTest = t.createdBy === user?.id;
                                         return (
-                                            <div key={t.id} className="card card-hover" style={{ padding: "18px", cursor: "pointer", border: incSess ? "1px solid rgba(234,179,8,0.4)" : (isMyTest ? "1px solid rgba(249,115,22,0.35)" : undefined), background: incSess ? "linear-gradient(135deg, rgba(234,179,8,0.07), rgba(234,179,8,0.02))" : (isMyTest ? "linear-gradient(135deg, rgba(249,115,22,0.06), rgba(249,115,22,0.02))" : undefined) }} onClick={() => startSession(t)}>
+                                            <div key={t.id} className="card card-hover" style={{ padding: "18px", cursor: "pointer", position: "relative", border: incSess ? "1px solid rgba(234,179,8,0.4)" : (isMyTest ? "1px solid rgba(249,115,22,0.35)" : undefined), background: incSess ? "linear-gradient(135deg, rgba(234,179,8,0.07), rgba(234,179,8,0.02))" : (isMyTest ? "linear-gradient(135deg, rgba(249,115,22,0.06), rgba(249,115,22,0.02))" : undefined) }} onClick={() => startSession(t)}>
                                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                                                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                                         <span className="tag tag-cyan" style={{ fontSize: 9 }}>{t.filename}</span>
@@ -298,7 +308,19 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                                             </span>
                                                         )}
                                                     </div>
-                                                    {best !== null && <span className="tag tag-cyan" style={{ fontSize: 11, fontWeight: 700 }}>{best}%</span>}
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                        {best !== null && <span className="tag tag-cyan" style={{ fontSize: 11, fontWeight: 700 }}>{best}%</span>}
+                                                        {isMyTest && deleteSet && (
+                                                            <button
+                                                                className="btn-icon"
+                                                                style={{ background: "rgba(248,113,113,0.08)", borderRadius: 6, width: 26, height: 26, border: "1px solid rgba(248,113,113,0.2)", flexShrink: 0 }}
+                                                                onClick={(e) => { e.stopPropagation(); deleteSet(t.id); }}
+                                                                title="מחק מבחן"
+                                                            >
+                                                                <Trash2 size={12} color="#f87171" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div className="rb" style={{ fontSize: 14, fontWeight: 600, color: "var(--t0)", marginBottom: 6, lineHeight: 1.3 }}>{t.title}</div>
                                                 <div className="rb" style={{ fontSize: 12, color: "var(--t2)", lineHeight: 1.55, marginBottom: 14 }}>{t.description}</div>
