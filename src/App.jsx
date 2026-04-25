@@ -92,7 +92,8 @@ export default function App() {
                         uploadedAt: d.created_at, 
                         mimeType: "application/pdf",
                         uploadedById: d.uploaded_by_id,
-                        uploadedByName: d.uploaded_by_name
+                        uploadedByName: d.uploaded_by_name,
+                        uploaderRole: d.uploader_role || null
                     })));
                 }
 
@@ -298,7 +299,8 @@ export default function App() {
                 filename: file.name, 
                 file_url: urlData.publicUrl,
                 uploaded_by_id: user?.id,
-                uploaded_by_name: user?.name
+                uploaded_by_name: user?.name,
+                uploader_role: user?.role || "user"
             };
             
             const dbRes = await supabase.from('library_docs').insert([dbEntry]).select().single();
@@ -313,6 +315,7 @@ export default function App() {
                 fileUrl: dbRes.data.file_url,
                 uploadedById: dbRes.data.uploaded_by_id,
                 uploadedByName: dbRes.data.uploaded_by_name,
+                uploaderRole: dbRes.data.uploader_role || user?.role,
                 uploadedAt: dbRes.data.created_at || new Date().toISOString(),
             };
 

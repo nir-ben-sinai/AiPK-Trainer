@@ -55,8 +55,9 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
 
     const visibleDocs = useMemo(() => {
         const docs = libraryDocs || [];
-        // כולם רואים את כל הספרים (ספרי אדמין + ספרים שהמשתמש עצמו העלה)
-        return docs;
+        if (user?.role === "admin") return docs; // אדמין רואה הכל
+        // משתמש רגיל: רואה ספרי מערכת (ללא uploadedById) + ספרי שהאדמין העלה + ספרים שהוא עצמו העלה
+        return docs.filter(d => !d.uploadedById || d.uploaderRole === "admin" || d.uploadedById === user?.id);
     }, [libraryDocs, user]);
 
     let rank = "מתלמד";
@@ -214,23 +215,28 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                 <div style={{ gridColumn: "1/-1", padding: "20px", textAlign: "center", color: "var(--t3)", fontSize: 13, border: "1px dashed var(--bdr)", borderRadius: 8 }}>
                                     אין עדיין ספרים בספרייה האישית שלך. העלה קובץ PDF כדי להתחיל.
                                 </div>
-                            ) : visibleDocs.map(d => (
-                                <div key={d.id} className="card card-hover" style={{ padding: "16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, position: "relative" }} onClick={() => window.open(d.fileUrl, '_blank')}>
-                                    <div style={{ padding: 10, background: d.uploadedById ? "rgba(34, 197, 94, 0.1)" : "rgba(56, 189, 248, 0.1)", borderRadius: 8, color: d.uploadedById ? "#10b981" : "var(--cy)", flexShrink: 0 }}>
+                            ) : visibleDocs.map(d => {
+                                // ספר של משתמש רגיל (לא אדמין) = כתום, אחרים = כחול
+                                const isUserDoc = d.uploadedById && d.uploaderRole !== "admin";
+                                const accentColor = isUserDoc ? "#f97316" : "var(--cy)";
+                                const accentBg = isUserDoc ? "rgba(249,115,22,0.1)" : "rgba(56,189,248,0.1)";
+                                return (
+                                <div key={d.id} className="card card-hover" style={{ padding: "16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, position: "relative", border: isUserDoc ? "1px solid rgba(249,115,22,0.25)" : undefined }} onClick={() => window.open(d.fileUrl, '_blank')}>
+                                    <div style={{ padding: 10, background: accentBg, borderRadius: 8, color: accentColor, flexShrink: 0 }}>
                                         <FileText size={20} />
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                                             <div className="rb" style={{ fontSize: 14, fontWeight: 700, color: "var(--t0)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.filename}</div>
-                                            {d.uploadedById === user?.id && (
-                                                <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: "rgba(34, 197, 94, 0.15)", color: "#10b981", fontWeight: 700, whiteSpace: "nowrap" }}>
-                                                    העלאה שלי
+                                            {isUserDoc && (
+                                                <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: "rgba(249,115,22,0.15)", color: "#f97316", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                                    {d.uploadedById === user?.id ? "העלאתי אני" : d.uploadedByName || "משתמש"}
                                                 </span>
                                             )}
                                         </div>
                                         {d.uploadedById ? (
                                             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 12px" }}>
-                                                <div style={{ fontSize: 11, color: "#f97316", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                                                <div style={{ fontSize: 11, color: accentColor, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                                                     <User size={11} /> {d.uploadedByName || "משתמש"}
                                                 </div>
                                                 <div style={{ fontSize: 10, color: "var(--t3)", display: "flex", alignItems: "center", gap: 4 }}>
@@ -243,12 +249,12 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                     </div>
                                     <button 
                                         className="btn-icon" 
-                                        style={{ background: "rgba(56, 189, 248, 0.1)", borderRadius: 8, width: 32, height: 32 }}
+                                        style={{ background: accentBg, borderRadius: 8, width: 32, height: 32 }}
                                         onClick={(e) => { e.stopPropagation(); window.open(d.fileUrl, '_blank'); }}
                                     >
-                                        <ChevronRight size={16} color="var(--cy)" />
+                                        <ChevronRight size={16} color={accentColor} />
                                     </button>
-                                    {d.uploadedById === user?.id && deleteLibraryDoc && (
+                                    {d.uploadedById === user?.id && isUserDoc && deleteLibraryDoc && (
                                         <button
                                             className="btn-icon"
                                             style={{ background: "rgba(248,113,113,0.08)", borderRadius: 8, width: 32, height: 32, border: "1px solid rgba(248,113,113,0.2)" }}
@@ -259,7 +265,8 @@ export function HomeScreen({ user, setScreen, setUser, uploadedSets, startSessio
                                         </button>
                                     )}
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
 
