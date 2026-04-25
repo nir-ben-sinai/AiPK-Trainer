@@ -523,11 +523,8 @@ export function BackofficeScreen({
                                                 </div>
                                             )}
                                             {libraryDocs.map(d => {
-                                                // הגדרה קפדנית יותר: רק אם זה משתמש רגיל ולא אדמין
-                                                const isUserDoc = d.uploadedById && 
-                                                                d.uploaderRole !== "admin" && 
-                                                                d.uploadedByName !== "Admin" && 
-                                                                d.uploadedByName !== "מנהל מערכת";
+                                                // הגדרה סופית: רק אם זה משתמש רגיל ולא אדמין
+                                                const isUserDoc = d.uploadedById && d.uploaderRole !== "admin";
                                                 const accentColor = isUserDoc ? "#f97316" : "var(--cy)";
                                                 const accentBg = isUserDoc ? "rgba(249,115,22,0.06)" : "var(--s2)";
                                                 const accentBdr = isUserDoc ? "rgba(249,115,22,0.35)" : "var(--bdr)";
@@ -587,10 +584,7 @@ export function BackofficeScreen({
                                     ) : (
                                         <div style={{ display: "grid", gap: 8 }}>
                                             {uploadedSets.map(s => {
-                                                const isUserTest = s.createdBy && 
-                                                                 s.creatorRole !== "admin" && 
-                                                                 s.creatorName !== "Admin" && 
-                                                                 s.creatorName !== "מנהל מערכת";
+                                                const isUserTest = s.createdBy && s.creatorRole !== "admin";
                                                 const testAccent = isUserTest ? "#f97316" : "var(--ok)";
                                                 const testBg = isUserTest ? "rgba(249,115,22,0.06)" : "var(--s2)";
                                                 const testBdr = isUserTest ? "rgba(249,115,22,0.35)" : "var(--bdr)";

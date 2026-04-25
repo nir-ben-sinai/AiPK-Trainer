@@ -85,16 +85,22 @@ export default function App() {
                 ]);
 
                 if (docsRes.data) {
-                    setLibraryDocs(docsRes.data.map(d => ({ 
-                        id: d.id, 
-                        filename: d.filename, 
-                        fileUrl: d.file_url, 
-                        uploadedAt: d.created_at, 
-                        mimeType: "application/pdf",
-                        uploadedById: d.uploaded_by_id,
-                        uploadedByName: d.uploaded_by_name,
-                        uploaderRole: d.uploader_role || null
-                    })));
+                    setLibraryDocs(docsRes.data.map(d => {
+                        const rawRole = (d.uploader_role || "").toLowerCase().trim();
+                        const rawName = (d.uploaded_by_name || "").toLowerCase().trim();
+                        // נרמול: אם השם הוא admin או התפקיד הוא admin - זה תמיד admin
+                        const normalizedRole = (rawRole === "admin" || rawName === "admin" || rawName === "מנהל מערכת") ? "admin" : (rawRole || "user");
+                        return { 
+                            id: d.id, 
+                            filename: d.filename, 
+                            fileUrl: d.file_url, 
+                            uploadedAt: d.created_at, 
+                            mimeType: "application/pdf",
+                            uploadedById: d.uploaded_by_id,
+                            uploadedByName: d.uploaded_by_name,
+                            uploaderRole: normalizedRole
+                        };
+                    }));
                 }
 
                 if (examsRes.data) {
@@ -102,7 +108,10 @@ export default function App() {
                         const qs = e.questions || [];
                         const uniqueTopics = [...new Set(qs.map(q => q.topic || "כללי"))];
                         const chapters = uniqueTopics.map((t, idx) => ({ id: `ch_${idx}`, title: t }));
-                        return { id: e.id, title: e.title, description: `${qs.length} שאלות (AI)`, isUploaded: true, filename: e.pdf_url, uploadedAt: e.created_at, chapters, questions: qs, createdBy: e.created_by, creatorName: e.creator_name, creatorRole: e.creator_role || null };
+                        const rawRole = (e.creator_role || "").toLowerCase().trim();
+                        const rawName = (e.creator_name || "").toLowerCase().trim();
+                        const normalizedRole = (rawRole === "admin" || rawName === "admin" || rawName === "מנהל מערכת") ? "admin" : (rawRole || "user");
+                        return { id: e.id, title: e.title, description: `${qs.length} שאלות (AI)`, isUploaded: true, filename: e.pdf_url, uploadedAt: e.created_at, chapters, questions: qs, createdBy: e.created_by, creatorName: e.creator_name, creatorRole: normalizedRole };
                     });
                     setUploadedSets(formattedExams);
                     DB.uploadedSets = formattedExams;
