@@ -404,7 +404,7 @@ export default function App() {
             }
 
             const set = { id: genId("us"), title: options.customTitle || doc.filename, questions: qs, chapters: [], createdBy: options.createdBy, creatorName: options.creatorName, creatorRole: user?.role };
-            await supabase.from('exams').insert([{ 
+            let { error: insertError } = await supabase.from('exams').insert([{ 
                 title: set.title, 
                 questions: qs, 
                 pdf_url: doc.filename,
@@ -412,6 +412,20 @@ export default function App() {
                 creator_name: options.creatorName,
                 creator_role: user?.role || "user"
             }]);
+
+            if (insertError) {
+                console.warn("Supabase insert failed, retrying without creator columns...", insertError);
+                // Fallback in case the new columns don't exist in the DB
+                const { error: fallbackError } = await supabase.from('exams').insert([{ 
+                    title: set.title, 
+                    questions: qs, 
+                    pdf_url: doc.filename
+                }]);
+                
+                if (fallbackError) {
+                    throw new Error(`שגיאה בשמירת המבחן במסד הנתונים: ${fallbackError.message || '400 Bad Request'}`);
+                }
+            }
             // Optional: Also save the creator into the persistent mock supabase table if column is configured, 
             // but for frontend reactivity adding it to `set` is what matters.
             setUploadedSets(prev => [set, ...prev]);
@@ -420,6 +434,15 @@ export default function App() {
             return true;
         } catch (e) {
             console.error(e);
+            let userMsg = "ה-AI לא הצליח לחלץ שאלות. ייתכן שהמסמך סרוק כתמונה או שגיאת תקשורת.";
+            if (e.message?.includes("503") || e.message?.includes("high demand")) {
+                userMsg = "השרתים של גוגל (AI) עמוסים כרגע ויש תור ארוך. אנא נסה שוב בעוד מספר דקות.";
+            } else if (e.message?.includes("API key")) {
+                userMsg = "שגיאה במפתח ה-API. פנה למנהל המערכת.";
+            } else if (e.message) {
+                userMsg = `שגיאה בתהליך המחולל: ${e.message}`;
+            }
+            alert(userMsg);
             setAiLoading(false);
             return false;
         }
@@ -555,9 +578,20 @@ export default function App() {
             const correctAnswer = questions[qIdx]?.correctAnswer || questions[qIdx]?.answer || "";
             // שולפים את המקור החדש מתוך השאלה
             const reference = questions[qIdx]?.reference || "לא צוין סעיף מדויק";
+            const currentQuestionText = questions[qIdx]?.question || "";
 
-            // מעבירים למאמן את המקור במקום מחרוזת ריקה!
-            const reply = await evalAnswerWithGemini(reference, questions[qIdx]?.question || "", correctAnswer, ans);
+            // חילוץ היסטוריית השיחה עבור שאלה זו
+            let questionStartIndex = msgs.length - 1;
+            while (questionStartIndex >= 0) {
+                if (msgs[questionStartIndex].role === "ai" && msgs[questionStartIndex].text === currentQuestionText) {
+                    break;
+                }
+                questionStartIndex--;
+            }
+            const qHistory = msgs.slice(Math.max(0, questionStartIndex + 1)).map(m => `${m.role === 'user' ? 'מתאמן' : 'מאמן'}: ${m.text}`).join('\n');
+
+            // מעבירים למאמן את המקור ואת ההיסטוריה המצטברת!
+            const reply = await evalAnswerWithGemini(reference, currentQuestionText, correctAnswer, ans, qHistory);
 
             const isCorrect = reply.includes("[CORRECT]");
             const cleanReply = reply.replace(/\[.*\]/g, "").trim();

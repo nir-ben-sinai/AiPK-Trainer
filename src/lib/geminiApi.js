@@ -7,7 +7,7 @@ if (apiKey === "dummy_key_to_prevent_init_crash") {
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
-const MODEL_NAME = "gemini-3-flash-preview";
+const MODEL_NAME = "gemini-2.0-flash";
 
 // 1. הפונקציה לחילול שאלות ממסמך
 export async function generateQuestionsFromDocument(content, topic, options = {}) {
@@ -68,7 +68,7 @@ export async function generateQuestionsFromDocument(content, topic, options = {}
 
   } catch (error) {
     console.error("❌ שגיאה במחולל המבחנים:", error);
-    return [];
+    throw error;
   }
 }
 
@@ -86,7 +86,7 @@ export async function generateDebriefWithGemini(quizResults, traineeName) {
 }
 
 // 3. הפונקציה לבדיקת התשובה בזמן אמת בצ'אט
-export async function evalAnswerWithGemini(reference, question, correctAnswer, userAnswer) {
+export async function evalAnswerWithGemini(reference, question, correctAnswer, userAnswer, historyText = "") {
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `
@@ -94,15 +94,18 @@ export async function evalAnswerWithGemini(reference, question, correctAnswer, u
       המשתמש נשאל את השאלה הבאה: "${question}".
       התשובה הנכונה הרשמית היא: "${correctAnswer}".
       מקור התשובה במסמך הנהלים (סעיף/פרק): "${reference}".
-      המשתמש ענה: "${userAnswer}".
       
-      המשימה שלך היא להעריך האם תשובת המשתמש נכונה (העיקר שהרעיון המרכזי זהה).
+      ${historyText ? `היסטוריית השיחה על שאלה זו עד כה:\n${historyText}\n` : ""}
+      
+      התשובה/התוספת הנוכחית של המשתמש: "${userAnswer}".
+      
+      המשימה שלך היא להעריך האם בסך הכל (בשילוב התשובות הקודמות והתוספת הנוכחית) המשתמש ענה נכון על השאלה (העיקר שהרעיון המרכזי זהה).
       
       חוקי ברזל מחמירים:
-      1. אם התשובה נכונה: התחל את התגובה במילה [CORRECT] ואחריה חיזוק חיובי קצר מאוד (משפט אחד). במצב כזה בלבד מותר לך לציין את המקור (סעיף ${reference}).
-      2. אם התשובה שגויה או חלקית: אל תשתמש ב-[CORRECT].
-      3. איסור חשיפה (SOP חמור): אם המשתמש טעה, לעולם אל תחשוף את התשובה הנכונה, ולעולם אל תחשוף את מספר הסעיף (${reference})! 
-      4. הכוונה תמציתית בלבד: עליך להיות קצר ולעניין. משפט אחד או שניים לכל היותר! במקום לחשוף את התשובה, הסבר במשפט קצר מאוד למה הכיוון שגוי, ושאל שאלת הכוונה קצרה כדי שיחשוב לבד. 
+      1. אם התשובה המצטברת נכונה ומלאה: התחל את התגובה במילה [CORRECT] ואחריה חיזוק חיובי קצר מאוד (משפט אחד). במצב כזה בלבד מותר לך לציין את המקור (סעיף ${reference}).
+      2. אם התשובה שגויה או שעדיין חסר חלק מהותי: אל תשתמש ב-[CORRECT].
+      3. איסור חשיפה (SOP חמור): לעולם אל תחשוף את התשובה הנכונה, ולעולם אל תחשוף את מספר הסעיף (${reference})! 
+      4. הכוונה תמציתית בלבד: עליך להיות קצר ולעניין. משפט אחד או שניים לכל היותר! בהתבסס על ההיסטוריה והתוספת החדשה, הסבר במשפט מה עדיין חסר או שגוי ושאל שאלת הכוונה קצרה כדי שישלים את החסר. אל תחזור על דברים שכבר אמרת בעבר.
       5. אל תרחיב, אל תחזור על דברים ואל תחפור. היה חד, תמציתי וממוקד.
     `;
     const result = await model.generateContent(prompt);
