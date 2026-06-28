@@ -475,6 +475,7 @@ export default function App() {
             sess.correctCount = correctCount;
             sess.totalQuestions = total;
             sess.answeredCount = correctCount; // לוגים נכונים מכל הסשנים (DB.logs מצטבר)
+            sess.chatHistory = msgs; // שמירת היסטוריית הצ'אט המלאה
 
             // שמירה ב-Supabase: גם בעמודת data וגם בעמודת score נפרדת
             await supabase
@@ -517,16 +518,29 @@ export default function App() {
             const answeredCount = existingIncomplete.answeredCount || sessionLogs.length;
 
             // שחזור היסטוריית שיחה מהלוגים
-            const restoredMsgs = [];
-            for (const log of sessionLogs) {
-                restoredMsgs.push({ role: "ai", text: log.question });
-                restoredMsgs.push({ role: "user", text: log.answer });
-                restoredMsgs.push({
-                    role: "ai",
-                    text: log.status === "correct"
-                        ? "✅ תשובה נכונה!"
-                        : `תשובה נכונה: ${log.correctAnswer || ""}`
-                });
+            let restoredMsgs = [];
+            let needsNextQuestion = true;
+            
+            if (existingIncomplete.chatHistory && existingIncomplete.chatHistory.length > 0) {
+                restoredMsgs = existingIncomplete.chatHistory;
+                const lastMsg = restoredMsgs[restoredMsgs.length - 1];
+                // אם ההודעה האחרונה הייתה הודעת הצלחה, נצטרך להוסיף את השאלה הבאה
+                if (lastMsg && (lastMsg.text.includes("תשובה נכונה") || lastMsg.text === "סיימת!")) {
+                    needsNextQuestion = true;
+                } else {
+                    needsNextQuestion = false;
+                }
+            } else {
+                for (const log of sessionLogs) {
+                    restoredMsgs.push({ role: "ai", text: log.question });
+                    restoredMsgs.push({ role: "user", text: log.answer });
+                    restoredMsgs.push({
+                        role: "ai",
+                        text: log.status === "correct"
+                            ? "✅ תשובה נכונה!"
+                            : `תשובה נכונה: ${log.correctAnswer || ""}`
+                    });
+                }
             }
 
             // עדכון סטטוס ל-active מחדש
@@ -552,7 +566,7 @@ export default function App() {
             setMsgs([
                 { role: "system", text: `▶️ ממשיך מבחן מהנקודה שעצרת — ענית על ${answeredCount} שאלות מתוך ${t.questions.length}` },
                 ...restoredMsgs,
-                { role: "ai", text: allQuestions[resumeIdx]?.question || "✅ סיימת את כל השאלות!" }
+                ...(needsNextQuestion ? [{ role: "ai", text: allQuestions[resumeIdx]?.question || "✅ סיימת את כל השאלות!" }] : [])
             ]);
             setQAttempts(0);
             setScreen("training");
