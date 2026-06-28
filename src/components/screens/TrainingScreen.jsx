@@ -88,6 +88,16 @@ export function TrainingScreen({
                     >
                         סיים אימון
                     </button>
+                    {topic?.filename && (
+                        <button
+                            onClick={() => window.open(topic.filename, '_blank')}
+                            style={{ padding: "8px 16px", borderRadius: "6px", background: "transparent", border: "1px solid #38bdf8", color: "#38bdf8", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
+                            title="פתח את ספר המקור"
+                        >
+                            <Eye size={16} />
+                            ספר מקור
+                        </button>
+                    )}
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "15px", color: "#f8fafc", fontWeight: "bold" }}>
