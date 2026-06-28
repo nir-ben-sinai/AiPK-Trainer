@@ -7,7 +7,7 @@ if (apiKey === "dummy_key_to_prevent_init_crash") {
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
-const MODEL_NAME = "gemini-1.5-flash";
+const MODEL_NAME = "gemini-1.5-flash-latest";
 
 // 1. הפונקציה לחילול שאלות ממסמך
 export async function generateQuestionsFromDocument(content, topic, options = {}) {
