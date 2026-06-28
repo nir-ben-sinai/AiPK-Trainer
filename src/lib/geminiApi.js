@@ -9,16 +9,16 @@ if (apiKey === "dummy_key_to_prevent_init_crash") {
 const genAI = new GoogleGenerativeAI(apiKey);
 
 const FALLBACK_MODELS = [
-  "gemini-3-flash",
   "gemini-3-flash-preview", 
   "gemini-2.5-flash",
-  "gemini-1.5-pro",
+  "gemini-2.0-flash",
   "gemini-1.5-flash",
-  "gemini-1.5-flash-latest"
+  "gemini-1.5-pro",
+  "gemini-1.0-pro"
 ];
 
 async function executeWithFallback(actionFn) {
-  let lastError;
+  let bestError = null;
   for (const modelName of FALLBACK_MODELS) {
     try {
       console.log(`Trying Gemini with model: ${modelName}`);
@@ -26,15 +26,20 @@ async function executeWithFallback(actionFn) {
       return await actionFn(model);
     } catch (error) {
       console.warn(`Model ${modelName} failed:`, error.message);
-      lastError = error;
-      if (error.message.includes("404") || error.message.includes("429") || error.message.includes("503") || error.message.includes("quota")) {
-        continue;
-      } else {
-        throw error;
+      
+      // If the error is 503 (Busy) or 429 (Quota), this model actually exists for this API key!
+      // We prioritize throwing this error instead of a generic 404 Not Found from a later model.
+      if (error.message.includes("503") || error.message.includes("429")) {
+        if (!bestError || !bestError.message.includes("503")) {
+          bestError = error; // 503 is the most "hopeful" error because it's just temporary.
+        }
+      } else if (!bestError) {
+        bestError = error;
       }
+      continue;
     }
   }
-  throw lastError;
+  throw bestError;
 }
 
 // 1. הפונקציה לחילול שאלות ממסמך
