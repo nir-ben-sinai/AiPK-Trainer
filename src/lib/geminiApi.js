@@ -7,7 +7,35 @@ if (apiKey === "dummy_key_to_prevent_init_crash") {
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
-const MODEL_NAME = "gemini-1.5-flash-latest";
+
+const FALLBACK_MODELS = [
+  "gemini-3-flash",
+  "gemini-3-flash-preview", 
+  "gemini-2.5-flash",
+  "gemini-1.5-pro",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-latest"
+];
+
+async function executeWithFallback(actionFn) {
+  let lastError;
+  for (const modelName of FALLBACK_MODELS) {
+    try {
+      console.log(`Trying Gemini with model: ${modelName}`);
+      const model = genAI.getGenerativeModel({ model: modelName });
+      return await actionFn(model);
+    } catch (error) {
+      console.warn(`Model ${modelName} failed:`, error.message);
+      lastError = error;
+      if (error.message.includes("404") || error.message.includes("429") || error.message.includes("503") || error.message.includes("quota")) {
+        continue;
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw lastError;
+}
 
 // 1. הפונקציה לחילול שאלות ממסמך
 export async function generateQuestionsFromDocument(content, topic, options = {}) {
@@ -15,8 +43,6 @@ export async function generateQuestionsFromDocument(content, topic, options = {}
     const count = options.count || 5;
     const notes = options.notes ? `דגשים מיוחדים: ${options.notes}` : "";
     const qType = options.qType || "raw";
-
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
     let typeInstructions = "";
     if (qType === "sbt") {
@@ -59,7 +85,7 @@ export async function generateQuestionsFromDocument(content, topic, options = {}
       payload = [prompt + "\n\nטקסט המקור שעליו אתה נבחן:\n---\n" + content + "\n---"];
     }
 
-    const result = await model.generateContent(payload);
+    const result = await executeWithFallback(model => model.generateContent(payload));
     const response = await result.response;
     let text = response.text();
 
@@ -75,9 +101,8 @@ export async function generateQuestionsFromDocument(content, topic, options = {}
 // 2. הפונקציה ליצירת תחקיר אישי
 export async function generateDebriefWithGemini(quizResults, traineeName) {
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `בהתבסס על תוצאות המבחן הבאות של ${traineeName}: ${JSON.stringify(quizResults)}, צור תחקיר אישי, קצר ומעודד בעברית. הדגש נקודות לשימור ונקודות לשיפור.`;
-    const result = await model.generateContent(prompt);
+    const result = await executeWithFallback(model => model.generateContent(prompt));
     return (await result.response).text();
   } catch (error) {
     console.error("שגיאה ביצירת תחקיר:", error);
@@ -88,14 +113,13 @@ export async function generateDebriefWithGemini(quizResults, traineeName) {
 // 3. הפונקציה לבדיקת התשובה בזמן אמת בצ'אט
 export async function evalAnswerWithGemini(reference, question, correctAnswer, userAnswer, historyText = "") {
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = `
       אתה מאמן ידע מקצועי וסבלני. 
       המשתמש נשאל את השאלה הבאה: "${question}".
       התשובה הנכונה הרשמית היא: "${correctAnswer}".
       מקור התשובה במסמך הנהלים (סעיף/פרק): "${reference}".
       
-      ${historyText ? `היסטוריית השיחה על שאלה זו עד כה:\n${historyText}\n` : ""}
+      ${historyText ? \`היסטוריית השיחה על שאלה זו עד כה:\\n\${historyText}\\n\` : ""}
       
       התשובה/התוספת הנוכחית של המשתמש: "${userAnswer}".
       
@@ -108,7 +132,7 @@ export async function evalAnswerWithGemini(reference, question, correctAnswer, u
       4. הכוונה תמציתית בלבד: עליך להיות קצר ולעניין. משפט אחד או שניים לכל היותר! בהתבסס על ההיסטוריה והתוספת החדשה, הסבר במשפט מה עדיין חסר או שגוי ושאל שאלת הכוונה קצרה כדי שישלים את החסר. אל תחזור על דברים שכבר אמרת בעבר.
       5. אל תרחיב, אל תחזור על דברים ואל תחפור. היה חד, תמציתי וממוקד.
     `;
-    const result = await model.generateContent(prompt);
+    const result = await executeWithFallback(model => model.generateContent(prompt));
     return (await result.response).text();
   } catch (error) {
     console.error("שגיאה בבדיקת התשובה:", error);
@@ -120,27 +144,25 @@ export async function evalAnswerWithGemini(reference, question, correctAnswer, u
 
 export async function startInteractiveDebrief(sessionLogsText, userReflections, userContext = {}) {
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-
     let reflectionText = "";
     if (userReflections.skipped) {
       reflectionText = "המתאמן בחר לדלג על מילוי תחקיר עצמי וביקש לקבל משוב אוטומטי וסיכום ביצועים ישירות מהמערכת.";
     } else {
-      reflectionText = `המתאמן התבקש לכתוב תחקיר עצמי לפני שהוא ניגש לדבר איתך, וזה מה שהוא כתב:
-      1. מה עשיתי טוב (לשימור): "${userReflections.good}"
-      2. מה אני צריך לשפר: "${userReflections.bad}"
-      3. מסקנות ולקחים: "${userReflections.takeaways}"`;
+      reflectionText = \`המתאמן התבקש לכתוב תחקיר עצמי לפני שהוא ניגש לדבר איתך, וזה מה שהוא כתב:
+      1. מה עשיתי טוב (לשימור): "\${userReflections.good}"
+      2. מה אני צריך לשפר: "\${userReflections.bad}"
+      3. מסקנות ולקחים: "\${userReflections.takeaways}"\`;
     }
 
-    const prompt = `
+    const prompt = \`
       אתה מאמן מקצועי בארגון מקצועי (התאם את עצמך למקצוע של המתאמן), שעורך עכשיו שיחת תחקיר קצרה לאחר סשן תרגול.
-      פרטי המתאמן: שם: ${userContext.name || "מתאמן"}, תפקיד: ${userContext.profession || "עובד מן המניין"}.
-      נושא המבחן/ספר ממנו נלקחו השאלות: ${userContext.topic || "כללי"}.
+      פרטי המתאמן: שם: \${userContext.name || "מתאמן"}, תפקיד: \${userContext.profession || "עובד מן המניין"}.
+      נושא המבחן/ספר ממנו נלקחו השאלות: \${userContext.topic || "כללי"}.
       
       תיעוד של השאלות והתשובות שלו בסשן זה (הכר את הביצועים שלו):
-      ${sessionLogsText}
+      \${sessionLogsText}
       
-      ${reflectionText}
+      \${reflectionText}
 
       משימתך בדיאלוג זה:
       1. חובה מחלטת: פתח את המשפט הראשון שלך במשפט חיובי, מחבק, ומעצים (ללא ציניות).
@@ -151,8 +173,9 @@ export async function startInteractiveDebrief(sessionLogsText, userReflections, 
       6. אל תשאיר אותו "תלוי" בסוף באופן מייגע, אלא נסה לסיים במתן לקח קונקרטי או טיפ קצר ולשאול האם הכל ברור או שהוא רוצה להעמיק.
       
       הנחיות סגנון: ענה בעברית, ללא חזרות מיותרות, וקצר (פסקה עד שתיים לכל היותר).
-    `;
-    const result = await model.generateContent(prompt);
+    \`;
+    
+    const result = await executeWithFallback(model => model.generateContent(prompt));
     return (await result.response).text();
   } catch (error) {
     console.error("שגיאה ביצירת התחקיר:", error);
@@ -162,16 +185,17 @@ export async function startInteractiveDebrief(sessionLogsText, userReflections, 
 
 export async function continueInteractiveDebrief(history, newMsg) {
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-
     // ממירים את היסטוריית השיחה מהמסך לפורמט של ג'מיני
     const formattedHistory = history.map(msg => ({
       role: msg.role === "ai" ? "model" : "user",
       parts: [{ text: msg.text }]
     }));
 
-    const chat = model.startChat({ history: formattedHistory });
-    const result = await chat.sendMessage(newMsg);
+    const result = await executeWithFallback(async model => {
+      const chat = model.startChat({ history: formattedHistory });
+      return await chat.sendMessage(newMsg);
+    });
+    
     return (await result.response).text();
   } catch (error) {
     console.error("שגיאה בהמשך התחקיר:", error);
