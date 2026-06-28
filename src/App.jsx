@@ -151,6 +151,17 @@ export default function App() {
                     });
                 }
                 DB.users = mergedUsers;
+                setUser(currentUser => {
+                    if (currentUser) {
+                        const updatedUser = mergedUsers.find(u => u.id === currentUser.id);
+                        if (updatedUser) {
+                            localStorage.setItem('aipk_user', JSON.stringify(updatedUser));
+                            return updatedUser;
+                        }
+                    }
+                    return currentUser;
+                });
+
 
                 DB.sessions = mergeData(DB.sessions, sessRes.data);
                 DB.logs = mergeData(DB.logs, logsRes.data);
