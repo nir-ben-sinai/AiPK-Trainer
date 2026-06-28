@@ -124,7 +124,7 @@ export async function evalAnswerWithGemini(reference, question, correctAnswer, u
       התשובה הנכונה הרשמית היא: "${correctAnswer}".
       מקור התשובה במסמך הנהלים (סעיף/פרק): "${reference}".
       
-      ${historyText ? \`היסטוריית השיחה על שאלה זו עד כה:\\n\${historyText}\\n\` : ""}
+      ${historyText ? `היסטוריית השיחה על שאלה זו עד כה:\n${historyText}\n` : ""}
       
       התשובה/התוספת הנוכחית של המשתמש: "${userAnswer}".
       
@@ -153,21 +153,21 @@ export async function startInteractiveDebrief(sessionLogsText, userReflections, 
     if (userReflections.skipped) {
       reflectionText = "המתאמן בחר לדלג על מילוי תחקיר עצמי וביקש לקבל משוב אוטומטי וסיכום ביצועים ישירות מהמערכת.";
     } else {
-      reflectionText = \`המתאמן התבקש לכתוב תחקיר עצמי לפני שהוא ניגש לדבר איתך, וזה מה שהוא כתב:
-      1. מה עשיתי טוב (לשימור): "\${userReflections.good}"
-      2. מה אני צריך לשפר: "\${userReflections.bad}"
-      3. מסקנות ולקחים: "\${userReflections.takeaways}"\`;
+      reflectionText = `המתאמן התבקש לכתוב תחקיר עצמי לפני שהוא ניגש לדבר איתך, וזה מה שהוא כתב:
+      1. מה עשיתי טוב (לשימור): "${userReflections.good}"
+      2. מה אני צריך לשפר: "${userReflections.bad}"
+      3. מסקנות ולקחים: "${userReflections.takeaways}"`;
     }
 
-    const prompt = \`
+    const prompt = `
       אתה מאמן מקצועי בארגון מקצועי (התאם את עצמך למקצוע של המתאמן), שעורך עכשיו שיחת תחקיר קצרה לאחר סשן תרגול.
-      פרטי המתאמן: שם: \${userContext.name || "מתאמן"}, תפקיד: \${userContext.profession || "עובד מן המניין"}.
-      נושא המבחן/ספר ממנו נלקחו השאלות: \${userContext.topic || "כללי"}.
+      פרטי המתאמן: שם: ${userContext.name || "מתאמן"}, תפקיד: ${userContext.profession || "עובד מן המניין"}.
+      נושא המבחן/ספר ממנו נלקחו השאלות: ${userContext.topic || "כללי"}.
       
       תיעוד של השאלות והתשובות שלו בסשן זה (הכר את הביצועים שלו):
-      \${sessionLogsText}
+      ${sessionLogsText}
       
-      \${reflectionText}
+      ${reflectionText}
 
       משימתך בדיאלוג זה:
       1. חובה מחלטת: פתח את המשפט הראשון שלך במשפט חיובי, מחבק, ומעצים (ללא ציניות).
@@ -178,7 +178,7 @@ export async function startInteractiveDebrief(sessionLogsText, userReflections, 
       6. אל תשאיר אותו "תלוי" בסוף באופן מייגע, אלא נסה לסיים במתן לקח קונקרטי או טיפ קצר ולשאול האם הכל ברור או שהוא רוצה להעמיק.
       
       הנחיות סגנון: ענה בעברית, ללא חזרות מיותרות, וקצר (פסקה עד שתיים לכל היותר).
-    \`;
+    `;
     
     const result = await executeWithFallback(model => model.generateContent(prompt));
     return (await result.response).text();
