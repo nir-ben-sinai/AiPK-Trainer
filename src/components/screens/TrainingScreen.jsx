@@ -203,13 +203,25 @@ export function TrainingScreen({
                             <Send size={24} style={{ transform: "scaleX(-1)" }} />
                         </button>
 
-                        <input
+                        <textarea
+                            ref={(el) => {
+                                if (el) {
+                                    el.style.height = 'auto';
+                                    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+                                }
+                            }}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && !loading && input.trim() && inlineTimer === null && sendAnswer()}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    if (!loading && input.trim() && inlineTimer === null) sendAnswer();
+                                }
+                            }}
                             placeholder={inlineTimer !== null ? "המתן לשאלה הבאה..." : "הקלד את תשובתך ..."}
                             disabled={inlineTimer !== null}
-                            style={{ flex: 1, padding: "16px", borderRadius: "10px", border: "1px solid #1e293b", background: "#0f172a", color: "#fff", fontSize: "16px", outline: "none", opacity: inlineTimer !== null ? 0.5 : 1, minWidth: 0 }}
+                            rows={1}
+                            style={{ flex: 1, padding: "16px", borderRadius: "10px", border: "1px solid #1e293b", background: "#0f172a", color: "#fff", fontSize: "16px", outline: "none", opacity: inlineTimer !== null ? 0.5 : 1, minWidth: 0, resize: "none", overflowY: "auto", minHeight: "24px", boxSizing: "content-box", lineHeight: "1.5" }}
                         />
                     </div>
 

@@ -73,6 +73,17 @@ export default function App() {
 
     useEffect(() => { chatRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
+    // שמירה אוטומטית של היסטוריית הצ'אט בכל עדכון, כך שרענון לא ימחק אותה
+    useEffect(() => {
+        if (sessionId && msgs.length > 0) {
+            const sess = DB.sessions.find(s => s.id === sessionId);
+            if (sess) {
+                sess.chatHistory = msgs;
+                supabase.from('app_sessions').update({ data: sess }).eq('id', sessionId).catch(console.error);
+            }
+        }
+    }, [msgs, sessionId]);
+
     useEffect(() => {
         const fetchSupabaseData = async () => {
             console.log("App Version: 1.0.2 - 14:56");
